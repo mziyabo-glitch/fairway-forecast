@@ -89,8 +89,9 @@ function handleSearchInput(event) {
 // =================================================================
 
 function setup() {
-    // This check will pass when running on GitHub Pages (secure web server)
+    // Check for createClient. This will only run after DOM is ready.
     if (typeof createClient === 'function') {
+         // SUCCESS: Supabase is found. Initialize it.
          supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
          
          if (courseSearchInput) {
@@ -100,9 +101,10 @@ function setup() {
          searchResultsDiv.innerHTML = '<p class="no-results">Start typing to find a golf course.</p>';
 
     } else {
-         // This is the error you were seeing locally.
+         // FAILURE: If it reaches here, the CDN link is still blocked or failed to load.
          searchResultsDiv.innerHTML = '<p class="no-results error-message">Initialization failed: Supabase library did not load.</p>';
     }
 }
 
-window.onload = setup;
+// CRITICAL FIX: Use DOMContentLoaded instead of window.onload to ensure execution after HTML parsing.
+document.addEventListener('DOMContentLoaded', setup);
