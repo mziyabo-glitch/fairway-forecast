@@ -89,7 +89,7 @@ function handleSearchInput(event) {
 // =================================================================
 
 function setup() {
-    // Check for createClient. This will only run after DOM is ready.
+    // Check for createClient. This should now exist because the CDN link loaded first.
     if (typeof createClient === 'function') {
          // SUCCESS: Supabase is found. Initialize it.
          supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -101,10 +101,11 @@ function setup() {
          searchResultsDiv.innerHTML = '<p class="no-results">Start typing to find a golf course.</p>';
 
     } else {
-         // FAILURE: If it reaches here, the CDN link is still blocked or failed to load.
+         // FAILURE: If this happens, it is an environment/network issue outside the code.
          searchResultsDiv.innerHTML = '<p class="no-results error-message">Initialization failed: Supabase library did not load.</p>';
     }
 }
 
-// CRITICAL FIX: Use DOMContentLoaded instead of window.onload to ensure execution after HTML parsing.
-document.addEventListener('DOMContentLoaded', setup);
+// Using window.onload ensures execution after all resources (including CDN) are fully loaded.
+window.onload = setup;
+
