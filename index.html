@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fairway Forecast</title>
+
+  <link rel="stylesheet" href="./style.css?v=20" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Your config.js must define window.APP_CONFIG -->
+  <script src="./config.js?v=20"></script>
+  <script src="./script.js?v=20" defer></script>
+</head>
+
+<body>
+  <header class="header">
+    <div class="wrap headerRow">
+      <div class="brand">
+        <div class="brandName">Fairway Forecast</div>
+        <div class="brandTag">Golf-first weather + playability</div>
+      </div>
+
+      <div class="rightControls">
+        <select id="ddlUnits" class="select" aria-label="Units">
+          <option value="C">°C</option>
+          <option value="F">°F</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- SEARCH BAR (clean + simple) -->
+    <section class="searchCard card">
+      <div class="searchGrid">
+        <!-- Location -->
+        <div class="field">
+          <label for="txtSearch">Location</label>
+          <div class="inputRow">
+            <input id="txtSearch" class="input" placeholder="Search a city… e.g. London, GB" />
+            <button id="btnSearch" class="btn">Search</button>
+            <button id="btnGeo" class="btn ghost" title="Use my location">📍</button>
+          </div>
+        </div>
+
+        <!-- Course -->
+        <div class="field">
+          <label for="txtCourseFilter">Golf course</label>
+          <div class="inputRow">
+            <input id="txtCourseFilter" class="input" placeholder="Type to filter courses…" />
+            <select id="ddlCourses" class="select wide" aria-label="Courses">
+              <option value="">Courses (loading…)</option>
+            </select>
+            <button id="btnFavToggle" class="btn ghost" title="Add/remove favourite">★</button>
+          </div>
+
+          <div class="favRow">
+            <label for="ddlFavs" class="subLabel">Favourites</label>
+            <select id="ddlFavs" class="select wide" aria-label="Favourites">
+              <option value="">No favourites yet</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="statusRow">
+        <div id="appStatus" class="status"></div>
+        <div id="coursesStatus" class="status"></div>
+      </div>
+    </section>
+
+    <!-- CURRENT -->
+    <section class="card currentCard">
+      <div class="currentTop">
+        <div>
+          <div id="dvCityCountry" class="city">—</div>
+          <div id="dvCurrDate" class="date">—</div>
+        </div>
+
+        <div class="currentTemp">
+          <div class="iconWrap">
+            <img id="imgCurrentIcon" alt="" width="72" height="72" />
+          </div>
+          <div class="tempText"><span id="dvCurrTemp">--</span>°</div>
+        </div>
+      </div>
+
+      <div class="metricGrid">
+        <div class="metric">
+          <div class="metricLabel">Feels like</div>
+          <div class="metricValue"><span id="pFeelsLike">--</span>°</div>
+        </div>
+
+        <div class="metric">
+          <div class="metricLabel">Humidity</div>
+          <div class="metricValue"><span id="pHumidity">--</span>%</div>
+        </div>
+
+        <div class="metric">
+          <div class="metricLabel">Wind</div>
+          <div class="metricValue windLine">
+            <span id="pWind">--</span>
+            <span id="windArrowCurrent" class="windArrow" aria-hidden="true">➤</span>
+          </div>
+        </div>
+
+        <div class="metric">
+          <div class="metricLabel">Playability</div>
+          <div class="metricValue"><span id="playScore">--</span></div>
+          <div class="metricSub" id="playText">—</div>
+        </div>
+
+        <div class="metric">
+          <div class="metricLabel">Sunrise</div>
+          <div class="metricValue"><span id="pSunrise">--</span></div>
+          <div class="metricSub" id="pDayLength">Day length: --</div>
+        </div>
+
+        <div class="metric">
+          <div class="metricLabel">Sunset</div>
+          <div class="metricValue"><span id="pSunset">--</span></div>
+          <div class="metricSub">&nbsp;</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BEST TEE TIME -->
+    <section class="card teeCard">
+      <div class="teeTitle">Best tee time today</div>
+      <div class="teeMain">
+        <div class="teeLine">🕒 <b id="bestTeeTime">--</b></div>
+        <div class="teeLine">⭐ <b id="bestTeeScore">--</b></div>
+        <div class="teeReason" id="bestTeeReason">—</div>
+      </div>
+    </section>
+
+    <!-- DAILY -->
+    <section class="card">
+      <div class="sectionTitle">Daily forecast</div>
+      <div id="dailyForecast" class="dailyGrid"></div>
+      <div class="hint">Tip: click a day to switch the hourly view.</div>
+    </section>
+
+    <!-- HOURLY -->
+    <section class="card">
+      <div class="hourlyTop">
+        <div class="sectionTitle">Hourly forecast (3-hour blocks)</div>
+        <select id="ddlDay" class="select" aria-label="Choose day"></select>
+      </div>
+      <div id="hourlyHours" class="hourlyGrid"></div>
+    </section>
+
+  </main>
+</body>
+</html>
