@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fairway Forecast</title>
+
+  <link rel="stylesheet" href="./style.css?v=9" />
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js?v=9"></script>
+  <script src="./script.js?v=9" defer></script>
+</head>
+
+<body>
+  <a href="#main" class="visually-hidden skip-link">Skip to main content</a>
+
+  <header class="header wrapper">
+    <div class="header__content">
+      <h1 class="header__title">Fairway Forecast</h1>
+
+      <select class="dropdown header__dropdown" name="units" id="ddlUnits">
+        <option value="">Units</option>
+        <option value="C">°C</option>
+        <option value="F">°F</option>
+      </select>
+    </div>
+  </header>
+
+  <main id="main" class="main wrapper">
+    <section class="hero">
+      <div class="hero__content">
+        <h2 class="hero__title">How's the sky looking today?</h2>
+
+        <div class="hero__search">
+          <input class="hero__textbox" type="text" id="txtSearch" placeholder="Search for a place..." />
+          <button id="btnSearch" class="hero__button" type="button">Search</button>
+
+          <div class="courseSearch">
+            <input class="hero__textbox" type="text" id="txtCourseFilter" placeholder="Search a golf course (UK & Ireland)..." />
+            <select class="dropdown hero__dropdown" id="ddlCourses">
+              <option value="">Courses (loading...)</option>
+            </select>
+          </div>
+        </div>
+
+        <p id="appStatus" class="status" aria-live="polite"></p>
+        <p id="coursesStatus" class="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <div class="dashboard">
+      <section class="current">
+        <h2 class="visually-hidden">Current Location Temperature</h2>
+
+        <div class="current__weather">
+          <div class="current__location">
+            <div id="dvCityCountry" class="current__city">—</div>
+            <div id="dvCurrDate" class="current__date">—</div>
+          </div>
+
+          <div class="current__info">
+            <img class="current__icon" id="imgCurrentIcon" alt="" width="120" height="120" />
+            <div class="current__temp"><span id="dvCurrTemp">--</span>°</div>
+          </div>
+        </div>
+
+        <div class="current__conditions">
+          <div class="block current__condition">
+            <p class="current__condition-title">Feels Like</p>
+            <p class="current__condition-value"><span id="pFeelsLike">--</span>°</p>
+          </div>
+
+          <div class="block current__condition">
+            <p class="current__condition-title">Humidity</p>
+            <p class="current__condition-value"><span id="pHumidity">--</span>%</p>
+          </div>
+
+          <div class="block current__condition">
+            <p class="current__condition-title">Wind</p>
+            <p id="pWind" class="current__condition-value">--</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="daily">
+        <h2 class="section__title daily__title">Daily forecast</h2>
+        <div id="dailyForecast" class="daily__forecast"></div>
+        <p class="note">OpenWeather “forecast” provides ~5 days (3-hour blocks), so you’ll see up to 5 days here.</p>
+      </section>
+
+      <section class="hourly">
+        <div class="hourly__content">
+          <div class="hourly__header">
+            <h2 class="section__title hourly__title">Hourly forecast (3-hour blocks)</h2>
+            <select class="dropdown hourly__select" id="ddlDay"></select>
+          </div>
+
+          <div id="hourlyHours" class="hourly__hours"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
