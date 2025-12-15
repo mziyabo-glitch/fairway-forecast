@@ -1,0 +1,332 @@
+/* =========================================================
+   Fairway Forecast – Baby Blue UI
+   Clean, readable, modern
+   ========================================================= */
+
+/* ---------- CSS RESET ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ---------- THEME VARIABLES ---------- */
+:root {
+  --bg-dark: #0b2545;
+  --bg-mid: #163b66;
+  --bg-card: rgba(255, 255, 255, 0.12);
+  --bg-card-strong: rgba(255, 255, 255, 0.18);
+
+  --text-main: #eef6ff;
+  --text-muted: rgba(238, 246, 255, 0.75);
+  --text-dim: rgba(238, 246, 255, 0.55);
+
+  --accent-yellow: #ffd34d;
+  --accent-green: #4ade80;
+  --accent-blue: #60a5fa;
+
+  --border-soft: rgba(255, 255, 255, 0.18);
+
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+
+  --shadow-soft: 0 18px 40px rgba(0,0,0,0.25);
+}
+
+/* ---------- BASE ---------- */
+body {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text-main);
+
+  background:
+    radial-gradient(900px 600px at 35% 0%, rgba(255,255,255,0.12), transparent 55%),
+    linear-gradient(180deg, var(--bg-mid), var(--bg-dark));
+
+  min-height: 100vh;
+}
+
+/* ---------- WRAPPER ---------- */
+.wrapper {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  margin-bottom: 24px;
+}
+
+.header__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header__logo {
+  height: 40px;
+}
+
+/* ---------- TITLES ---------- */
+h1, h2, h3 {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.section__title {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+}
+
+/* ---------- HERO ---------- */
+.hero {
+  margin-bottom: 28px;
+}
+
+.hero__title {
+  font-size: 2.2rem;
+  margin-bottom: 16px;
+}
+
+/* ---------- INPUTS & SELECTS ---------- */
+.input,
+.select,
+.dropdown,
+.hero__textbox {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 1rem;
+}
+
+.input::placeholder,
+.hero__textbox::placeholder {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.input:focus,
+.select:focus,
+.dropdown:focus,
+.hero__textbox:focus {
+  outline: none;
+  border-color: var(--accent-yellow);
+  box-shadow: 0 0 0 3px rgba(255, 211, 77, 0.25);
+}
+
+/* ---------- BUTTONS ---------- */
+button,
+.hero__button {
+  background: linear-gradient(180deg, #ffd34d, #f5c73a);
+  color: #1a1a1a;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+/* ---------- DASHBOARD ---------- */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+/* ---------- CARDS ---------- */
+.block,
+.current,
+.daily,
+.hourly {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* ---------- CURRENT WEATHER ---------- */
+.current__weather {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.current__city {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.current__date {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.current__temp {
+  font-size: 3.4rem;
+  font-weight: 900;
+}
+
+.current__icon {
+  width: 110px;
+  height: 110px;
+}
+
+/* ---------- CONDITIONS ---------- */
+.current__conditions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.current__condition {
+  background: var(--bg-card-strong);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+}
+
+.current__condition-title {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.current__condition-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+/* ---------- PLAYABILITY ---------- */
+.playability {
+  background: linear-gradient(180deg, rgba(74,222,128,0.25), rgba(74,222,128,0.1));
+  border: 1px solid rgba(74,222,128,0.45);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-top: 16px;
+}
+
+.playability strong {
+  font-size: 1.2rem;
+}
+
+/* ---------- DAILY FORECAST ---------- */
+.daily__forecast {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+}
+
+.dayCard {
+  background: var(--bg-card-strong);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.dayCard:hover {
+  transform: translateY(-3px);
+}
+
+.dayTop {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 800;
+}
+
+.dayScore {
+  color: var(--accent-yellow);
+}
+
+.dayTemps {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 800;
+}
+
+/* ---------- HOURLY ---------- */
+.hourly__hours {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.hourCard {
+  background: var(--bg-card-strong);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-align: center;
+}
+
+.hourTime {
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.hourTemp {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.hourWind {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ---------- MAP CARD ---------- */
+.mapCard {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  height: 260px;
+}
+
+/* ---------- STATUS TEXT ---------- */
+#appStatus,
+#coursesStatus {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ---------- ACCESSIBILITY ---------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (min-width: 900px) {
+  .dashboard {
+    grid-template-columns: 2fr 1fr;
+  }
+
+  .hourly {
+    grid-column: span 2;
+  }
+}
