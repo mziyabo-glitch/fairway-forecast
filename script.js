@@ -248,7 +248,7 @@
 
     // ✅ Uses the new combined table name: golf_courses
     const { data, error } = await supabase
-      .from("golf_courses")
+      .from("uk_golf_courses")
       .select("name,country,latitude,longitude")
       .order("name", { ascending: true });
 
@@ -338,3 +338,4 @@
     }
   })();
 })();
+
