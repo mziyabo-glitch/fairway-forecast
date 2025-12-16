@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b3b7a" />
+  <meta name="description" content="Fairway Forecast — golf-first weather with playability, tee-time guidance and rain timeline." />
+
+  <title>Fairway Forecast</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="./style.css?v=1" />
+
+  <!-- Leaflet (map) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+    defer
+  ></script>
+
+  <!-- Supabase UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Config -->
+  <script src="./config.js?v=1"></script>
+
+  <!-- App -->
+  <script src="./app.js?v=1" defer></script>
+</head>
+
+<body>
+  <a class="sr-only skip-link" href="#forecast">Skip to forecast</a>
+
+  <div class="appShell">
+    <!-- Sticky top controls -->
+    <header class="topControls" role="banner">
+      <div class="topControls__inner">
+        <div class="brandRow">
+          <div class="brand">
+            <span class="brand__emoji" aria-hidden="true">⛳</span>
+            <div class="brand__text">
+              <div class="brand__name">Fairway Forecast</div>
+              <div class="brand__tag">Golf-first weather</div>
+            </div>
+          </div>
+
+          <div class="units">
+            <label class="sr-only" for="ddlUnits">Units</label>
+            <select id="ddlUnits" class="select select--pill" aria-label="Units">
+              <option value="C">°C</option>
+              <option value="F">°F</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Unified search + favourite -->
+        <section class="controlCard" aria-label="Search and favourites">
+          <div class="controlGrid">
+            <div class="field">
+              <label class="label" for="txtSearch">Search location or golf course</label>
+              <div class="inputRow">
+                <input
+                  id="txtSearch"
+                  class="input"
+                  type="text"
+                  placeholder="e.g. Swindon, GB or Royal Troon Golf Club"
+                  autocomplete="off"
+                />
+                <button id="btnSearch" class="btn" type="button">Search</button>
+              </div>
+
+              <div
+                id="searchSuggestions"
+                class="suggestions is-hidden"
+                role="listbox"
+                aria-label="Search suggestions"
+              ></div>
+            </div>
+
+            <div class="actions">
+              <button
+                id="btnGeo"
+                class="btn btn--ghost"
+                type="button"
+                title="Use my location"
+                aria-label="Use my location"
+              >⌖</button>
+
+              <button
+                id="btnFav"
+                class="btn btn--star"
+                type="button"
+                aria-label="Toggle favourite"
+                aria-pressed="false"
+                title="Favourite"
+              >☆</button>
+            </div>
+
+            <div class="field field--favs">
+              <label class="label" for="ddlFavs">Favourites</label>
+              <select id="ddlFavs" class="select" aria-label="Favourites">
+                <option value="">Select a favourite…</option>
+              </select>
+
+              <div class="metaRow">
+                <div id="coursesStatus" class="meta">Courses: loading…</div>
+                <div id="appStatus" class="meta"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tabs -->
+        <nav class="tabs" aria-label="Forecast views">
+          <button class="tab is-active" type="button" data-tab="current" aria-selected="true">Current</button>
+          <button class="tab" type="button" data-tab="hourly" aria-selected="false">Hourly</button>
+          <button class="tab" type="button" data-tab="daily" aria-selected="false">Daily</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="main" id="main">
+      <section class="stack">
+        <!-- HERO / CURRENT SUMMARY -->
+        <section class="card heroCard" aria-label="Current summary">
+          <div class="heroHead">
+            <div class="heroTitle">
+              <div class="kicker">Selected</div>
+              <h1 class="h1" id="h1Title">—</h1>
+              <div class="sub" id="subTitle">—</div>
+            </div>
+
+            <div class="tempBadge" aria-label="Current temperature">
+              <img id="imgIcon" class="tempBadge__icon" alt="" />
+              <div class="tempBadge__temp">
+                <span id="currTemp">--</span><span class="deg">°</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Playability HERO -->
+          <div class="playHero" id="playHero" aria-label="Playability score">
+            <div class="playHero__top">
+              <div class="playHero__title">Playability</div>
+              <button id="btnPlayInfo" class="iconBtn" type="button" aria-label="Playability info" aria-expanded="false">i</button>
+            </div>
+
+            <div class="playHero__score">
+              <span id="playScoreWhole">--</span><span class="playHero__slash">/</span><span class="playHero__ten">10</span>
+            </div>
+
+            <div class="playHero__band" id="playBand">—</div>
+            <div class="playHero__meta" id="playMeta">—</div>
+
+            <!-- SOLID POPOVER -->
+            <div id="playPopover" class="popover is-hidden" role="dialog" aria-hidden="true">
+              <div class="popover__head">
+                <div class="popover__title">What affects Playability?</div>
+                <button id="btnPlayClose" class="iconBtn iconBtn--close" type="button" aria-label="Close">×</button>
+              </div>
+              <ul class="popover__list">
+                <li><b>Wind</b>: stronger gusts reduce control and comfort.</li>
+                <li><b>Rain probability</b>: higher chance = higher disruption.</li>
+                <li><b>Temperature comfort</b>: very cold/very hot reduces enjoyment.</li>
+                <li><b>Ground conditions</b>: recent rain suggests softer/wetter turf.</li>
+              </ul>
+              <div class="popover__note">Score is a guide — always check radar and course updates.</div>
+            </div>
+          </div>
+
+          <!-- Conditions -->
+          <div class="metrics" aria-label="Conditions">
+            <div class="metric">
+              <div class="metric__k">Feels like</div>
+              <div class="metric__v"><span id="feelsLike">--</span>°</div>
+            </div>
+            <div class="metric">
+              <div class="metric__k">Humidity</div>
+              <div class="metric__v"><span id="humidity">--</span>%</div>
+            </div>
+            <div class="metric">
+              <div class="metric__k">Wind</div>
+              <div class="metric__v">
+                <span id="wind">--</span>
+                <span class="windDir" id="windDir">—</span>
+              </div>
+            </div>
+            <div class="metric">
+              <div class="metric__k">Sunrise / Sunset</div>
+              <div class="metric__v">
+                <span id="sunrise">--</span>
+                <span class="sep">•</span>
+                <span id="sunset">--</span>
+              </div>
+              <div class="metric__s" id="dayLength">Day length: —</div>
+            </div>
+          </div>
+
+          <!-- Best tee time -->
+          <div class="teeCard" id="teeCard" aria-label="Best tee time">
+            <div class="teeCard__top">
+              <div class="teeCard__title">Best tee time today</div>
+              <div class="teeCard__sun">
+                Sunrise <b id="teeSunrise">--</b> • Sunset <b id="teeSunset">--</b>
+              </div>
+            </div>
+            <div class="teeCard__main" id="teeMain">
+              <div class="teeTime" id="bestTeeTime">—</div>
+              <div class="teeScore" id="bestTeeScore">—</div>
+            </div>
+            <div class="teeCard__msg" id="teeMsg">—</div>
+          </div>
+        </section>
+
+        <!-- Forecast anchor -->
+        <section id="forecast" class="forecastAnchor" aria-label="Forecast">
+          <!-- Current panel -->
+          <section class="card panel is-active" data-panel="current">
+            <div class="cardHead">
+              <div class="cardTitle">Nowcast</div>
+              <div class="cardRight" id="rainMessage">—</div>
+            </div>
+
+            <div class="mapWrap">
+              <div id="map" class="map" aria-label="Map"></div>
+            </div>
+
+            <div class="timeline" id="rainTimeline" aria-label="Rain timeline"></div>
+          </section>
+
+          <!-- Hourly panel -->
+          <section class="card panel" data-panel="hourly">
+            <div class="cardHead">
+              <div class="cardTitle">Hourly forecast (3-hour blocks)</div>
+              <label class="sr-only" for="ddlDay">Select day</label>
+              <select id="ddlDay" class="select select--compact" aria-label="Select day"></select>
+            </div>
+
+            <div class="hourly" id="hourlyForecast" aria-live="polite"></div>
+          </section>
+
+          <!-- Daily panel -->
+          <section class="card panel" data-panel="daily">
+            <div class="cardHead">
+              <div class="cardTitle">Daily forecast</div>
+              <div class="cardHint">Up to 7 days (based on available data)</div>
+            </div>
+
+            <div class="daily" id="dailyForecast" aria-live="polite"></div>
+          </section>
+        </section>
+
+        <footer class="disclaimer">
+          <p>
+            <b>Disclaimer:</b> Fairway Forecast uses third-party weather data (OpenWeather).
+            Forecasts can change rapidly. Always check local conditions and course communications before play.
+          </p>
+        </footer>
+      </section>
+
+      <!-- Toast -->
+      <div class="toast is-hidden" id="toast" role="status" aria-live="polite"></div>
+    </main>
+  </div>
+</body>
+</html>
