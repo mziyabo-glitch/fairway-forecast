@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b1b2b" />
+  <meta name="description" content="Fairway Forecast - golf-first weather" />
+
+  <title>Fairway Forecast</title>
+
+  <!-- IMPORTANT:
+       We deliberately DO NOT reference favicon.ico or icon PNGs here,
+       because missing icon files cause 404 errors in the console on GitHub Pages.
+       We'll add icons later properly when you're ready to ship the PWA.
+  -->
+
+  <!-- Keep manifest (safe) -->
+  <link rel="manifest" href="./manifest.json" />
+
+  <!-- Your CSS -->
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <!-- Your app mounts/renders into the existing HTML your app.js expects.
+       If your existing build already has its own layout markup here,
+       keep it. If not, a simple root container is safe. -->
+  <div id="app"></div>
+
+  <!-- Main JS -->
+  <script src="./app.js" defer></script>
+</body>
+</html>
