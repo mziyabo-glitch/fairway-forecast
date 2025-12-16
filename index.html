@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b1b2b" />
+  <meta name="description" content="Fairway Forecast - golf-first weather" />
+
+  <title>Fairway Forecast</title>
+
+  <!-- No icons yet (pre-launch, avoids 404s) -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <h1>Fairway Forecast</h1>
+  </header>
+
+  <!-- Controls expected by app.js -->
+  <section class="controls">
+    <input id="txtSearch" placeholder="Search location or golf course" />
+    <button id="btnSearch">Search</button>
+
+    <select id="ddlUnits">
+      <option value="metric">°C</option>
+      <option value="imperial">°F</option>
+    </select>
+  </section>
+
+  <!-- Favourites -->
+  <section>
+    <select id="ddlFavs">
+      <option value="">Select a favourite…</option>
+    </select>
+  </section>
+
+  <!-- Tabs -->
+  <nav class="tabs">
+    <button id="tabCurrent">Current</button>
+    <button id="tabHourly">Hourly</button>
+    <button id="tabDaily">Daily</button>
+  </nav>
+
+  <!-- Output -->
+  <main id="results"></main>
+
+  <!-- Status / toast -->
+  <div id="status"></div>
+
+  <!-- Main JS -->
+  <script src="./app.js" defer></script>
+</body>
+</html>
