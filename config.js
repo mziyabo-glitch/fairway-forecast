@@ -13,5 +13,3 @@ window.APP_CONFIG = {
     country: "country"
   }
 };
-
-
