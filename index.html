@@ -1,104 +1,118 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Fairway Forecast</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Golf-specific weather with playability scores and best tee times." />
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Fairway Forecast</title>
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <!-- IMPORTANT: relative paths so GitHub Pages subfolder works -->
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
 
-  <!-- Font (single, reliable) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Config must load before app.js -->
+    <script defer src="./config.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="./styles.css" />
-</head>
+  <body>
+    <a class="skip-link" href="#forecast">Skip to forecast</a>
 
-<body>
-  <header class="topbar">
-    <div class="brand">
-      <img src="./favicon.svg" alt="Fairway Forecast logo" class="brand-logo" />
-      <span class="brand-name">Fairway Forecast</span>
-    </div>
-  </header>
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="./assets/logo.svg" alt="Fairway Forecast" />
+        <div class="brand-text">
+          <h1>Fairway Forecast</h1>
+          <p>Golf-first weather</p>
+        </div>
+      </div>
 
-  <main class="container">
+      <div class="unit-switch">
+        <label for="unitsSelect">Units</label>
+        <select id="unitsSelect" aria-label="Units">
+          <option value="metric" selected>°C</option>
+          <option value="imperial">°F</option>
+        </select>
+      </div>
+    </header>
 
-    <!-- SEARCH -->
-    <section class="search-card">
-      <div class="search-row">
-        <input
-          id="searchInput"
-          type="search"
-          placeholder="Search location or golf course"
-          autocomplete="off"
-        />
-        <button id="searchBtn" aria-label="Search">Search</button>
-        <button id="favBtn" class="fav-btn" title="Favourite">
-          ★
+    <main class="container">
+      <section class="panel">
+        <h2 class="sr-only">Search</h2>
+
+        <label class="label" for="searchInput">Search location or golf course</label>
+        <div class="search-row">
+          <input
+            id="searchInput"
+            type="text"
+            inputmode="search"
+            autocomplete="off"
+            placeholder="e.g. Swindon, GB or Royal Troon"
+          />
+          <button id="searchBtn" type="button">Search</button>
+        </div>
+
+        <p class="hint">
+          Tip: type a city/town for place results, or include
+          <strong>“golf / club / gc”</strong> for course-first results.
+        </p>
+
+        <div class="mini-actions">
+          <button id="geoBtn" type="button" title="Use my location" aria-label="Use my location">⌖</button>
+          <button id="favBtn" type="button" title="Save favourite" aria-label="Save favourite">★</button>
+        </div>
+
+        <div class="fav-row">
+          <label for="favouritesSelect">Favourites</label>
+          <select id="favouritesSelect">
+            <option value="">Select a favourite…</option>
+          </select>
+        </div>
+
+        <div class="status-row">
+          <span id="coursesStatus">Courses: loading…</span>
+          <span id="apiStatus" class="muted"></span>
+        </div>
+
+        <div class="tabs">
+          <button id="tabCurrent" type="button" class="tab is-active">Current</button>
+          <button id="tabHourly" type="button" class="tab">Hourly</button>
+          <button id="tabDaily" type="button" class="tab">Daily</button>
+        </div>
+      </section>
+
+      <section id="forecast" class="panel">
+        <h2 class="panel-title">Selected</h2>
+
+        <div id="selectedSummary" class="card"></div>
+
+        <div id="currentWrap" class="forecast-wrap"></div>
+        <div id="hourlyWrap" class="forecast-wrap" hidden></div>
+        <div id="dailyWrap" class="forecast-wrap" hidden></div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">Playability</h2>
+        <div id="playabilityWrap" class="card"></div>
+
+        <button id="playabilityInfoBtn" class="info-btn" type="button">
+          What affects Playability?
         </button>
-      </div>
-      <ul id="searchResults" class="search-results"></ul>
-    </section>
 
-    <!-- LOCATION -->
-    <section id="locationCard" class="card hidden">
-      <h1 id="locationName">—</h1>
-    </section>
+        <div id="playabilityInfo" class="modal" hidden>
+          <div class="modal-card">
+            <button id="playabilityCloseBtn" class="modal-close" type="button" aria-label="Close">×</button>
+            <h3>What affects Playability?</h3>
+            <ul>
+              <li><strong>Wind:</strong> stronger gusts reduce control and comfort.</li>
+              <li><strong>Rain probability:</strong> higher chance = higher disruption.</li>
+              <li><strong>Temperature comfort:</strong> very cold/very hot reduces enjoyment.</li>
+              <li><strong>Thunder risk:</strong> unsafe conditions = not playable.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
 
-    <!-- PLAYABILITY (HERO) -->
-    <section id="playabilityCard" class="card playability hidden">
-      <div class="playability-score" id="playabilityScore">–/10</div>
-      <div class="playability-label" id="playabilityLabel">—</div>
-      <button id="playabilityInfoBtn" class="info-btn">i</button>
-    </section>
-
-    <!-- PLAYABILITY EXPLANATION -->
-    <div id="playabilityInfo" class="info-panel hidden">
-      <div class="info-header">
-        <strong>How playability is calculated</strong>
-        <button id="playabilityCloseBtn">✕</button>
-      </div>
-      <ul>
-        <li>Wind speed & gusts</li>
-        <li>Rain probability & intensity</li>
-        <li>Temperature comfort</li>
-        <li>Ground conditions</li>
-      </ul>
-    </div>
-
-    <!-- BEST TEE TIME -->
-    <section id="teeTimeCard" class="card hidden">
-      <h2>Best Tee Time</h2>
-      <div id="bestTeeTime">—</div>
-      <div class="sun-times">
-        <span id="sunrise">Sunrise: —</span>
-        <span id="sunset">Sunset: —</span>
-      </div>
-    </section>
-
-    <!-- WEATHER DETAILS -->
-    <section id="weatherCard" class="card hidden">
-      <h2>Conditions</h2>
-      <div id="weatherSummary">—</div>
-    </section>
-
-    <!-- DISCLAIMER -->
-    <footer class="footer">
-      <small>
-        Weather data provided for guidance only. Always check local conditions before play.
-      </small>
-    </footer>
-  </main>
-
-  <!-- CONFIG (safe public config only) -->
-  <script src="./config.js"></script>
-
-  <!-- APP -->
-  <script src="./app.js"></script>
-</body>
+    <noscript>This site needs JavaScript enabled.</noscript>
+  </body>
 </html>
