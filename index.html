@@ -1,137 +1,100 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Fairway Forecast – Golf-first weather</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b3b7a" />
+  <meta name="description" content="Fairway Forecast — golf-first weather with playability and course search." />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Golf-first weather forecasts for courses and locations." />
+  <title>Fairway Forecast</title>
 
   <!-- Styles -->
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="./styles.css?v=1" />
 
-  <!-- Prevent favicon 404 noise -->
-  <link rel="icon" href="data:," />
-
+  <!-- App -->
+  <script src="./app.js?v=1" defer></script>
 </head>
+
 <body>
+  <a class="sr-only skip-link" href="#main">Skip to content</a>
 
-<a class="skip-link" href="#forecast">Skip to forecast</a>
-
-<header class="header">
-  <div class="brand">
-    <img
-      src="./logo.svg"
-      alt="Fairway Forecast"
-      class="logo"
-      onerror="this.style.display='none'"
-    />
-    <div class="brand-text">
-      <h1>Fairway Forecast</h1>
-      <p>Golf-first weather</p>
-    </div>
-  </div>
-</header>
-
-<main class="container">
-
-  <!-- Controls -->
-  <section class="controls">
-    <label for="units">
-      Units
-      <select id="units">
-        <option value="metric">°C</option>
-        <option value="imperial">°F</option>
-      </select>
-    </label>
-
-    <label for="searchInput">
-      Search location or golf course
-      <div class="search-row">
-        <input
-          id="searchInput"
-          type="text"
-          placeholder="e.g. Swindon, GB or Royal Troon"
-          autocomplete="off"
-        />
-        <button id="searchBtn">Search</button>
+  <header class="topbar" role="banner">
+    <div class="topbar__inner">
+      <div class="brand">
+        <div class="brand__mark" aria-hidden="true">⛳</div>
+        <div class="brand__text">
+          <div class="brand__name">Fairway Forecast</div>
+          <div class="brand__tag">Golf-first weather</div>
+        </div>
       </div>
-    </label>
 
-    <p class="hint">
-      Tip: type a city/town for place results, or include
-      <strong>golf / club / gc</strong> for course-first results.
-    </p>
-
-    <div class="actions">
-      <button id="geoBtn" title="Use my location">📍</button>
-      <button id="favAddBtn" title="Add to favourites">⭐</button>
-    </div>
-  </section>
-
-  <!-- Favourites -->
-  <section class="favourites">
-    <label for="favouritesSelect">
-      Favourites
-      <select id="favouritesSelect">
-        <option value="">Select a favourite…</option>
-      </select>
-    </label>
-  </section>
-
-  <!-- Courses -->
-  <section class="courses">
-    <div id="coursesStatus">Courses: loading…</div>
-  </section>
-
-  <!-- Tabs -->
-  <section class="tabs">
-    <button class="tab active" data-view="current">Current</button>
-    <button class="tab" data-view="hourly">Hourly</button>
-    <button class="tab" data-view="daily">Daily</button>
-  </section>
-
-  <!-- Forecast -->
-  <section id="forecast" class="forecast">
-    <div id="forecastContent">
-      <p class="muted">Select a location or course to view the forecast.</p>
-    </div>
-  </section>
-
-  <!-- Playability -->
-  <section class="playability">
-    <h2>
-      Playability
-      <button id="playabilityInfoBtn" aria-label="What affects playability">ℹ️</button>
-    </h2>
-
-    <div class="score">
-      <span id="playabilityScore">--</span>
-      <span class="out-of">/10</span>
+      <div class="units">
+        <label class="sr-only" for="unitsSelect">Units</label>
+        <select id="unitsSelect" class="select select--pill" aria-label="Units">
+          <option value="metric">°C</option>
+          <option value="imperial">°F</option>
+        </select>
+      </div>
     </div>
 
-    <div id="playabilityInfo" class="playability-info hidden">
-      <button id="closePlayabilityInfo">✕</button>
-      <ul>
-        <li><strong>Wind:</strong> stronger gusts reduce control and comfort.</li>
-        <li><strong>Rain probability:</strong> higher chance = higher disruption.</li>
-        <li><strong>Temperature comfort:</strong> very cold or very hot reduces enjoyment.</li>
-        <li><strong>Visibility:</strong> fog or heavy rain affects play.</li>
-      </ul>
+    <div class="controls">
+      <div class="controls__row">
+        <div class="field">
+          <label class="label" for="searchInput">Search location or golf course</label>
+          <div class="inputRow">
+            <input
+              id="searchInput"
+              class="input"
+              type="text"
+              placeholder="e.g. Swindon or Royal Troon"
+              autocomplete="off"
+            />
+            <button id="searchBtn" class="btn" type="button">Search</button>
+          </div>
+          <div class="hint">Tip: tap ⌖ for courses near you.</div>
+        </div>
+
+        <div class="actions">
+          <button
+            id="btnGeo"
+            class="btn btn--ghost"
+            type="button"
+            title="Courses near me"
+            aria-label="Courses near me"
+          >⌖</button>
+        </div>
+      </div>
+
+      <nav class="tabs" aria-label="Views">
+        <button id="tabCurrent" class="tab active" type="button" aria-selected="true">Current</button>
+        <button id="tabHourly" class="tab" type="button" aria-selected="false">Hourly</button>
+        <button id="tabDaily" class="tab" type="button" aria-selected="false">Daily</button>
+      </nav>
     </div>
-  </section>
+  </header>
 
-</main>
+  <main id="main" class="main">
+    <!-- Playability hero -->
+    <section class="hero" aria-label="Playability">
+      <div class="hero__card">
+        <div class="hero__kicker">Playability</div>
+        <div class="hero__score">
+          <span id="playabilityScore">--/10</span>
+        </div>
+        <div class="hero__sub">Search a course to calculate conditions.</div>
+      </div>
+    </section>
 
-<footer class="footer">
-  <p>
-    Data © OpenWeather · Built for golfers
-  </p>
-</footer>
+    <!-- Results / course list / weather cards render here -->
+    <section class="content" aria-label="Results">
+      <div id="results"></div>
+    </section>
 
-<!-- App -->
-<script src="./config.js"></script>
-<script src="./app.js" defer></script>
-
+    <footer class="footer">
+      <p>
+        <b>Disclaimer:</b> Fairway Forecast uses third-party weather and course data. Forecasts can change rapidly—always check local conditions and course updates.
+      </p>
+    </footer>
+  </main>
 </body>
 </html>
