@@ -59,6 +59,12 @@
     return u === "imperial" ? "imperial" : "metric";
   }
 
+  function getCourseCoords(course) {
+    const lat = Number(course?.lat ?? course?.latitude ?? course?.location?.lat ?? course?.location?.latitude);
+    const lon = Number(course?.lon ?? course?.lng ?? course?.longitude ?? course?.location?.lon ?? course?.location?.longitude);
+    return { lat, lon };
+  }
+
   /* ---------- DISTANCE (for “near me”) ---------- */
   function haversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -80,11 +86,7 @@
     const text = await res.text();
 
     let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
     if (!res.ok) {
       const msg = data?.error || data?.message || `Course search failed (${res.status})`;
@@ -97,17 +99,14 @@
   /* ---------- FETCH: WEATHER ---------- */
   async function fetchWeather(lat, lon) {
     const units = getUnits();
-    const url = `${API_BASE}/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=${encodeURIComponent(units)}`;
+    const url =
+      `${API_BASE}/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=${encodeURIComponent(units)}`;
 
     const res = await fetch(url, { method: "GET" });
     const text = await res.text();
 
     let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
     if (!res.ok) {
       const msg = data?.error || data?.message || `Weather failed (${res.status})`;
@@ -139,16 +138,13 @@
       if (temp < 4 || temp > 30) score -= 2;
       else if (temp < 7 || temp > 27) score -= 1;
     } else {
-      // imperial °F comfort
       if (temp < 40 || temp > 86) score -= 2;
       else if (temp < 45 || temp > 82) score -= 1;
     }
 
     if (rainish) score -= 3;
 
-    // Whole number 0..10
-    const whole = Math.max(0, Math.min(10, Math.round(score)));
-    return whole;
+    return Math.max(0, Math.min(10, Math.round(score)));
   }
 
   /* ---------- RENDER: COURSE LIST ---------- */
@@ -211,9 +207,11 @@
 
     const desc = esc(c.weather?.[0]?.description || "—");
     const temp = c.temp != null ? Math.round(c.temp) : "--";
+    const place = esc(c.name || selectedCourse?.name || selectedCourse?.course_name || "");
 
     resultsEl.innerHTML = `
       <div class="ff-card">
+        ${place ? `<div class="ff-sub muted">${place}</div>` : ""}
         <div class="ff-row">
           ${icon ? `<img class="ff-icon" alt="" src="${icon}" />` : ""}
           <div>
@@ -226,14 +224,16 @@
 
     const score = calculatePlayability(data);
     if (playabilityScoreEl) playabilityScoreEl.textContent = `${score}/10`;
+
+    // Helpful on mobile: bring forecast into view
+    resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   /* ---------- SELECT COURSE ---------- */
   async function selectCourse(course) {
     selectedCourse = course;
 
-    const lat = Number(course.lat ?? course.latitude ?? course.location?.lat);
-    const lon = Number(course.lon ?? course.lng ?? course.longitude ?? course.location?.lon);
+    const { lat, lon } = getCourseCoords(course);
 
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       showMessage("This course has no coordinates. Try a different result.");
@@ -288,29 +288,25 @@
         lastUserPos = { lat, lon };
 
         try {
-          // 1) Use Worker weather to derive nearest city name (no extra APIs needed)
+          // Use weather response name as a best-effort “nearby town”
           showMessage("Finding nearby town…");
           const w = await fetchWeather(lat, lon);
           const city = w?.current?.name || "";
           const country = w?.current?.sys?.country || "";
 
-          // If OpenWeather didn’t return a name, just prompt user to type
           if (!city) {
             showMessage("Couldn’t detect your nearest town. Please type a course name.");
             return;
           }
 
-          // 2) Search courses by that city name (then sort by distance)
           showMessage(`Searching courses near ${city}…`);
           const courses = await fetchCourses(`${city}${country ? ` ${country}` : ""}`);
 
           const withDistance = courses
             .map((c) => {
-              const cLat = Number(c.lat ?? c.location?.latitude);
-              const cLon = Number(c.lon ?? c.location?.longitude);
-              if (!Number.isFinite(cLat) || !Number.isFinite(cLon)) return null;
-              const d = haversineKm(lat, lon, cLat, cLon);
-              return { ...c, _distanceKm: d };
+              const cc = getCourseCoords(c);
+              if (!Number.isFinite(cc.lat) || !Number.isFinite(cc.lon)) return null;
+              return { ...c, _distanceKm: haversineKm(lat, lon, cc.lat, cc.lon) };
             })
             .filter(Boolean)
             .sort((a, b) => a._distanceKm - b._distanceKm);
@@ -343,14 +339,12 @@
     tabHourly?.addEventListener("click", () => {
       if (!lastWeather) return;
       setActiveTab(tabHourly);
-      // Hourly rendering can be added when your hourly container exists
       showMessage("Hourly view coming next (UI hook needed).");
     });
 
     tabDaily?.addEventListener("click", () => {
       if (!lastWeather) return;
       setActiveTab(tabDaily);
-      // Daily rendering can be added when your daily container exists
       showMessage("Daily view coming next (UI hook needed).");
     });
   }
@@ -364,7 +358,6 @@
   geoBtn?.addEventListener("click", handleCoursesNearMe);
 
   unitsSelect?.addEventListener("change", async () => {
-    // Re-fetch weather for selected course if units change
     if (!selectedCourse) return;
     await selectCourse(selectedCourse);
   });
@@ -372,7 +365,6 @@
   /* ---------- INIT ---------- */
   hookTabs();
 
-  // Never halt the app if some DOM is missing — just warn.
   if (!searchInput || !searchBtn || !resultsEl) {
     console.warn("Some expected DOM elements are missing. App will run in reduced mode.");
   }
