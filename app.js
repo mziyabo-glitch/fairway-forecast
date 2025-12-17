@@ -7,11 +7,9 @@
 (() => {
   "use strict";
 
-  /* ---------- CONFIG ---------- */
   const API_BASE = "https://fairway-forecast-api.mziyabo.workers.dev";
   const NEAR_ME_RADIUS_MILES = 10;
 
-  /* ---------- DOM ---------- */
   const $ = (id) => document.getElementById(id);
 
   const searchInput = $("searchInput");
@@ -28,13 +26,11 @@
 
   const suggestionsEl = $("suggestions");
 
-  /* ---------- STATE ---------- */
   let selectedCourse = null;
-  let lastWeather = null; // weather payload from worker
-  let lastCourses = [];   // last fetched courses (for click mapping)
-  let lastUserPos = null; // { lat, lon }
+  let lastWeather = null;
+  let lastCourses = [];
+  let lastUserPos = null;
 
-  /* ---------- UTIL ---------- */
   const esc = (s) =>
     String(s ?? "")
       .replaceAll("&", "&amp;")
@@ -70,7 +66,6 @@
     return mi * 1.609344;
   }
 
-  /* ---------- DISTANCE ---------- */
   function haversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const toRad = (d) => (d * Math.PI) / 180;
@@ -82,35 +77,41 @@
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  /* ---------- FETCH: COURSES ---------- */
   async function fetchCourses(search) {
     const url = `${API_BASE}/courses?search=${encodeURIComponent(search)}`;
     const res = await fetch(url);
     const text = await res.text();
 
     let data;
-    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
 
     if (!res.ok) throw new Error(data?.error || data?.message || `Course search failed (${res.status})`);
     return Array.isArray(data?.courses) ? data.courses : [];
   }
 
-  /* ---------- FETCH: WEATHER ---------- */
   async function fetchWeather(lat, lon) {
     const units = getUnits();
     const url =
       `${API_BASE}/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=${encodeURIComponent(units)}`;
+
     const res = await fetch(url);
     const text = await res.text();
 
     let data;
-    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
+    }
 
     if (!res.ok) throw new Error(data?.error || data?.message || `Weather failed (${res.status})`);
     return data;
   }
 
-  /* ---------- PLAYABILITY ---------- */
   function calculatePlayability(data) {
     const c = data?.current;
     if (!c) return "--";
@@ -120,13 +121,8 @@
     const wind = Number(c.wind?.speed ?? 0);
     const temp = Number(c.temp ?? 10);
 
-    // POP: try current.pop first, otherwise derive from forecast list[0].pop
-    const pop = Number(
-      c.pop ??
-      data?.forecast?.list?.[0]?.pop ??
-      data?.list?.[0]?.pop ??
-      0
-    );
+    const list = getForecastList(data);
+    const pop = Number(c.pop ?? list?.[0]?.pop ?? 0);
 
     const wMain = (c.weather?.[0]?.main || "").toLowerCase();
     const rainish =
@@ -151,9 +147,7 @@
     return Math.max(0, Math.min(10, Math.round(score)));
   }
 
-  /* ---------- NORMALISE FORECAST LIST ---------- */
   function getForecastList(data) {
-    // Worker may return forecast in data.forecast.list OR top-level list
     const list = data?.forecast?.list || data?.list || [];
     return Array.isArray(list) ? list : [];
   }
@@ -172,7 +166,6 @@
     return icon ? `https://openweathermap.org/img/wn/${icon}@2x.png` : "";
   }
 
-  /* ---------- RENDER: HEADER (course) ---------- */
   function renderCourseHeader(course) {
     const name = esc(course?.name || course?.course_name || course?.club_name || "Selected course");
     const city = esc(course?.city || "");
@@ -188,21 +181,19 @@
     `;
   }
 
-  /* ---------- RENDER: CURRENT ---------- */
   function renderCurrent(data) {
     if (!resultsEl) return;
     const c = data?.current || {};
 
     const icon = weatherIcon(c.weather?.[0]?.icon);
     const desc = esc(c.weather?.[0]?.description || "—");
-    const temp = (c.temp != null) ? Math.round(c.temp) : "--";
-    const feels = (c.feels_like != null) ? Math.round(c.feels_like) : null;
+    const temp = c.temp != null ? Math.round(c.temp) : "--";
+    const feels = c.feels_like != null ? Math.round(c.feels_like) : null;
 
-    const wind = (c.wind?.speed != null) ? Number(c.wind.speed) : null;
-    const gust = (c.wind?.gust != null) ? Number(c.wind.gust) : null;
-    const humidity = (c.humidity != null) ? Number(c.humidity) : null;
+    const wind = c.wind?.speed != null ? Number(c.wind.speed) : null;
+    const gust = c.wind?.gust != null ? Number(c.wind.gust) : null;
+    const humidity = c.humidity != null ? Number(c.humidity) : null;
 
-    // POP (rain chance) from current or first forecast item
     const list = getForecastList(data);
     const pop = Number(c.pop ?? list?.[0]?.pop ?? 0);
     const popPct = Number.isFinite(pop) ? Math.round(pop * 100) : null;
@@ -234,7 +225,6 @@
     if (playabilityScoreEl) playabilityScoreEl.textContent = `${score}/10`;
   }
 
-  /* ---------- RENDER: HOURLY (3-hour blocks, next ~24h) ---------- */
   function renderHourly(data) {
     if (!resultsEl) return;
 
@@ -246,14 +236,14 @@
       return;
     }
 
-    const next = list.slice(0, 8); // ~24h of 3-hour blocks
+    const next = list.slice(0, 8);
     const cards = next
       .map((h) => {
         const t = fmtTime(h.dt);
-        const temp = (h.main?.temp != null) ? Math.round(h.main.temp) : "--";
+        const temp = h.main?.temp != null ? Math.round(h.main.temp) : "--";
         const icon = weatherIcon(h.weather?.[0]?.icon);
         const pop = h.pop != null ? Math.round(Number(h.pop) * 100) : null;
-        const wind = (h.wind?.speed != null) ? Number(h.wind.speed).toFixed(1) : null;
+        const wind = h.wind?.speed != null ? Number(h.wind.speed).toFixed(1) : null;
 
         return `
           <div class="ff-hour">
@@ -281,7 +271,6 @@
     `;
   }
 
-  /* ---------- RENDER: DAILY (up to 7 days) ---------- */
   function renderDaily(data) {
     if (!resultsEl) return;
 
@@ -293,7 +282,6 @@
       return;
     }
 
-    // Group by local date string
     const byDay = new Map();
     for (const item of list) {
       const d = new Date(item.dt * 1000);
@@ -306,10 +294,9 @@
 
     const rows = days
       .map((items) => {
-        // pick midday-ish icon if possible, else first
         const pick = items.reduce((best, cur) => {
           const hour = new Date(cur.dt * 1000).getHours();
-          const score = Math.abs(13 - hour); // closest to 1pm
+          const score = Math.abs(13 - hour);
           const bestScore = best ? Math.abs(13 - new Date(best.dt * 1000).getHours()) : 999;
           return score < bestScore ? cur : best;
         }, null);
@@ -353,7 +340,6 @@
     `;
   }
 
-  /* ---------- RENDER: COURSE RESULTS ---------- */
   function renderCourseResults(courses, opts = {}) {
     if (!resultsEl) return;
 
@@ -404,7 +390,6 @@
     });
   }
 
-  /* ---------- SELECT COURSE ---------- */
   async function selectCourse(course) {
     selectedCourse = course;
 
@@ -421,8 +406,6 @@
     try {
       const data = await fetchWeather(lat, lon);
       lastWeather = data;
-
-      // Default view = current
       setActiveTab(tabCurrent);
       renderCurrent(data);
     } catch (err) {
@@ -431,7 +414,6 @@
     }
   }
 
-  /* ---------- SUGGESTIONS (TYPEAHEAD) ---------- */
   let suggestTimer = null;
 
   function hideSuggestions() {
@@ -463,14 +445,12 @@
     suggestionsEl.innerHTML = html;
     suggestionsEl.style.display = "block";
 
-    // click
     suggestionsEl.querySelectorAll("[data-sidx]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const i = Number(btn.getAttribute("data-sidx"));
         const course = items[i];
         hideSuggestions();
         if (!course) return;
-        // Put name into search box for clarity
         if (searchInput) searchInput.value = course.name || course.course_name || "";
         await selectCourse(course);
       });
@@ -489,7 +469,6 @@
     }
   }
 
-  /* ---------- SEARCH (BUTTON/ENTER) ---------- */
   async function handleSearch() {
     hideSuggestions();
 
@@ -510,7 +489,6 @@
     }
   }
 
-  /* ---------- COURSES NEAR ME (10 miles) ---------- */
   async function handleCoursesNearMe() {
     if (!("geolocation" in navigator)) {
       showMessage("Geolocation isn’t available on this device/browser.");
@@ -526,7 +504,6 @@
         lastUserPos = { lat, lon };
 
         try {
-          // Use worker weather to infer nearest city
           showMessage("Finding nearby area…");
           const w = await fetchWeather(lat, lon);
           const city = w?.current?.name || "";
@@ -568,15 +545,12 @@
           showMessage("Could not load nearby courses. Try searching by name instead.");
         }
       },
-      (err) => {
-        console.error(err);
-        showMessage("Location permission denied. You can still search by course name.");
-      },
+      () => showMessage("Location permission denied. You can still search by course name."),
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
     );
   }
 
-  /* ---------- TABS ---------- */
+  // Tabs
   tabCurrent?.addEventListener("click", () => {
     if (!lastWeather) return;
     setActiveTab(tabCurrent);
@@ -591,4 +565,62 @@
 
   tabDaily?.addEventListener("click", () => {
     if (!lastWeather) return;
-    setActiveTab(tabDai
+    setActiveTab(tabDaily);
+    renderDaily(lastWeather);
+  });
+
+  /* ---------- IMPORTANT: STOP FORM SUBMIT RELOAD ---------- */
+  const formEl =
+    searchBtn?.closest("form") ||
+    searchInput?.closest("form") ||
+    document.querySelector("form");
+
+  formEl?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleSearch();
+  });
+
+  // Button + Enter (also prevent default)
+  searchBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    handleSearch();
+  });
+
+  searchInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
+    }
+    if (e.key === "Escape") hideSuggestions();
+  });
+
+  searchInput?.addEventListener("input", () => {
+    clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(handleTypeahead, 250);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!suggestionsEl || !searchInput) return;
+    const t = e.target;
+    if (t === searchInput || suggestionsEl.contains(t)) return;
+    hideSuggestions();
+  });
+
+  geoBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    handleCoursesNearMe();
+  });
+
+  unitsSelect?.addEventListener("change", async () => {
+    if (!selectedCourse) return;
+    await selectCourse(selectedCourse);
+  });
+
+  // Init
+  if (!searchInput || !searchBtn || !resultsEl) {
+    console.warn("Some expected DOM elements are missing. App will run in reduced mode.");
+  }
+
+  showMessage("Search for a town or golf course — or tap ⌖ for courses near you.");
+})();
+
