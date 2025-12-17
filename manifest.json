@@ -1,0 +1,11 @@
+{
+  "name": "Fairway Forecast",
+  "short_name": "Fairway",
+  "description": "Golf-first weather forecasts with playability scoring.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0e2a36",
+  "theme_color": "#0f766e",
+  "orientation": "portrait",
+  "scope": "./"
+}
