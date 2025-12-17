@@ -1,100 +1,98 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b3b7a" />
-  <meta name="description" content="Fairway Forecast — golf-first weather with playability and course search." />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <title>Fairway Forecast</title>
+  <title>Fairway Forecast – Golf-first weather</title>
+
+  <meta name="description" content="Golf-first weather forecasts with playability scoring." />
+  <meta name="theme-color" content="#0f766e" />
+
+  <!-- Icons -->
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./logo.svg" />
 
   <!-- Styles -->
-  <link rel="stylesheet" href="./styles.css?v=1" />
-
-  <!-- App -->
-  <script src="./app.js?v=1" defer></script>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
-  <a class="sr-only skip-link" href="#main">Skip to content</a>
-
-  <header class="topbar" role="banner">
-    <div class="topbar__inner">
-      <div class="brand">
-        <div class="brand__mark" aria-hidden="true">⛳</div>
-        <div class="brand__text">
-          <div class="brand__name">Fairway Forecast</div>
-          <div class="brand__tag">Golf-first weather</div>
-        </div>
+  <header class="ff-header">
+    <div class="ff-brand">
+      <img src="./logo.svg" alt="Fairway Forecast logo" class="ff-logo" />
+      <div>
+        <h1>Fairway Forecast</h1>
+        <p class="ff-tagline">Golf-first weather</p>
       </div>
-
-      <div class="units">
-        <label class="sr-only" for="unitsSelect">Units</label>
-        <select id="unitsSelect" class="select select--pill" aria-label="Units">
-          <option value="metric">°C</option>
-          <option value="imperial">°F</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="controls">
-      <div class="controls__row">
-        <div class="field">
-          <label class="label" for="searchInput">Search location or golf course</label>
-          <div class="inputRow">
-            <input
-              id="searchInput"
-              class="input"
-              type="text"
-              placeholder="e.g. Swindon or Royal Troon"
-              autocomplete="off"
-            />
-            <button id="searchBtn" class="btn" type="button">Search</button>
-          </div>
-          <div class="hint">Tip: tap ⌖ for courses near you.</div>
-        </div>
-
-        <div class="actions">
-          <button
-            id="btnGeo"
-            class="btn btn--ghost"
-            type="button"
-            title="Courses near me"
-            aria-label="Courses near me"
-          >⌖</button>
-        </div>
-      </div>
-
-      <nav class="tabs" aria-label="Views">
-        <button id="tabCurrent" class="tab active" type="button" aria-selected="true">Current</button>
-        <button id="tabHourly" class="tab" type="button" aria-selected="false">Hourly</button>
-        <button id="tabDaily" class="tab" type="button" aria-selected="false">Daily</button>
-      </nav>
     </div>
   </header>
 
-  <main id="main" class="main">
-    <!-- Playability hero -->
-    <section class="hero" aria-label="Playability">
-      <div class="hero__card">
-        <div class="hero__kicker">Playability</div>
-        <div class="hero__score">
-          <span id="playabilityScore">--/10</span>
+  <main class="ff-container">
+
+    <!-- SEARCH -->
+    <section class="ff-card">
+      <label for="searchInput" class="ff-label">
+        Search location or golf course
+      </label>
+
+      <div class="ff-search-row">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="e.g. Swindon, GB or Royal Troon"
+          autocomplete="off"
+        />
+        <button id="searchBtn" class="ff-btn-primary">
+          Search
+        </button>
+      </div>
+
+      <p class="ff-hint">
+        Tip: type a town/city for places, or include “golf / club / gc” for courses.
+      </p>
+    </section>
+
+    <!-- TABS -->
+    <section class="ff-tabs">
+      <button id="tabCurrent" class="ff-tab active">Current</button>
+      <button id="tabHourly" class="ff-tab">Hourly</button>
+      <button id="tabDaily" class="ff-tab">Daily</button>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" class="ff-results">
+      <!-- JS injects content here -->
+    </section>
+
+    <!-- PLAYABILITY -->
+    <section class="ff-card">
+      <div class="ff-playability">
+        <div class="ff-playability-header">
+          <h2>Playability</h2>
+          <span id="playabilityScore" class="ff-score">--/10</span>
         </div>
-        <div class="hero__sub">Search a course to calculate conditions.</div>
+
+        <details class="ff-details">
+          <summary>What affects playability?</summary>
+          <ul>
+            <li><strong>Wind:</strong> strong gusts reduce control and comfort.</li>
+            <li><strong>Rain probability:</strong> higher chance = higher disruption.</li>
+            <li><strong>Temperature comfort:</strong> very cold or very hot reduces enjoyment.</li>
+          </ul>
+        </details>
       </div>
     </section>
 
-    <!-- Results / course list / weather cards render here -->
-    <section class="content" aria-label="Results">
-      <div id="results"></div>
-    </section>
-
-    <footer class="footer">
-      <p>
-        <b>Disclaimer:</b> Fairway Forecast uses third-party weather and course data. Forecasts can change rapidly—always check local conditions and course updates.
-      </p>
-    </footer>
   </main>
+
+  <footer class="ff-footer">
+    <p>
+      Weather data © OpenWeather · Course data © GolfCourseAPI
+    </p>
+  </footer>
+
+  <!-- Script -->
+  <script src="./app.js" defer></script>
 </body>
 </html>
