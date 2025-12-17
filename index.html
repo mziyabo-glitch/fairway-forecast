@@ -1,108 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#07131a" />
+  <title>Fairway Forecast</title>
 
-  <title>Fairway Forecast – Golf-first weather</title>
-  <meta name="description" content="Golf-first weather forecasts with course-level data and playability scoring." />
+  <link rel="stylesheet" href="./styles.css" />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="styles.css" />
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <script defer src="./config.js"></script>
+  <script defer src="./app.js"></script>
 </head>
 
 <body>
-  <main class="ff-wrap">
+  <a id="skipLink" href="#results">Skip to forecast</a>
 
-    <!-- ================= HEADER ================= -->
-    <header class="ff-header">
+  <main class="ff-wrap">
+    <!-- Top brand -->
+    <header class="ff-top" aria-label="Fairway Forecast">
       <div class="ff-logo" aria-hidden="true">
-        <!-- Use your real logo.svg here -->
-        <img src="logo.svg" alt="Fairway Forecast logo" />
+        <!-- Clean icon: fairway + ball -->
+        <svg viewBox="0 0 64 64" role="img" aria-label="Fairway Forecast logo">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="rgba(34,183,216,.95)"/>
+              <stop offset="1" stop-color="rgba(38,208,124,.95)"/>
+            </linearGradient>
+          </defs>
+
+          <!-- fairway -->
+          <path d="M10 44c8-10 16-14 22-14s14 4 22 14l-4 6c-7-8-12-11-18-11s-11 3-18 11l-4-6z"
+                fill="url(#g)" opacity="0.95"/>
+          <path d="M18 46c5-6 9-8 14-8s9 2 14 8"
+                fill="none" stroke="rgba(255,255,255,.25)" stroke-width="3" stroke-linecap="round"/>
+
+          <!-- ball -->
+          <circle cx="32" cy="22" r="9" fill="rgba(255,255,255,.92)"/>
+          <circle cx="28" cy="20" r="1.5" fill="rgba(0,0,0,.20)"/>
+          <circle cx="35" cy="19" r="1.5" fill="rgba(0,0,0,.20)"/>
+          <circle cx="33" cy="24" r="1.5" fill="rgba(0,0,0,.20)"/>
+        </svg>
       </div>
-      <div class="ff-title">
+
+      <div class="ff-brand">
         <h1>Fairway Forecast</h1>
-        <div class="tagline">Golf-first weather</div>
+        <p>Golf-first weather</p>
       </div>
     </header>
 
-    <!-- ================= CONTROLS ================= -->
-    <section class="ff-card ff-controls">
+    <!-- Controls -->
+    <section class="ff-controls" aria-label="Search">
+      <p class="ff-label">Search location or golf course</p>
 
-      <div class="ff-field">
-        <label for="searchInput" class="ff-label">
-          Search location or golf course
-        </label>
+      <div class="ff-search">
         <input
           id="searchInput"
-          type="text"
-          placeholder="e.g. Swindon, GB or Royal Troon"
+          type="search"
+          placeholder="e.g. Swindon, GB or Donnington Grove"
           autocomplete="off"
+          inputmode="search"
+          aria-label="Search location or golf course"
         />
-      </div>
 
-      <div class="ff-row">
-        <button id="searchBtn" class="ff-btn primary">
-          Search
-        </button>
+        <button id="searchBtn" class="ff-btn" type="button">Search</button>
 
-        <button
-          id="btnGeo"
-          class="ff-btn icon"
-          title="Courses near me"
-          aria-label="Courses near me"
-        >
+        <!-- Near-me button (your app.js looks for btnGeo OR geoBtn) -->
+        <button id="btnGeo" class="ff-btn secondary" type="button" title="Courses near me" aria-label="Courses near me">
           ⌖
         </button>
       </div>
 
-      <div class="ff-row wrap">
-        <div class="ff-field">
-          <label for="unitsSelect" class="ff-label">Units</label>
-          <select id="unitsSelect">
-            <option value="metric">°C / m/s</option>
-            <option value="imperial">°F / mph</option>
-          </select>
-        </div>
+      <!-- Suggestions dropdown area (app.js can populate inside this wrapper) -->
+      <div id="suggestions" class="ff-suggest" style="display:none" aria-label="Suggestions"></div>
+
+      <div class="ff-units">
+        <p class="ff-label" style="margin:0">Units</p>
+        <select id="unitsSelect" aria-label="Units">
+          <option value="metric">°C / m/s</option>
+          <option value="imperial">°F / mph</option>
+        </select>
       </div>
 
+      <p class="ff-sub muted" style="margin-top:10px">
+        Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
+      </p>
     </section>
 
-    <!-- ================= TABS ================= -->
+    <!-- Tabs -->
     <nav class="ff-tabs" aria-label="Forecast tabs">
-      <button id="tabCurrent" class="ff-tab active">Current</button>
-      <button id="tabHourly" class="ff-tab">Hourly</button>
-      <button id="tabDaily" class="ff-tab">Daily</button>
+      <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
+      <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
+      <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
-    <!-- ================= RESULTS ================= -->
+    <!-- Results -->
     <section id="results" aria-live="polite">
-      <!-- JS renders here -->
+      <!-- app.js renders into here -->
     </section>
 
-    <!-- ================= PLAYABILITY ================= -->
-    <section class="ff-card ff-playability">
-      <div>
-        <h2>Playability</h2>
-        <div class="ff-sub">
-          Wind, rain probability & temperature comfort
-        </div>
+    <!-- Playability -->
+    <section class="ff-playability" aria-label="Playability">
+      <h2 class="ff-title" style="margin:0 0 10px">Playability</h2>
+      <div id="playabilityScore">--/10</div>
+      <div class="ff-sub muted" style="margin-top:6px">
+        Wind, rain probability &amp; temperature comfort
       </div>
-      <div id="playabilityScore" class="ff-score">--/10</div>
     </section>
 
-    <!-- ================= FOOTER ================= -->
+    <!-- Footer -->
     <footer class="ff-footer">
       Weather data © OpenWeather · Course data © GolfCourseAPI
     </footer>
-
   </main>
-
-  <!-- ================= SCRIPTS ================= -->
-  <script src="app.js" defer></script>
-
 </body>
 </html>
