@@ -1,99 +1,108 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0b3a53" />
-  <title>Fairway Forecast</title>
 
-  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <title>Fairway Forecast – Golf-first weather</title>
+  <meta name="description" content="Golf-first weather forecasts with course-level data and playability scoring." />
+
+  <!-- Styles -->
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 </head>
 
 <body>
-  <a class="skip-link" href="#main">Skip to forecast</a>
+  <main class="ff-wrap">
 
-  <header class="ff-header">
-    <div class="ff-brand">
-      <img class="ff-logo" src="logo.svg" alt="Fairway Forecast" />
-      <div class="ff-brand-text">
-        <div class="ff-title">Fairway Forecast</div>
-        <div class="ff-tagline">Golf-first weather</div>
+    <!-- ================= HEADER ================= -->
+    <header class="ff-header">
+      <div class="ff-logo" aria-hidden="true">
+        <!-- Use your real logo.svg here -->
+        <img src="logo.svg" alt="Fairway Forecast logo" />
       </div>
-    </div>
-  </header>
+      <div class="ff-title">
+        <h1>Fairway Forecast</h1>
+        <div class="tagline">Golf-first weather</div>
+      </div>
+    </header>
 
-  <main id="main" class="ff-main">
-    <section class="ff-panel ff-card">
-      <div class="ff-controls">
-        <label class="ff-label" for="unitsSelect">Units</label>
-        <select id="unitsSelect" class="ff-select" aria-label="Units">
-          <option value="metric" selected>°C</option>
-          <option value="imperial">°F</option>
-        </select>
+    <!-- ================= CONTROLS ================= -->
+    <section class="ff-card ff-controls">
 
-        <button id="btnGeo" class="ff-icon-btn" type="button" title="Courses near me" aria-label="Courses near me">
+      <div class="ff-field">
+        <label for="searchInput" class="ff-label">
+          Search location or golf course
+        </label>
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="e.g. Swindon, GB or Royal Troon"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="ff-row">
+        <button id="searchBtn" class="ff-btn primary">
+          Search
+        </button>
+
+        <button
+          id="btnGeo"
+          class="ff-btn icon"
+          title="Courses near me"
+          aria-label="Courses near me"
+        >
           ⌖
         </button>
       </div>
 
-      <label class="ff-label" for="searchInput">Search location or golf course</label>
-      <div class="ff-search">
-        <input
-          id="searchInput"
-          class="ff-input"
-          type="text"
-          inputmode="search"
-          autocomplete="off"
-          placeholder="e.g. Swindon, GB or Royal Troon"
-        />
-        <button id="searchBtn" class="ff-btn" type="button">Search</button>
+      <div class="ff-row wrap">
+        <div class="ff-field">
+          <label for="unitsSelect" class="ff-label">Units</label>
+          <select id="unitsSelect">
+            <option value="metric">°C / m/s</option>
+            <option value="imperial">°F / mph</option>
+          </select>
+        </div>
       </div>
 
-      <p class="ff-hint">
-        Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
-      </p>
     </section>
 
-    <section class="ff-tabs">
-      <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
-      <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
-      <button id="tabDaily" class="ff-tab" type="button">Daily</button>
+    <!-- ================= TABS ================= -->
+    <nav class="ff-tabs" aria-label="Forecast tabs">
+      <button id="tabCurrent" class="ff-tab active">Current</button>
+      <button id="tabHourly" class="ff-tab">Hourly</button>
+      <button id="tabDaily" class="ff-tab">Daily</button>
+    </nav>
+
+    <!-- ================= RESULTS ================= -->
+    <section id="results" aria-live="polite">
+      <!-- JS renders here -->
     </section>
 
-    <!-- This is where app.js renders course results + weather cards -->
-    <section id="results" class="ff-results" aria-live="polite"></section>
-
-    <section class="ff-side ff-card">
-      <h2 class="ff-h2">Playability</h2>
-      <div class="ff-playability">
-        <div id="playabilityScore" class="ff-play-score">--/10</div>
-        <button class="ff-link-btn" type="button" onclick="document.getElementById('playHelp').showModal();">
-          What affects playability?
-        </button>
+    <!-- ================= PLAYABILITY ================= -->
+    <section class="ff-card ff-playability">
+      <div>
+        <h2>Playability</h2>
+        <div class="ff-sub">
+          Wind, rain probability & temperature comfort
+        </div>
       </div>
+      <div id="playabilityScore" class="ff-score">--/10</div>
     </section>
 
-    <dialog id="playHelp" class="ff-dialog">
-      <div class="ff-dialog-inner">
-        <h3 class="ff-h3">What affects playability?</h3>
-        <ul class="ff-list">
-          <li><b>Wind</b>: stronger gusts reduce control and comfort.</li>
-          <li><b>Rain probability</b>: higher chance = higher disruption.</li>
-          <li><b>Temperature comfort</b>: very cold/very hot reduces enjoyment.</li>
-        </ul>
-        <button class="ff-btn" type="button" onclick="document.getElementById('playHelp').close();">Close</button>
-      </div>
-    </dialog>
+    <!-- ================= FOOTER ================= -->
+    <footer class="ff-footer">
+      Weather data © OpenWeather · Course data © GolfCourseAPI
+    </footer>
+
   </main>
 
-  <footer class="ff-footer">
-    <span>Weather data © OpenWeather</span>
-    <span>•</span>
-    <span>Course data © GolfCourseAPI</span>
-  </footer>
+  <!-- ================= SCRIPTS ================= -->
+  <script src="app.js" defer></script>
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
 </body>
 </html>
