@@ -2,100 +2,82 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0b2a2f" />
-  <meta name="description" content="Fairway Forecast — golf-first weather for your next round." />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fairway Forecast</title>
 
-  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="./styles.css" />
+  <meta name="theme-color" content="#0b1f24" />
 </head>
 
 <body>
-  <a class="skip-link" href="#forecast">Skip to forecast</a>
-
-  <main class="page">
-    <!-- HEADER -->
-    <header class="hero">
-      <!-- No logo image here (you said you hate it). We keep it clean text-only. -->
-      <div class="hero-inner">
-        <h1 class="brand">Fairway Forecast</h1>
-        <p class="tagline">Golf-first weather</p>
+  <main class="ff-wrap">
+    <header class="ff-hero">
+      <div class="ff-brand">
+        <div class="ff-mark" aria-hidden="true"></div>
+        <div>
+          <h1 class="ff-title">Fairway Forecast</h1>
+          <p class="ff-tag">Golf-first weather</p>
+        </div>
       </div>
     </header>
 
-    <!-- CONTROLS -->
-    <section class="card controls" aria-label="Search controls">
-      <form id="searchForm" class="controls-grid" autocomplete="off">
-        <label class="label" for="searchInput">Search location or golf course</label>
+    <section class="ff-panel">
+      <label class="ff-label" for="searchInput">Search location or golf course</label>
 
-        <div class="search-row">
-          <input
-            id="searchInput"
-            name="q"
-            type="search"
-            inputmode="search"
-            placeholder="e.g. Swindon, GB or Shrivenham Park"
-            aria-label="Search location or golf course"
-            spellcheck="false"
-            autocomplete="off"
-          />
+      <div class="ff-search-row">
+        <input
+          id="searchInput"
+          class="ff-input"
+          type="text"
+          placeholder='e.g. Swindon, GB or "golf / club / gc"'
+          autocomplete="off"
+          inputmode="search"
+          list="searchSuggestions"
+        />
+        <datalist id="searchSuggestions"></datalist>
 
-          <button id="searchBtn" class="btn primary" type="submit">Search</button>
+        <button id="searchBtn" class="ff-btn" type="button">Search</button>
 
-          <!-- Near me -->
-          <button id="btnGeo" class="btn ghost" type="button" aria-label="Find courses near me" title="Near me">
-            ⌖
-          </button>
-        </div>
+        <!-- Optional Near-me button (works if present; safe if you remove it) -->
+        <button id="btnGeo" class="ff-btn ff-btn-geo" type="button" title="Near me">⌖</button>
+      </div>
 
-        <div class="row">
-          <div class="field">
-            <label class="label" for="unitsSelect">Units</label>
-            <select id="unitsSelect" class="select" aria-label="Units">
-              <option value="metric">°C / m/s</option>
-              <option value="imperial">°F / mph</option>
-            </select>
-          </div>
-        </div>
+      <div class="ff-units-row">
+        <label class="ff-label" for="unitsSelect">Units</label>
+        <select id="unitsSelect" class="ff-select">
+          <option value="metric">°C / m/s</option>
+          <option value="imperial">°F / mph</option>
+        </select>
+      </div>
 
-        <p class="hint">
-          Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
-        </p>
-      </form>
+      <p class="ff-tip">
+        Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
+      </p>
     </section>
 
-    <!-- TABS -->
-    <section class="tabs" aria-label="Forecast tabs">
-      <button id="tabCurrent" class="tab active" type="button">Current</button>
-      <button id="tabHourly" class="tab" type="button">Hourly</button>
-      <button id="tabDaily" class="tab" type="button">Daily</button>
-    </section>
+    <nav class="ff-tabs" aria-label="Forecast tabs">
+      <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
+      <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
+      <button id="tabDaily" class="ff-tab" type="button">Daily</button>
+    </nav>
 
-    <!-- RESULTS -->
-    <section id="forecast" class="results" aria-live="polite">
-      <div id="results"></div>
-    </section>
+    <section id="results" class="ff-results" aria-live="polite"></section>
 
-    <!-- PLAYABILITY -->
-    <section class="card playability" aria-label="Playability score">
-      <div class="playability-head">
+    <section class="ff-panel">
+      <div class="ff-play">
         <div>
-          <h2 class="h2">Playability</h2>
-          <p class="sub">Wind, rain probability &amp; temperature comfort</p>
+          <div class="ff-play-title">Playability</div>
+          <div class="ff-play-sub">Wind, rain probability &amp; temperature comfort</div>
         </div>
-        <div id="playabilityScore" class="score">--/10</div>
+        <div id="playabilityScore" class="ff-play-score">--/10</div>
       </div>
     </section>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-      <p>Weather data © OpenWeather · Course data © GolfCourseAPI</p>
+    <footer class="ff-foot">
+      Weather data © OpenWeather · Course data © GolfCourseAPI
     </footer>
   </main>
 
-  <!-- Scripts -->
-  <script src="config.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="./app.js"></script>
 </body>
 </html>
