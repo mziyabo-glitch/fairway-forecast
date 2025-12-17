@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Fairway Forecast</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Golf-specific weather with playability scores and best tee times." />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
+  <!-- Font (single, reliable) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="./favicon.svg" alt="Fairway Forecast logo" class="brand-logo" />
+      <span class="brand-name">Fairway Forecast</span>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- SEARCH -->
+    <section class="search-card">
+      <div class="search-row">
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search location or golf course"
+          autocomplete="off"
+        />
+        <button id="searchBtn" aria-label="Search">Search</button>
+        <button id="favBtn" class="fav-btn" title="Favourite">
+          ★
+        </button>
+      </div>
+      <ul id="searchResults" class="search-results"></ul>
+    </section>
+
+    <!-- LOCATION -->
+    <section id="locationCard" class="card hidden">
+      <h1 id="locationName">—</h1>
+    </section>
+
+    <!-- PLAYABILITY (HERO) -->
+    <section id="playabilityCard" class="card playability hidden">
+      <div class="playability-score" id="playabilityScore">–/10</div>
+      <div class="playability-label" id="playabilityLabel">—</div>
+      <button id="playabilityInfoBtn" class="info-btn">i</button>
+    </section>
+
+    <!-- PLAYABILITY EXPLANATION -->
+    <div id="playabilityInfo" class="info-panel hidden">
+      <div class="info-header">
+        <strong>How playability is calculated</strong>
+        <button id="playabilityCloseBtn">✕</button>
+      </div>
+      <ul>
+        <li>Wind speed & gusts</li>
+        <li>Rain probability & intensity</li>
+        <li>Temperature comfort</li>
+        <li>Ground conditions</li>
+      </ul>
+    </div>
+
+    <!-- BEST TEE TIME -->
+    <section id="teeTimeCard" class="card hidden">
+      <h2>Best Tee Time</h2>
+      <div id="bestTeeTime">—</div>
+      <div class="sun-times">
+        <span id="sunrise">Sunrise: —</span>
+        <span id="sunset">Sunset: —</span>
+      </div>
+    </section>
+
+    <!-- WEATHER DETAILS -->
+    <section id="weatherCard" class="card hidden">
+      <h2>Conditions</h2>
+      <div id="weatherSummary">—</div>
+    </section>
+
+    <!-- DISCLAIMER -->
+    <footer class="footer">
+      <small>
+        Weather data provided for guidance only. Always check local conditions before play.
+      </small>
+    </footer>
+  </main>
+
+  <!-- CONFIG (safe public config only) -->
+  <script src="./config.js"></script>
+
+  <!-- APP -->
+  <script src="./app.js"></script>
+</body>
+</html>
