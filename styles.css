@@ -1,304 +1,349 @@
 /* =====================================================
    Fairway Forecast – styles.css
-   Elegant, mobile-first, tasteful colour
-   Supports: tabs, cards, hourly strip, daily list, suggestions
+   Mobile-first, elegant dark/teal, clean spacing
    ===================================================== */
 
 :root{
-  --bg0:#07131a;
-  --bg1:#0b1c25;
+  --bg0:#071a1f;
+  --bg1:#0b2328;
   --card:rgba(255,255,255,.06);
   --card2:rgba(255,255,255,.08);
   --stroke:rgba(255,255,255,.10);
-  --stroke2:rgba(255,255,255,.14);
-  --text:rgba(255,255,255,.92);
-  --muted:rgba(255,255,255,.70);
-  --muted2:rgba(255,255,255,.55);
+  --stroke2:rgba(255,255,255,.16);
+  --text:#e9f2f3;
+  --muted:rgba(233,242,243,.72);
+  --muted2:rgba(233,242,243,.55);
 
-  --accent:#26d07c;        /* green */
-  --accent2:#22b7d8;       /* teal */
-  --shadow:0 10px 28px rgba(0,0,0,.35);
-  --radius:18px;
-  --radius2:22px;
+  --accent:#2bd07f;
+  --accent2:#1bbd70;
+  --danger:#ff6b6b;
+
+  --shadow: 0 18px 50px rgba(0,0,0,.35);
+  --shadow2: 0 10px 24px rgba(0,0,0,.28);
+
+  --r-xl:28px;
+  --r-lg:22px;
+  --r-md:16px;
+
+  --pad:16px;
+  --pad2:20px;
+
+  --max:720px;
 }
 
+/* Base */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
   margin:0;
-  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   color:var(--text);
   background:
-    radial-gradient(1200px 600px at 15% 0%, rgba(34,183,216,.20), transparent 55%),
-    radial-gradient(900px 600px at 85% 10%, rgba(38,208,124,.16), transparent 55%),
-    linear-gradient(180deg, var(--bg0), var(--bg1));
+    radial-gradient(1200px 900px at 20% -10%, rgba(43,208,127,.18), transparent 60%),
+    radial-gradient(1100px 900px at 95% 5%, rgba(110,231,255,.10), transparent 55%),
+    linear-gradient(180deg, var(--bg0), var(--bg1) 65%, #06171b);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
 }
 
-/* Accessibility */
 a{ color:inherit; }
-#skipLink{
+img{ max-width:100%; display:block; }
+
+.skip-link{
   position:absolute;
-  left:-9999px;
-  top:auto;
-  width:1px;height:1px;
-  overflow:hidden;
-}
-#skipLink:focus{
-  left:16px; top:16px;
-  width:auto;height:auto;
+  left:-999px;
+  top:0;
+  background:#fff;
+  color:#000;
   padding:10px 12px;
-  background:rgba(0,0,0,.55);
-  border:1px solid var(--stroke2);
-  border-radius:12px;
-  z-index:9999;
+  border-radius:10px;
+  z-index:50;
+}
+.skip-link:focus{
+  left:12px;
+  top:12px;
 }
 
 /* Layout */
-.ff-wrap{
-  max-width:780px;
+.ff-shell{
+  max-width:var(--max);
   margin:0 auto;
-  padding:16px 14px 24px;
+  padding:18px var(--pad) 28px;
 }
 
-.ff-top{
+/* Hero */
+.ff-hero{
   display:flex;
-  gap:12px;
   align-items:center;
-  padding:14px 14px;
+  gap:14px;
+  padding:18px 18px;
+  border-radius:var(--r-xl);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06)),
+    radial-gradient(800px 280px at 20% 0%, rgba(43,208,127,.22), transparent 60%);
   border:1px solid var(--stroke);
-  background:linear-gradient(135deg, rgba(34,183,216,.14), rgba(38,208,124,.08));
-  border-radius:var(--radius2);
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow2);
   backdrop-filter: blur(10px);
 }
 
-/* --- New Logo (replace “I hate the logo” problem) --- */
-.ff-logo{
-  width:52px;
-  height:52px;
-  flex:0 0 auto;
-  display:grid;
-  place-items:center;
-  border-radius:16px;
-  border:1px solid var(--stroke2);
+.ff-mark{
+  width:56px;
+  height:56px;
+  border-radius:18px;
   background:
-    radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 55%),
-    linear-gradient(135deg, rgba(34,183,216,.35), rgba(38,208,124,.22));
-  box-shadow: 0 10px 22px rgba(0,0,0,.28);
+    radial-gradient(18px 18px at 60% 35%, rgba(255,255,255,.92), rgba(255,255,255,.25) 55%, transparent 70%),
+    linear-gradient(135deg, rgba(43,208,127,.95), rgba(27,189,112,.55));
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow: 0 14px 30px rgba(0,0,0,.22);
+  position:relative;
   overflow:hidden;
 }
-.ff-logo svg{ width:44px; height:44px; display:block; }
-
-.ff-brand{
-  min-width:0;
+.ff-mark::after{
+  content:"";
+  position:absolute;
+  right:-10px;
+  top:-18px;
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background: rgba(255,255,255,.10);
+  filter: blur(1px);
 }
-.ff-brand h1{
+.ff-mark::before{
+  content:"";
+  position:absolute;
+  left:10px;
+  bottom:10px;
+  width:40px;
+  height:6px;
+  border-radius:999px;
+  background: rgba(0,0,0,.16);
+}
+
+.ff-hero-text{ min-width:0; }
+.ff-title{
   margin:0;
-  font-size:20px;
-  letter-spacing:.2px;
-  line-height:1.2;
+  font-size:34px;
+  line-height:1.05;
+  letter-spacing:-.02em;
 }
-.ff-brand p{
-  margin:4px 0 0;
+.ff-tagline{
+  margin:8px 0 0;
   color:var(--muted);
-  font-size:13px;
+  font-weight:600;
 }
 
-/* Controls card */
-.ff-controls{
+/* Cards */
+.ff-card{
   margin-top:14px;
-  padding:14px;
-  border-radius:var(--radius2);
+  padding:18px;
+  border-radius:var(--r-xl);
+  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
   border:1px solid var(--stroke);
-  background:rgba(255,255,255,.04);
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow2);
   backdrop-filter: blur(10px);
 }
 
+.muted{ color:var(--muted); }
+
+/* Controls */
+.ff-controls{ position:relative; }
 .ff-label{
+  display:block;
   font-size:13px;
   color:var(--muted);
-  margin:0 0 8px;
+  margin-bottom:8px;
+  font-weight:700;
+  letter-spacing:.01em;
 }
 
-.ff-row{
-  display:flex;
-  gap:12px;
-  align-items:center;
-}
-
-.ff-search{
-  display:flex;
+.ff-search-row{
+  display:grid;
+  grid-template-columns: 1fr;
   gap:10px;
-  align-items:stretch;
 }
 
-.ff-search input{
+.ff-input{
   width:100%;
-  padding:14px 14px;
+  height:44px;
+  padding:0 14px;
   border-radius:16px;
-  border:1px solid var(--stroke);
-  background:rgba(0,0,0,.18);
+  border:1px solid var(--stroke2);
+  background: rgba(0,0,0,.18);
   color:var(--text);
   outline:none;
-  font-size:16px;
 }
-.ff-search input:focus{
-  border-color: rgba(34,183,216,.55);
-  box-shadow: 0 0 0 3px rgba(34,183,216,.18);
+.ff-input:focus{
+  border-color: rgba(43,208,127,.55);
+  box-shadow: 0 0 0 4px rgba(43,208,127,.12);
 }
 
 .ff-btn{
-  border:0;
+  height:44px;
+  border-radius:18px;
+  border:1px solid var(--stroke2);
+  background: rgba(255,255,255,.06);
+  color:var(--text);
+  font-weight:800;
+  letter-spacing:.01em;
   cursor:pointer;
-  border-radius:16px;
-  padding:12px 14px;
-  font-weight:700;
-  font-size:15px;
-  color:#062014;
-  background: linear-gradient(135deg, var(--accent), rgba(38,208,124,.75));
-  box-shadow: 0 10px 22px rgba(0,0,0,.22);
+  box-shadow: 0 10px 20px rgba(0,0,0,.20);
+  transition: transform .06s ease, filter .12s ease, background .12s ease;
 }
 .ff-btn:active{ transform: translateY(1px); }
-.ff-btn.secondary{
-  color:rgba(255,255,255,.92);
-  background:rgba(255,255,255,.08);
-  border:1px solid var(--stroke);
-}
-.ff-btn.secondary:active{ transform: translateY(1px); }
 
-.ff-units{
-  margin-top:12px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
+.ff-btn-primary{
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: rgba(255,255,255,.16);
+  color:#052017;
 }
-.ff-units select{
-  width:100%;
-  padding:12px 12px;
+.ff-btn-primary:hover{ filter: brightness(1.02); }
+
+.ff-btn-ghost{
+  background: rgba(255,255,255,.06);
+  font-size:18px;
+}
+
+.ff-tip{
+  margin:10px 0 0;
+  color:var(--muted2);
+  line-height:1.35;
+}
+
+/* Units */
+.ff-units{
+  margin-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.ff-select{
+  height:44px;
   border-radius:16px;
-  border:1px solid var(--stroke);
-  background:rgba(0,0,0,.18);
+  border:1px solid var(--stroke2);
+  background: rgba(0,0,0,.18);
   color:var(--text);
-  font-size:15px;
+  padding:0 12px;
+  outline:none;
+}
+
+/* Suggestions dropdown */
+.ff-suggest{
+  position:absolute;
+  left:18px;
+  right:18px;
+  top: 112px; /* sits under the input area on mobile; safe with card padding */
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(6,19,23,.92);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  z-index:40;
+}
+
+.ff-suggest .ff-suggest-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  padding:12px 14px;
+  text-align:left;
+  width:100%;
+  border:0;
+  color:var(--text);
+  background: transparent;
+  cursor:pointer;
+}
+.ff-suggest .ff-suggest-item:hover{
+  background: rgba(255,255,255,.06);
+}
+.ff-suggest .ff-suggest-name{
+  font-weight:800;
+  line-height:1.15;
+}
+.ff-suggest .ff-suggest-sub{
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.2;
+}
+.ff-suggest .ff-suggest-right{
+  font-size:12px;
+  color:var(--muted2);
+  white-space:nowrap;
+  padding-top:2px;
 }
 
 /* Tabs */
 .ff-tabs{
   margin-top:14px;
   display:grid;
-  grid-template-columns:1fr 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap:10px;
 }
 .ff-tab{
-  padding:12px 10px;
-  border-radius:16px;
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,.05);
+  height:44px;
+  border-radius:18px;
+  border:1px solid var(--stroke2);
+  background: rgba(255,255,255,.06);
   color:var(--text);
-  font-weight:700;
-  text-align:center;
+  font-weight:800;
   cursor:pointer;
-  user-select:none;
 }
 .ff-tab.active{
-  border-color: rgba(38,208,124,.55);
-  background: linear-gradient(135deg, rgba(38,208,124,.25), rgba(34,183,216,.14));
+  background: linear-gradient(180deg, rgba(43,208,127,.20), rgba(43,208,127,.08));
+  border-color: rgba(43,208,127,.32);
 }
 
-/* Results */
-#results{ margin-top:14px; }
+/* Results / forecast blocks */
+.ff-results{ margin-top:14px; }
 
-.ff-card{
-  padding:16px 16px;
-  border-radius:var(--radius2);
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,.05);
-  box-shadow:var(--shadow);
-  backdrop-filter: blur(10px);
-}
-.ff-card + .ff-card{ margin-top:12px; }
-
-.ff-title{
-  font-size:16px;
-  font-weight:800;
-  margin:0 0 6px;
-  letter-spacing:.2px;
-}
-.ff-sub{
-  font-size:13px;
-  color:var(--muted);
-}
-.muted{ color:var(--muted); }
-.ff-divider{
-  height:1px;
-  background:var(--stroke);
-  margin:12px 0;
-}
-
-.ff-stack{ min-width:0; }
-.ff-big{
-  font-size:40px;
-  font-weight:900;
-  line-height:1;
-  letter-spacing:-.5px;
+.ff-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
 .ff-icon{
-  width:64px;
-  height:64px;
+  width:56px;
+  height:56px;
   border-radius:18px;
-  background:rgba(255,255,255,.06);
+  background: rgba(255,255,255,.06);
   border:1px solid var(--stroke);
+  padding:6px;
 }
-
-/* Current metrics */
-.ff-metrics{
-  margin-top:14px;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
+.ff-big{
+  font-size:44px;
+  font-weight:900;
+  letter-spacing:-.02em;
+  line-height:1;
 }
-.ff-metric{
-  padding:12px;
-  border-radius:16px;
-  border:1px solid var(--stroke);
-  background:rgba(0,0,0,.14);
-}
-.ff-metric-k{
-  font-size:12px;
-  color:var(--muted2);
-}
-.ff-metric-v{
+.ff-sub{
   margin-top:6px;
-  font-size:16px;
-  font-weight:800;
+  color:var(--muted);
+  font-weight:700;
 }
 
-/* Course list */
+/* Course list buttons */
 .ff-course-list{
+  margin-top:12px;
   display:flex;
   flex-direction:column;
   gap:10px;
 }
 .ff-course{
   position:relative;
-  width:100%;
-  border:1px solid var(--stroke);
-  background:rgba(0,0,0,.16);
-  color:var(--text);
-  border-radius:16px;
-  padding:12px 12px;
   text-align:left;
+  padding:14px 14px;
+  border-radius:18px;
+  border:1px solid var(--stroke2);
+  background: rgba(255,255,255,.05);
+  color:var(--text);
   cursor:pointer;
 }
-.ff-course:active{ transform: translateY(1px); }
-.ff-course-name{
-  font-weight:900;
-  font-size:15px;
-}
+.ff-course:hover{ background: rgba(255,255,255,.07); }
+.ff-course-name{ font-weight:900; }
 .ff-course-sub{
-  margin-top:4px;
+  margin-top:6px;
   font-size:12px;
   color:var(--muted);
 }
@@ -307,134 +352,66 @@ a{ color:inherit; }
   right:12px;
   top:12px;
   font-size:12px;
-  font-weight:800;
-  color:rgba(255,255,255,.86);
-  padding:6px 8px;
-  border-radius:999px;
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,.06);
+  color:var(--muted2);
 }
 
-/* Hourly strip */
-.ff-hourly-strip{
-  margin-top:10px;
+/* Playability */
+.ff-play-head{
   display:flex;
-  gap:10px;
-  overflow-x:auto;
-  padding-bottom:4px;
-  -webkit-overflow-scrolling: touch;
-}
-.ff-hourly-strip::-webkit-scrollbar{ height:6px; }
-.ff-hourly-strip::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,.14);
-  border-radius:999px;
-}
-.ff-hour{
-  min-width:92px;
-  border-radius:18px;
-  border:1px solid var(--stroke);
-  background:rgba(0,0,0,.14);
-  padding:10px 10px;
-  text-align:center;
-}
-.ff-hour-t{ font-size:12px; color:var(--muted); font-weight:700; }
-.ff-hour-i{ width:42px; height:42px; display:block; margin:6px auto 2px; }
-.ff-hour-temp{ font-size:15px; font-weight:900; }
-.ff-hour-pop{ font-size:12px; color:var(--muted); margin-top:2px; }
-
-/* Daily list */
-.ff-daily-list{
-  margin-top:10px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-.ff-day{
-  display:flex;
-  align-items:center;
+  align-items:flex-end;
   justify-content:space-between;
   gap:10px;
-  padding:10px 12px;
-  border-radius:16px;
-  border:1px solid var(--stroke);
-  background:rgba(0,0,0,.14);
 }
-.ff-day-l{ min-width:0; }
-.ff-day-name{ font-weight:900; }
-.ff-day-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
-.ff-day-i{ width:40px; height:40px; flex:0 0 auto; }
-.ff-day-r{
-  display:flex;
-  align-items:baseline;
-  gap:10px;
-  flex:0 0 auto;
+.ff-h2{
+  margin:0;
+  font-size:30px;
+  letter-spacing:-.02em;
 }
-.ff-day-max{ font-weight:900; }
-.ff-day-min{ font-weight:800; }
-
-/* Suggestions dropdown (app.js creates .ff-suggest) */
-.ff-suggest{
-  margin-top:10px;
-  border-radius:16px;
-  border:1px solid var(--stroke);
-  background:rgba(5,12,16,.92);
-  box-shadow:var(--shadow);
-  overflow:hidden;
-}
-.ff-suggest-item{
-  width:100%;
-  border:0;
-  background:transparent;
-  color:var(--text);
-  text-align:left;
-  padding:12px 12px;
-  cursor:pointer;
-}
-.ff-suggest-item + .ff-suggest-item{
-  border-top:1px solid rgba(255,255,255,.06);
-}
-.ff-suggest-item:active{ background:rgba(255,255,255,.06); }
-.ff-suggest-name{ font-weight:900; }
-.ff-suggest-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
-
-/* Playability block (if you have it in HTML) */
-.ff-playability{
-  margin-top:14px;
-  padding:16px;
-  border-radius:var(--radius2);
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,.05);
-  box-shadow:var(--shadow);
-}
-#playabilityScore{
-  font-size:28px;
+.ff-score{
+  font-size:22px;
   font-weight:900;
+  color:rgba(43,208,127,.95);
+}
+
+/* Details */
+.ff-details{
+  margin-top:12px;
+  border-top:1px solid rgba(255,255,255,.10);
+  padding-top:12px;
+}
+.ff-linklike{
+  cursor:pointer;
+  color:rgba(233,242,243,.88);
+  font-weight:800;
+}
+.ff-bullets{
+  margin:10px 0 0 18px;
+  color:var(--muted);
+  line-height:1.5;
 }
 
 /* Footer */
 .ff-footer{
-  margin-top:16px;
+  margin:18px 0 0;
   text-align:center;
   color:var(--muted2);
   font-size:12px;
+  padding-bottom:10px;
 }
 
-/* Mobile tweaks */
-@media (max-width:520px){
-  .ff-big{ font-size:38px; }
-  .ff-icon{ width:60px; height:60px; }
-  .ff-search{ flex-direction:column; }
-  .ff-btn{ width:100%; }
-  .ff-units{ flex-direction:column; align-items:stretch; }
-}
+/* Desktop enhancement */
+@media (min-width: 680px){
+  .ff-shell{ padding:22px var(--pad2) 34px; }
+  .ff-title{ font-size:40px; }
 
-/* =====================================================
-   OPTIONAL: If your HTML still references logo.svg,
-   hide it so you ONLY see this new in-CSS logo block.
-   (Safe even if logo.svg exists)
-   ===================================================== */
-img#logo,
-img.logo,
-header img[alt*="logo" i]{
-  display:none !important;
-   }
+  .ff-search-row{
+    grid-template-columns: 1fr 160px 110px;
+    align-items:center;
+  }
+
+  .ff-suggest{
+    left:18px;
+    right:18px;
+    top: 96px;
+  }
+}
