@@ -1,118 +1,137 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Fairway Forecast</title>
+<head>
+  <meta charset="UTF-8" />
+  <title>Fairway Forecast – Golf-first weather</title>
 
-    <!-- IMPORTANT: relative paths so GitHub Pages subfolder works -->
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Golf-first weather forecasts for courses and locations." />
 
-    <!-- Config must load before app.js -->
-    <script defer src="./config.js"></script>
-    <script defer src="./app.js"></script>
-  </head>
+  <!-- Styles -->
+  <link rel="stylesheet" href="./styles.css" />
 
-  <body>
-    <a class="skip-link" href="#forecast">Skip to forecast</a>
+  <!-- Prevent favicon 404 noise -->
+  <link rel="icon" href="data:," />
 
-    <header class="topbar">
-      <div class="brand">
-        <img class="brand-logo" src="./assets/logo.svg" alt="Fairway Forecast" />
-        <div class="brand-text">
-          <h1>Fairway Forecast</h1>
-          <p>Golf-first weather</p>
-        </div>
+</head>
+<body>
+
+<a class="skip-link" href="#forecast">Skip to forecast</a>
+
+<header class="header">
+  <div class="brand">
+    <img
+      src="./logo.svg"
+      alt="Fairway Forecast"
+      class="logo"
+      onerror="this.style.display='none'"
+    />
+    <div class="brand-text">
+      <h1>Fairway Forecast</h1>
+      <p>Golf-first weather</p>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- Controls -->
+  <section class="controls">
+    <label for="units">
+      Units
+      <select id="units">
+        <option value="metric">°C</option>
+        <option value="imperial">°F</option>
+      </select>
+    </label>
+
+    <label for="searchInput">
+      Search location or golf course
+      <div class="search-row">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="e.g. Swindon, GB or Royal Troon"
+          autocomplete="off"
+        />
+        <button id="searchBtn">Search</button>
       </div>
+    </label>
 
-      <div class="unit-switch">
-        <label for="unitsSelect">Units</label>
-        <select id="unitsSelect" aria-label="Units">
-          <option value="metric" selected>°C</option>
-          <option value="imperial">°F</option>
-        </select>
-      </div>
-    </header>
+    <p class="hint">
+      Tip: type a city/town for place results, or include
+      <strong>golf / club / gc</strong> for course-first results.
+    </p>
 
-    <main class="container">
-      <section class="panel">
-        <h2 class="sr-only">Search</h2>
+    <div class="actions">
+      <button id="geoBtn" title="Use my location">📍</button>
+      <button id="favAddBtn" title="Add to favourites">⭐</button>
+    </div>
+  </section>
 
-        <label class="label" for="searchInput">Search location or golf course</label>
-        <div class="search-row">
-          <input
-            id="searchInput"
-            type="text"
-            inputmode="search"
-            autocomplete="off"
-            placeholder="e.g. Swindon, GB or Royal Troon"
-          />
-          <button id="searchBtn" type="button">Search</button>
-        </div>
+  <!-- Favourites -->
+  <section class="favourites">
+    <label for="favouritesSelect">
+      Favourites
+      <select id="favouritesSelect">
+        <option value="">Select a favourite…</option>
+      </select>
+    </label>
+  </section>
 
-        <p class="hint">
-          Tip: type a city/town for place results, or include
-          <strong>“golf / club / gc”</strong> for course-first results.
-        </p>
+  <!-- Courses -->
+  <section class="courses">
+    <div id="coursesStatus">Courses: loading…</div>
+  </section>
 
-        <div class="mini-actions">
-          <button id="geoBtn" type="button" title="Use my location" aria-label="Use my location">⌖</button>
-          <button id="favBtn" type="button" title="Save favourite" aria-label="Save favourite">★</button>
-        </div>
+  <!-- Tabs -->
+  <section class="tabs">
+    <button class="tab active" data-view="current">Current</button>
+    <button class="tab" data-view="hourly">Hourly</button>
+    <button class="tab" data-view="daily">Daily</button>
+  </section>
 
-        <div class="fav-row">
-          <label for="favouritesSelect">Favourites</label>
-          <select id="favouritesSelect">
-            <option value="">Select a favourite…</option>
-          </select>
-        </div>
+  <!-- Forecast -->
+  <section id="forecast" class="forecast">
+    <div id="forecastContent">
+      <p class="muted">Select a location or course to view the forecast.</p>
+    </div>
+  </section>
 
-        <div class="status-row">
-          <span id="coursesStatus">Courses: loading…</span>
-          <span id="apiStatus" class="muted"></span>
-        </div>
+  <!-- Playability -->
+  <section class="playability">
+    <h2>
+      Playability
+      <button id="playabilityInfoBtn" aria-label="What affects playability">ℹ️</button>
+    </h2>
 
-        <div class="tabs">
-          <button id="tabCurrent" type="button" class="tab is-active">Current</button>
-          <button id="tabHourly" type="button" class="tab">Hourly</button>
-          <button id="tabDaily" type="button" class="tab">Daily</button>
-        </div>
-      </section>
+    <div class="score">
+      <span id="playabilityScore">--</span>
+      <span class="out-of">/10</span>
+    </div>
 
-      <section id="forecast" class="panel">
-        <h2 class="panel-title">Selected</h2>
+    <div id="playabilityInfo" class="playability-info hidden">
+      <button id="closePlayabilityInfo">✕</button>
+      <ul>
+        <li><strong>Wind:</strong> stronger gusts reduce control and comfort.</li>
+        <li><strong>Rain probability:</strong> higher chance = higher disruption.</li>
+        <li><strong>Temperature comfort:</strong> very cold or very hot reduces enjoyment.</li>
+        <li><strong>Visibility:</strong> fog or heavy rain affects play.</li>
+      </ul>
+    </div>
+  </section>
 
-        <div id="selectedSummary" class="card"></div>
+</main>
 
-        <div id="currentWrap" class="forecast-wrap"></div>
-        <div id="hourlyWrap" class="forecast-wrap" hidden></div>
-        <div id="dailyWrap" class="forecast-wrap" hidden></div>
-      </section>
+<footer class="footer">
+  <p>
+    Data © OpenWeather · Built for golfers
+  </p>
+</footer>
 
-      <section class="panel">
-        <h2 class="panel-title">Playability</h2>
-        <div id="playabilityWrap" class="card"></div>
+<!-- App -->
+<script src="./config.js"></script>
+<script src="./app.js" defer></script>
 
-        <button id="playabilityInfoBtn" class="info-btn" type="button">
-          What affects Playability?
-        </button>
-
-        <div id="playabilityInfo" class="modal" hidden>
-          <div class="modal-card">
-            <button id="playabilityCloseBtn" class="modal-close" type="button" aria-label="Close">×</button>
-            <h3>What affects Playability?</h3>
-            <ul>
-              <li><strong>Wind:</strong> stronger gusts reduce control and comfort.</li>
-              <li><strong>Rain probability:</strong> higher chance = higher disruption.</li>
-              <li><strong>Temperature comfort:</strong> very cold/very hot reduces enjoyment.</li>
-              <li><strong>Thunder risk:</strong> unsafe conditions = not playable.</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <noscript>This site needs JavaScript enabled.</noscript>
-  </body>
+</body>
 </html>
