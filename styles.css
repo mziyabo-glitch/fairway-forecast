@@ -1,294 +1,302 @@
-:root{
-  --bg: #071320;
-  --panel: rgba(255,255,255,0.06);
-  --panel2: rgba(255,255,255,0.08);
-  --stroke: rgba(255,255,255,0.10);
-  --text: rgba(255,255,255,0.92);
-  --muted: rgba(255,255,255,0.70);
+/* =========================================================
+   Fairway Forecast – styles.css
+   Golf-first weather UI
+   Mobile-first, clean, calm, readable
+   ========================================================= */
 
-  /* tasteful accents */
-  --accent: #4cc9f0;    /* sky */
-  --accent2: #00d084;   /* green */
-  --warn: #ffcc66;
-
-  --shadow: 0 10px 30px rgba(0,0,0,0.35);
-  --radius: 18px;
-
-  --tap: 48px;
+/* ---------- CSS Reset / Base ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-* { box-sizing: border-box; }
-html, body { height: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
 
-body{
+body {
   margin: 0;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: var(--text);
-  background:
-    radial-gradient(1200px 600px at 20% -10%, rgba(76,201,240,0.18), transparent 55%),
-    radial-gradient(900px 500px at 90% 10%, rgba(0,208,132,0.12), transparent 55%),
-    linear-gradient(180deg, #061120 0%, #061020 35%, #040b14 100%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.45;
+  color: #1f2933;
+  background: linear-gradient(
+    180deg,
+    #f3f7f4 0%,
+    #eef3f1 40%,
+    #e9eff0 100%
+  );
 }
 
-a { color: inherit; }
-
-.hidden { display: none !important; }
-
-.container{
-  width: min(720px, 100%);
-  margin: 0 auto;
-  padding: 14px 14px 26px;
+/* ---------- Links & Buttons ---------- */
+a {
+  color: #0f766e;
+  text-decoration: underline;
 }
 
-/* Top brand bar */
-.topbar{
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  backdrop-filter: blur(10px);
-  background: linear-gradient(180deg, rgba(4,11,20,0.92), rgba(4,11,20,0.65));
-  border-bottom: 1px solid var(--stroke);
+a:hover {
+  text-decoration: none;
 }
 
-.brand{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+button,
+select,
+input {
+  font: inherit;
 }
 
-.brand-logo{
-  width: 28px;
-  height: 28px;
-  display: block;
-  /* crisp edges for SVG */
-  image-rendering: -webkit-optimize-contrast;
-}
-
-.brand-name{
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-/* Cards */
-.card{
-  background: linear-gradient(180deg, var(--panel), var(--panel2));
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
-  margin-top: 12px;
-}
-
-.search-card{
-  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.05));
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 12px;
-  margin-top: 12px;
-}
-
-/* Search row */
-.search-row{
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
-  align-items: center;
-}
-
-#searchInput{
-  width: 100%;
-  height: var(--tap);
-  padding: 0 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.25);
-  color: var(--text);
-  outline: none;
-}
-
-#searchInput::placeholder{
-  color: rgba(255,255,255,0.55);
-}
-
-#searchBtn, .fav-btn{
-  height: var(--tap);
-  min-width: var(--tap);
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.25);
-  color: var(--text);
-  font-weight: 600;
-}
-
-#searchBtn{
-  padding: 0 14px;
-  background: linear-gradient(135deg, rgba(76,201,240,0.25), rgba(0,208,132,0.18));
-  border-color: rgba(76,201,240,0.22);
-}
-
-#searchBtn:active, .fav-btn:active{
-  transform: translateY(1px);
-}
-
-.fav-btn{
-  display: inline-grid;
-  place-items: center;
-  font-size: 18px;
-  color: rgba(255,255,255,0.80);
-}
-
-.fav-btn.is-on{
-  color: #071320;
-  background: linear-gradient(135deg, rgba(255,204,102,0.9), rgba(0,208,132,0.85));
-  border-color: rgba(255,204,102,0.35);
-}
-
-/* Search results */
-.search-results{
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-  border-radius: 14px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.10);
-}
-
-.search-results:empty{
-  display: none;
-}
-
-.search-results li{
-  padding: 12px 12px;
-  background: rgba(0,0,0,0.22);
-  border-top: 1px solid rgba(255,255,255,0.08);
+button {
   cursor: pointer;
 }
 
-.search-results li:first-child{
-  border-top: none;
+/* ---------- Layout ---------- */
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 14px;
 }
 
-.search-results li:hover{
-  background: rgba(0,0,0,0.30);
+/* ---------- Header / Branding ---------- */
+header {
+  margin-bottom: 14px;
 }
 
-/* Location card */
-#locationName{
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-/* Playability hero */
-.playability{
-  position: relative;
-  padding: 16px;
-  background:
-    radial-gradient(500px 250px at 20% 0%, rgba(76,201,240,0.22), transparent 60%),
-    radial-gradient(500px 250px at 80% 30%, rgba(0,208,132,0.18), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
-}
-
-.playability-score{
-  font-size: 52px;
-  line-height: 1;
-  font-weight: 800;
-  letter-spacing: -1px;
-}
-
-.playability-label{
-  margin-top: 8px;
-  font-size: 15px;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.info-btn{
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  height: 38px;
-  width: 38px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(0,0,0,0.25);
-  color: rgba(255,255,255,0.85);
-  font-weight: 700;
-}
-
-/* Info panel (NOT transparent) */
-.info-panel{
-  margin-top: 10px;
-  background: #0b1a2b; /* solid for readability */
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  box-shadow: var(--shadow);
-}
-
-.info-header{
+.brand {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  gap: 10px;
 }
 
-#playabilityCloseBtn{
-  height: 36px;
-  width: 36px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.9);
+.brand img {
+  width: 44px;
+  height: 44px;
 }
 
-.info-panel ul{
+.brand h1 {
+  font-size: 1.5rem;
   margin: 0;
-  padding-left: 18px;
-  color: rgba(255,255,255,0.82);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
-/* Tee times */
-#teeTimeCard h2, #weatherCard h2{
-  margin: 0 0 10px 0;
-  font-size: 16px;
-  letter-spacing: 0.2px;
-  color: rgba(255,255,255,0.92);
+.brand .tagline {
+  font-size: 0.9rem;
+  color: #475569;
 }
 
-#bestTeeTime{
-  font-size: 18px;
+/* ---------- Controls ---------- */
+.controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.controls label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #334155;
+}
+
+.controls input[type="search"],
+.controls select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5d1;
+  background: #ffffff;
+}
+
+.controls input::placeholder {
+  color: #94a3b8;
+}
+
+.controls .row {
+  display: flex;
+  gap: 8px;
+}
+
+.controls button {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #0f766e;
+  background: #0f766e;
+  color: #ffffff;
   font-weight: 700;
 }
 
-.sun-times{
+.controls button.secondary {
+  background: #ffffff;
+  color: #0f766e;
+}
+
+/* ---------- Favourites ---------- */
+.favourites {
   display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.favourites select {
+  flex: 1;
+}
+
+/* ---------- Tabs ---------- */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin: 16px 0 8px;
+}
+
+.tabs button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 999px;
+  border: 1px solid #cbd5d1;
+  background: #ffffff;
+  font-weight: 700;
+  color: #334155;
+}
+
+.tabs button.active {
+  background: #0f766e;
+  color: #ffffff;
+  border-color: #0f766e;
+}
+
+/* ---------- Forecast Cards ---------- */
+.ff-card {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(15, 118, 110, 0.08);
+}
+
+/* ---------- Current Weather ---------- */
+.ff-row {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 13px;
 }
 
-/* Weather summary */
-#weatherSummary{
-  color: rgba(255,255,255,0.82);
-  font-weight: 600;
-  line-height: 1.4;
+.ff-icon {
+  width: 64px;
+  height: 64px;
 }
 
-/* Footer */
-.footer{
-  margin-top: 18px;
+.ff-big {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.ff-sub {
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+/* ---------- Grids ---------- */
+.ff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ff-grid div {
+  background: #f0fdfa;
+  border-radius: 12px;
+  padding: 8px;
   text-align: center;
-  color: rgba(255,255,255,0.55);
+  font-size: 0.85rem;
 }
 
-/* Desktop tweaks */
-@media (min-width: 760px){
-  .container{ padding: 18px 18px 28px; }
-  .playability-score{ font-size: 64px; }
+/* ---------- Lists (Hourly / Daily) ---------- */
+.ff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ff-item {
+  display: grid;
+  grid-template-columns: 80px 40px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.ff-time {
+  font-weight: 700;
+}
+
+.ff-icon-sm {
+  width: 36px;
+  height: 36px;
+}
+
+.ff-temp {
+  font-weight: 700;
+}
+
+.ff-meta {
+  grid-column: 1 / -1;
+  margin-left: 80px;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+/* ---------- Playability ---------- */
+.playability {
+  margin-top: 12px;
+}
+
+.playability h3 {
+  margin: 0 0 6px;
+}
+
+.playability .score {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #0f766e;
+}
+
+.playability ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+}
+
+/* ---------- Utility ---------- */
+.muted {
+  color: #64748b;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---------- Footer ---------- */
+footer {
+  margin: 24px 0 12px;
+  font-size: 0.75rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* ---------- Desktop Enhancements ---------- */
+@media (min-width: 768px) {
+  .controls {
+    grid-template-columns: 1fr 140px;
+    align-items: end;
+  }
+
+  .controls .row {
+    grid-column: 1 / -1;
+  }
+
+  .ff-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
