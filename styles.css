@@ -1,416 +1,440 @@
 /* =====================================================
    Fairway Forecast – styles.css
-   Mobile-first, elegant, golf-inspired
+   Elegant, mobile-first, tasteful colour
+   Supports: tabs, cards, hourly strip, daily list, suggestions
    ===================================================== */
 
-/* ---------- CSS RESET ---------- */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+:root{
+  --bg0:#07131a;
+  --bg1:#0b1c25;
+  --card:rgba(255,255,255,.06);
+  --card2:rgba(255,255,255,.08);
+  --stroke:rgba(255,255,255,.10);
+  --stroke2:rgba(255,255,255,.14);
+  --text:rgba(255,255,255,.92);
+  --muted:rgba(255,255,255,.70);
+  --muted2:rgba(255,255,255,.55);
+
+  --accent:#26d07c;        /* green */
+  --accent2:#22b7d8;       /* teal */
+  --shadow:0 10px 28px rgba(0,0,0,.35);
+  --radius:18px;
+  --radius2:22px;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: radial-gradient(
-    1200px 600px at 10% -20%,
-    #1f6f8b 0%,
-    #143c4a 40%,
-    #0e2430 100%
-  );
-  color: #e8f1f4;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.45;
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(1200px 600px at 15% 0%, rgba(34,183,216,.20), transparent 55%),
+    radial-gradient(900px 600px at 85% 10%, rgba(38,208,124,.16), transparent 55%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
 }
 
-/* ---------- LINKS ---------- */
-a {
-  color: #9fd8ff;
-  text-decoration: none;
+/* Accessibility */
+a{ color:inherit; }
+#skipLink{
+  position:absolute;
+  left:-9999px;
+  top:auto;
+  width:1px;height:1px;
+  overflow:hidden;
+}
+#skipLink:focus{
+  left:16px; top:16px;
+  width:auto;height:auto;
+  padding:10px 12px;
+  background:rgba(0,0,0,.55);
+  border:1px solid var(--stroke2);
+  border-radius:12px;
+  z-index:9999;
 }
 
-a:hover {
-  text-decoration: underline;
+/* Layout */
+.ff-wrap{
+  max-width:780px;
+  margin:0 auto;
+  padding:16px 14px 24px;
 }
 
-/* ---------- LAYOUT ---------- */
-main {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 16px;
+.ff-top{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding:14px 14px;
+  border:1px solid var(--stroke);
+  background:linear-gradient(135deg, rgba(34,183,216,.14), rgba(38,208,124,.08));
+  border-radius:var(--radius2);
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(10px);
 }
 
-/* ---------- HEADER / BRAND ---------- */
-.ff-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 18px;
-  background: linear-gradient(
-    135deg,
-    rgba(40, 120, 140, 0.55),
-    rgba(20, 60, 80, 0.65)
-  );
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-  margin-bottom: 18px;
+/* --- New Logo (replace “I hate the logo” problem) --- */
+.ff-logo{
+  width:52px;
+  height:52px;
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  border:1px solid var(--stroke2);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 55%),
+    linear-gradient(135deg, rgba(34,183,216,.35), rgba(38,208,124,.22));
+  box-shadow: 0 10px 22px rgba(0,0,0,.28);
+  overflow:hidden;
+}
+.ff-logo svg{ width:44px; height:44px; display:block; }
+
+.ff-brand{
+  min-width:0;
+}
+.ff-brand h1{
+  margin:0;
+  font-size:20px;
+  letter-spacing:.2px;
+  line-height:1.2;
+}
+.ff-brand p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:13px;
 }
 
-.ff-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #1faa59, #0f766e);
-  display: grid;
-  place-items: center;
-  font-size: 22px;
+/* Controls card */
+.ff-controls{
+  margin-top:14px;
+  padding:14px;
+  border-radius:var(--radius2);
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.04);
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(10px);
 }
 
-.ff-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0.2px;
+.ff-label{
+  font-size:13px;
+  color:var(--muted);
+  margin:0 0 8px;
 }
 
-.ff-tagline {
-  font-size: 0.9rem;
-  opacity: 0.85;
+.ff-row{
+  display:flex;
+  gap:12px;
+  align-items:center;
 }
 
-/* ---------- CONTROLS ---------- */
-.ff-controls {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 16px;
+.ff-search{
+  display:flex;
+  gap:10px;
+  align-items:stretch;
 }
 
-.ff-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.ff-search input{
+  width:100%;
+  padding:14px 14px;
+  border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,.18);
+  color:var(--text);
+  outline:none;
+  font-size:16px;
+}
+.ff-search input:focus{
+  border-color: rgba(34,183,216,.55);
+  box-shadow: 0 0 0 3px rgba(34,183,216,.18);
 }
 
-.ff-label {
-  font-size: 0.8rem;
-  opacity: 0.75;
+.ff-btn{
+  border:0;
+  cursor:pointer;
+  border-radius:16px;
+  padding:12px 14px;
+  font-weight:700;
+  font-size:15px;
+  color:#062014;
+  background: linear-gradient(135deg, var(--accent), rgba(38,208,124,.75));
+  box-shadow: 0 10px 22px rgba(0,0,0,.22);
+}
+.ff-btn:active{ transform: translateY(1px); }
+.ff-btn.secondary{
+  color:rgba(255,255,255,.92);
+  background:rgba(255,255,255,.08);
+  border:1px solid var(--stroke);
+}
+.ff-btn.secondary:active{ transform: translateY(1px); }
+
+.ff-units{
+  margin-top:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.ff-units select{
+  width:100%;
+  padding:12px 12px;
+  border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,.18);
+  color:var(--text);
+  font-size:15px;
 }
 
-.ff-input,
-.ff-select {
-  width: 100%;
-  padding: 14px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(10, 30, 40, 0.6);
-  color: #fff;
-  font-size: 1rem;
-  outline: none;
+/* Tabs */
+.ff-tabs{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+}
+.ff-tab{
+  padding:12px 10px;
+  border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.05);
+  color:var(--text);
+  font-weight:700;
+  text-align:center;
+  cursor:pointer;
+  user-select:none;
+}
+.ff-tab.active{
+  border-color: rgba(38,208,124,.55);
+  background: linear-gradient(135deg, rgba(38,208,124,.25), rgba(34,183,216,.14));
 }
 
-.ff-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+/* Results */
+#results{ margin-top:14px; }
+
+.ff-card{
+  padding:16px 16px;
+  border-radius:var(--radius2);
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.05);
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(10px);
+}
+.ff-card + .ff-card{ margin-top:12px; }
+
+.ff-title{
+  font-size:16px;
+  font-weight:800;
+  margin:0 0 6px;
+  letter-spacing:.2px;
+}
+.ff-sub{
+  font-size:13px;
+  color:var(--muted);
+}
+.muted{ color:var(--muted); }
+.ff-divider{
+  height:1px;
+  background:var(--stroke);
+  margin:12px 0;
 }
 
-.ff-input:focus,
-.ff-select:focus {
-  border-color: #4dd2ff;
-  box-shadow: 0 0 0 2px rgba(77, 210, 255, 0.15);
+.ff-stack{ min-width:0; }
+.ff-big{
+  font-size:40px;
+  font-weight:900;
+  line-height:1;
+  letter-spacing:-.5px;
+}
+.ff-icon{
+  width:64px;
+  height:64px;
+  border-radius:18px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--stroke);
 }
 
-.ff-actions {
-  display: flex;
-  gap: 10px;
+/* Current metrics */
+.ff-metrics{
+  margin-top:14px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.ff-metric{
+  padding:12px;
+  border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,.14);
+}
+.ff-metric-k{
+  font-size:12px;
+  color:var(--muted2);
+}
+.ff-metric-v{
+  margin-top:6px;
+  font-size:16px;
+  font-weight:800;
 }
 
-.ff-btn {
-  flex: 1;
-  padding: 14px;
-  border-radius: 14px;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #2bb673, #14967f);
-  color: #06251f;
+/* Course list */
+.ff-course-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.ff-course{
+  position:relative;
+  width:100%;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,.16);
+  color:var(--text);
+  border-radius:16px;
+  padding:12px 12px;
+  text-align:left;
+  cursor:pointer;
+}
+.ff-course:active{ transform: translateY(1px); }
+.ff-course-name{
+  font-weight:900;
+  font-size:15px;
+}
+.ff-course-sub{
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+}
+.ff-course-dist{
+  position:absolute;
+  right:12px;
+  top:12px;
+  font-size:12px;
+  font-weight:800;
+  color:rgba(255,255,255,.86);
+  padding:6px 8px;
+  border-radius:999px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.06);
 }
 
-.ff-btn.secondary {
-  background: rgba(255, 255, 255, 0.12);
-  color: #e8f1f4;
+/* Hourly strip */
+.ff-hourly-strip{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  padding-bottom:4px;
+  -webkit-overflow-scrolling: touch;
+}
+.ff-hourly-strip::-webkit-scrollbar{ height:6px; }
+.ff-hourly-strip::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.14);
+  border-radius:999px;
+}
+.ff-hour{
+  min-width:92px;
+  border-radius:18px;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,.14);
+  padding:10px 10px;
+  text-align:center;
+}
+.ff-hour-t{ font-size:12px; color:var(--muted); font-weight:700; }
+.ff-hour-i{ width:42px; height:42px; display:block; margin:6px auto 2px; }
+.ff-hour-temp{ font-size:15px; font-weight:900; }
+.ff-hour-pop{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* Daily list */
+.ff-daily-list{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.ff-day{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,.14);
+}
+.ff-day-l{ min-width:0; }
+.ff-day-name{ font-weight:900; }
+.ff-day-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+.ff-day-i{ width:40px; height:40px; flex:0 0 auto; }
+.ff-day-r{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  flex:0 0 auto;
+}
+.ff-day-max{ font-weight:900; }
+.ff-day-min{ font-weight:800; }
+
+/* Suggestions dropdown (app.js creates .ff-suggest) */
+.ff-suggest{
+  margin-top:10px;
+  border-radius:16px;
+  border:1px solid var(--stroke);
+  background:rgba(5,12,16,.92);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.ff-suggest-item{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:var(--text);
+  text-align:left;
+  padding:12px 12px;
+  cursor:pointer;
+}
+.ff-suggest-item + .ff-suggest-item{
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.ff-suggest-item:active{ background:rgba(255,255,255,.06); }
+.ff-suggest-name{ font-weight:900; }
+.ff-suggest-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* Playability block (if you have it in HTML) */
+.ff-playability{
+  margin-top:14px;
+  padding:16px;
+  border-radius:var(--radius2);
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.05);
+  box-shadow:var(--shadow);
+}
+#playabilityScore{
+  font-size:28px;
+  font-weight:900;
 }
 
-.ff-btn:active {
-  transform: scale(0.98);
+/* Footer */
+.ff-footer{
+  margin-top:16px;
+  text-align:center;
+  color:var(--muted2);
+  font-size:12px;
 }
 
-/* ---------- TABS ---------- */
-.ff-tabs {
-  display: flex;
-  gap: 10px;
-  margin: 18px 0 10px;
+/* Mobile tweaks */
+@media (max-width:520px){
+  .ff-big{ font-size:38px; }
+  .ff-icon{ width:60px; height:60px; }
+  .ff-search{ flex-direction:column; }
+  .ff-btn{ width:100%; }
+  .ff-units{ flex-direction:column; align-items:stretch; }
 }
 
-.ff-tab {
-  flex: 1;
-  padding: 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #e8f1f4;
-  border: none;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.ff-tab.active {
-  background: linear-gradient(135deg, #2bb673, #14967f);
-  color: #06251f;
-  font-weight: 700;
-}
-
-/* ---------- CARDS ---------- */
-.ff-card {
-  background: linear-gradient(
-    180deg,
-    rgba(20, 50, 65, 0.85),
-    rgba(15, 40, 55, 0.95)
-  );
-  border-radius: 20px;
-  padding: 18px;
-  margin-bottom: 16px;
-  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
-}
-
-.ff-card.muted {
-  opacity: 0.85;
-}
-
-/* ---------- CURRENT WEATHER ---------- */
-.ff-row {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-
-.ff-icon {
-  width: 72px;
-  height: 72px;
-}
-
-.ff-big {
-  font-size: 3rem;
-  font-weight: 800;
-}
-
-.ff-sub {
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-/* ---------- METRICS ---------- */
-.ff-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.ff-metric {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 10px;
-  text-align: center;
-}
-
-.ff-metric .k {
-  font-size: 0.7rem;
-  opacity: 0.7;
-}
-
-.ff-metric .v {
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-/* ---------- HOURLY ---------- */
-.ff-hourly-grid {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(88px, 1fr);
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.ff-hour {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 10px;
-  text-align: center;
-}
-
-.ff-hour .t {
-  font-size: 0.75rem;
-  opacity: 0.75;
-}
-
-.ff-hour img {
-  width: 40px;
-  height: 40px;
-}
-
-.ff-hour .temp {
-  font-size: 1.2rem;
-  font-weight: 700;
-}
-
-.ff-hour .meta {
-  font-size: 0.7rem;
-  opacity: 0.75;
-}
-
-/* ---------- DAILY ---------- */
-.ff-daily-list {
-  display: grid;
-  gap: 10px;
-}
-
-.ff-day {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 12px;
-}
-
-.ff-day .d {
-  font-weight: 600;
-}
-
-.ff-day img {
-  width: 36px;
-  height: 36px;
-}
-
-.ff-day .temps {
-  display: flex;
-  gap: 6px;
-  font-weight: 700;
-}
-
-.ff-day .lo {
-  opacity: 0.6;
-}
-
-.ff-day .meta {
-  grid-column: 1 / -1;
-  font-size: 0.75rem;
-  opacity: 0.7;
-  display: flex;
-  gap: 12px;
-}
-
-/* ---------- COURSE LIST ---------- */
-.ff-course-list {
-  display: grid;
-  gap: 10px;
-}
-
-.ff-course {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 14px;
-  border: none;
-  color: #e8f1f4;
-  text-align: left;
-  cursor: pointer;
-}
-
-.ff-course-name {
-  font-weight: 700;
-}
-
-.ff-course-sub {
-  font-size: 0.8rem;
-  opacity: 0.7;
-}
-
-.ff-course-dist {
-  font-size: 0.75rem;
-  opacity: 0.8;
-  margin-top: 4px;
-}
-
-/* ---------- SUGGESTIONS ---------- */
-.ff-suggest {
-  position: absolute;
-  width: 100%;
-  background: rgba(15, 40, 55, 0.98);
-  border-radius: 14px;
-  margin-top: 6px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-  z-index: 20;
-  overflow: hidden;
-}
-
-.ff-suggest-item {
-  width: 100%;
-  border: none;
-  background: none;
-  color: #e8f1f4;
-  padding: 12px 14px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.ff-suggest-item:hover,
-.ff-suggest-item.active {
-  background: rgba(77, 210, 255, 0.18);
-}
-
-.ff-suggest-item .n {
-  font-weight: 600;
-}
-
-.ff-suggest-item .s {
-  font-size: 0.75rem;
-  opacity: 0.7;
-}
-
-/* ---------- PLAYABILITY ---------- */
-.ff-playability {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.ff-playability-score {
-  font-size: 2rem;
-  font-weight: 800;
-}
-
-/* ---------- FOOTER ---------- */
-footer {
-  text-align: center;
-  font-size: 0.75rem;
-  opacity: 0.6;
-  padding: 20px 0;
-}
-
-/* ---------- ACCESSIBILITY ---------- */
-.skip-link {
-  position: absolute;
-  top: -100px;
-  left: 10px;
-}
-
-.skip-link:focus {
-  top: 10px;
-  background: #000;
-  padding: 8px;
-  z-index: 1000;
-}
+/* =====================================================
+   OPTIONAL: If your HTML still references logo.svg,
+   hide it so you ONLY see this new in-CSS logo block.
+   (Safe even if logo.svg exists)
+   ===================================================== */
+img#logo,
+img.logo,
+header img[alt*="logo" i]{
+  display:none !important;
+   }
