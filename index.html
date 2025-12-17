@@ -2,89 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#07131a" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1f24" />
   <title>Fairway Forecast</title>
 
-  <link rel="stylesheet" href="./styles.css" />
   <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-
-  <script defer src="./config.js"></script>
-  <script defer src="./app.js"></script>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
-  <a id="skipLink" href="#results">Skip to forecast</a>
+  <a class="skip-link" href="#forecast">Skip to forecast</a>
 
-  <main class="ff-wrap">
-    <!-- Top brand -->
-    <header class="ff-top" aria-label="Fairway Forecast">
-      <div class="ff-logo" aria-hidden="true">
-        <!-- Clean icon: fairway + ball -->
-        <svg viewBox="0 0 64 64" role="img" aria-label="Fairway Forecast logo">
-          <defs>
-            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="rgba(34,183,216,.95)"/>
-              <stop offset="1" stop-color="rgba(38,208,124,.95)"/>
-            </linearGradient>
-          </defs>
+  <main class="ff-shell">
+    <!-- Header / Hero -->
+    <header class="ff-hero">
+      <!-- NEW: simple mark instead of the old logo image (you said you hate it) -->
+      <div class="ff-mark" aria-hidden="true"></div>
 
-          <!-- fairway -->
-          <path d="M10 44c8-10 16-14 22-14s14 4 22 14l-4 6c-7-8-12-11-18-11s-11 3-18 11l-4-6z"
-                fill="url(#g)" opacity="0.95"/>
-          <path d="M18 46c5-6 9-8 14-8s9 2 14 8"
-                fill="none" stroke="rgba(255,255,255,.25)" stroke-width="3" stroke-linecap="round"/>
-
-          <!-- ball -->
-          <circle cx="32" cy="22" r="9" fill="rgba(255,255,255,.92)"/>
-          <circle cx="28" cy="20" r="1.5" fill="rgba(0,0,0,.20)"/>
-          <circle cx="35" cy="19" r="1.5" fill="rgba(0,0,0,.20)"/>
-          <circle cx="33" cy="24" r="1.5" fill="rgba(0,0,0,.20)"/>
-        </svg>
-      </div>
-
-      <div class="ff-brand">
-        <h1>Fairway Forecast</h1>
-        <p>Golf-first weather</p>
+      <div class="ff-hero-text">
+        <h1 class="ff-title">Fairway Forecast</h1>
+        <p class="ff-tagline">Golf-first weather</p>
       </div>
     </header>
 
     <!-- Controls -->
-    <section class="ff-controls" aria-label="Search">
-      <p class="ff-label">Search location or golf course</p>
+    <section class="ff-card ff-controls" aria-label="Search">
+      <label class="ff-label" for="searchInput">Search location or golf course</label>
 
-      <div class="ff-search">
+      <div class="ff-search-row">
         <input
           id="searchInput"
+          class="ff-input"
           type="search"
-          placeholder="e.g. Swindon, GB or Donnington Grove"
-          autocomplete="off"
           inputmode="search"
-          aria-label="Search location or golf course"
+          autocomplete="off"
+          placeholder="e.g. Swindon, GB or Shrivenham Park Golf Club"
+          aria-describedby="searchTip"
         />
 
-        <button id="searchBtn" class="ff-btn" type="button">Search</button>
+        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">
+          Search
+        </button>
 
-        <!-- Near-me button (your app.js looks for btnGeo OR geoBtn) -->
-        <button id="btnGeo" class="ff-btn secondary" type="button" title="Courses near me" aria-label="Courses near me">
+        <button id="btnGeo" class="ff-btn ff-btn-ghost" type="button" title="Courses near me" aria-label="Courses near me">
           ⌖
         </button>
       </div>
 
-      <!-- Suggestions dropdown area (app.js can populate inside this wrapper) -->
-      <div id="suggestions" class="ff-suggest" style="display:none" aria-label="Suggestions"></div>
+      <!-- Suggestions dropdown (filled by app.js later; harmless if empty) -->
+      <div id="suggestions" class="ff-suggest" role="listbox" aria-label="Suggestions" hidden></div>
+
+      <p id="searchTip" class="ff-tip">
+        Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
+      </p>
 
       <div class="ff-units">
-        <p class="ff-label" style="margin:0">Units</p>
-        <select id="unitsSelect" aria-label="Units">
+        <label class="ff-label" for="unitsSelect">Units</label>
+        <select id="unitsSelect" class="ff-select" aria-label="Units">
           <option value="metric">°C / m/s</option>
           <option value="imperial">°F / mph</option>
         </select>
       </div>
-
-      <p class="ff-sub muted" style="margin-top:10px">
-        Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
-      </p>
     </section>
 
     <!-- Tabs -->
@@ -95,17 +73,26 @@
     </nav>
 
     <!-- Results -->
-    <section id="results" aria-live="polite">
-      <!-- app.js renders into here -->
+    <section id="forecast" class="ff-results">
+      <div id="results"></div>
     </section>
 
     <!-- Playability -->
-    <section class="ff-playability" aria-label="Playability">
-      <h2 class="ff-title" style="margin:0 0 10px">Playability</h2>
-      <div id="playabilityScore">--/10</div>
-      <div class="ff-sub muted" style="margin-top:6px">
-        Wind, rain probability &amp; temperature comfort
+    <section class="ff-card ff-play" aria-label="Playability">
+      <div class="ff-play-head">
+        <h2 class="ff-h2">Playability</h2>
+        <div id="playabilityScore" class="ff-score">--/10</div>
       </div>
+      <div class="ff-sub muted">Wind, rain probability &amp; temperature comfort</div>
+
+      <details class="ff-details">
+        <summary class="ff-linklike">What affects playability?</summary>
+        <ul class="ff-bullets">
+          <li><strong>Wind:</strong> stronger gusts reduce control and comfort.</li>
+          <li><strong>Rain probability:</strong> higher chance = higher disruption.</li>
+          <li><strong>Temperature comfort:</strong> very cold/very hot reduces enjoyment.</li>
+        </ul>
+      </details>
     </section>
 
     <!-- Footer -->
@@ -113,5 +100,15 @@
       Weather data © OpenWeather · Course data © GolfCourseAPI
     </footer>
   </main>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+
+  <!-- tiny helper so the suggestions container doesn't break anything before we wire it fully -->
+  <script>
+    // Keep suggestions hidden by default (app.js will show it when populated)
+    const sugg = document.getElementById("suggestions");
+    if (sugg) sugg.hidden = true;
+  </script>
 </body>
 </html>
