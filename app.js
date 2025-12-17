@@ -596,3 +596,4 @@
   function openSuggestions(items) {
     ensureSuggestUI();
     if (!sugg
+
