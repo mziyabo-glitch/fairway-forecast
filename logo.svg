@@ -1,68 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" role="img" aria-label="Fairway Forecast logo">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="160" viewBox="0 0 512 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fairway Forecast logo">
   <defs>
-    <linearGradient id="ff_sky" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#0B4AA2"/>
-      <stop offset="1" stop-color="#1B74D8"/>
+    <linearGradient id="g1" x1="0" y1="0" x2="512" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0B3D91"/>
+      <stop offset="1" stop-color="#146C94"/>
     </linearGradient>
-    <linearGradient id="ff_fairway" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1FBF6B"/>
-      <stop offset="1" stop-color="#0D8F4C"/>
+    <linearGradient id="g2" x1="0" y1="0" x2="0" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#27AE60"/>
+      <stop offset="1" stop-color="#1F8F4D"/>
     </linearGradient>
-    <filter id="ff_soft" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-      <feOffset dx="0" dy="2" result="off"/>
-      <feComponentTransfer>
-        <feFuncA type="linear" slope="0.25"/>
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <filter id="softShadow" x="-20" y="-20" width="200" height="200" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.25"/>
     </filter>
   </defs>
 
-  <!-- Badge -->
-  <g filter="url(#ff_soft)">
-    <rect x="18" y="18" width="164" height="164" rx="36" fill="url(#ff_sky)"/>
-    <!-- Sun -->
-    <circle cx="128" cy="62" r="18" fill="#FFD34D"/>
-    <g stroke="#FFD34D" stroke-width="4" stroke-linecap="round">
-      <line x1="128" y1="34" x2="128" y2="24"/>
-      <line x1="128" y1="100" x2="128" y2="90"/>
-      <line x1="100" y1="62" x2="90" y2="62"/>
-      <line x1="166" y1="62" x2="156" y2="62"/>
-      <line x1="109" y1="43" x2="101" y2="35"/>
-      <line x1="147" y1="81" x2="155" y2="89"/>
-      <line x1="147" y1="43" x2="155" y2="35"/>
-      <line x1="109" y1="81" x2="101" y2="89"/>
-    </g>
+  <!-- Background pill -->
+  <rect x="10" y="16" width="492" height="128" rx="28" fill="url(#g1)"/>
+
+  <!-- Icon group -->
+  <g filter="url(#softShadow)">
+    <!-- Fairway curve -->
+    <path d="M64 118C94 90 126 90 156 118" stroke="url(#g2)" stroke-width="18" stroke-linecap="round"/>
+    <path d="M64 118C94 104 126 104 156 118" stroke="#B9F6CA" stroke-opacity="0.45" stroke-width="6" stroke-linecap="round"/>
+
+    <!-- Golf ball -->
+    <circle cx="110" cy="92" r="16" fill="#FFFFFF"/>
+    <circle cx="104" cy="88" r="2.5" fill="#D7D7D7"/>
+    <circle cx="112" cy="84" r="2.5" fill="#D7D7D7"/>
+    <circle cx="118" cy="90" r="2.5" fill="#D7D7D7"/>
 
     <!-- Cloud -->
-    <g fill="#EAF4FF">
-      <circle cx="70" cy="86" r="18"/>
-      <circle cx="92" cy="78" r="22"/>
-      <circle cx="118" cy="86" r="18"/>
-      <rect x="60" y="86" width="74" height="26" rx="13"/>
-    </g>
-
-    <!-- Fairway -->
-    <path d="M34 164 C70 120, 126 120, 166 164 L34 164 Z" fill="url(#ff_fairway)"/>
-    <path d="M60 164 C92 132, 118 132, 144 164" fill="none" stroke="#E9FFE9" stroke-width="6" stroke-linecap="round" opacity="0.65"/>
-
-    <!-- Flag + ball -->
-    <g>
-      <line x1="96" y1="118" x2="96" y2="152" stroke="#072B5E" stroke-width="4" stroke-linecap="round"/>
-      <path d="M96 118 L126 126 L96 136 Z" fill="#FF4D6D"/>
-      <circle cx="120" cy="150" r="6" fill="#FFFFFF"/>
-    </g>
+    <path d="M168 92C168 82 176 74 186 74C193 74 199 78 202 84C205 81 209 79 214 79C223 79 230 86 230 95C230 104 223 111 214 111H186C176 111 168 103 168 92Z" fill="#E9F2FF"/>
+    <path d="M176 92C176 87 180 83 186 83C190 83 194 85 196 89C198 87 201 86 204 86C210 86 214 90 214 96C214 101 210 106 204 106H186C180 106 176 101 176 96V92Z" fill="#FFFFFF" opacity="0.7"/>
   </g>
 
-  <!-- Wordmark -->
-  <g font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif">
-    <text x="210" y="92" font-size="44" font-weight="800" fill="#0B1B33">Fairway</text>
-    <text x="210" y="138" font-size="44" font-weight="800" fill="#0B4AA2">Forecast</text>
-    <text x="210" y="168" font-size="16" font-weight="600" fill="#4B5B73" letter-spacing="0.6">
-      Golf weather, made simple
+  <!-- Brand text -->
+  <g>
+    <text x="250" y="76" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="34" font-weight="800" fill="#FFFFFF">
+      Fairway Forecast
+    </text>
+    <text x="250" y="104" font-family="system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="16" font-weight="500" fill="#DCEBFF" opacity="0.95">
+      Golf-first weather
     </text>
   </g>
+
+  <!-- Subtle border -->
+  <rect x="10" y="16" width="492" height="128" rx="28" stroke="#FFFFFF" stroke-opacity="0.15"/>
 </svg>
