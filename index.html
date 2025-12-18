@@ -90,15 +90,9 @@
 
     <!-- ================= TABS ================= -->
     <nav class="ff-tabs" aria-label="Forecast tabs">
-      <button id="tabCurrent" class="ff-tab active" type="button">
-        Current
-      </button>
-      <button id="tabHourly" class="ff-tab" type="button">
-        Hourly
-      </button>
-      <button id="tabDaily" class="ff-tab" type="button">
-        Daily
-      </button>
+      <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
+      <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
+      <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
     <!-- ================= RESULTS (ORDER LOCKED) ================= -->
@@ -108,25 +102,32 @@
 
       <!-- 3rd tile: Play (verdict) -->
       <div id="playSlot">
-        <!-- Verdict card MUST exist in DOM for app.js to update it -->
-        <section
-          id="verdictCard"
-          class="ff-verdict ff-verdict--neutral"
-          aria-live="polite"
-        >
+        <!-- IMPORTANT:
+             We provide multiple common IDs so your existing app.js can update at least one of them
+             without needing changes. -->
+        <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
           <div class="ff-verdict-main">
-            <span id="verdictIcon" class="ff-verdict-icon">—</span>
-            <div>
-              <div id="verdictLabel" class="ff-verdict-label">—</div>
+            <div class="ff-verdict-badge" aria-hidden="true">
+              <span id="verdictIcon">⏳</span>
+            </div>
+
+            <div class="ff-verdict-text">
+              <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
               <div id="verdictReason" class="ff-verdict-reason">—</div>
+
+              <div class="ff-verdict-meta">
+                <span>Best tee time:</span>
+                <strong id="verdictBestTime">—</strong>
+              </div>
             </div>
           </div>
-
-          <div class="ff-verdict-meta">
-            Best tee time:
-            <strong id="verdictBestTime">—</strong>
-          </div>
         </section>
+
+        <!-- Fallback targets (in case app.js expects these IDs) -->
+        <div id="playNoPlayCard" style="display:none"></div>
+        <div id="verdict" style="display:none"></div>
+        <div id="statusCard" style="display:none"></div>
+        <div id="playCard" style="display:none"></div>
       </div>
 
       <!-- 4th tile: Forecast tiles -->
@@ -138,13 +139,9 @@
       <div class="ff-play">
         <div>
           <div class="ff-play-title">Playability</div>
-          <div class="ff-play-sub">
-            Wind, rain probability & temperature comfort
-          </div>
+          <div class="ff-play-sub">Wind, rain probability & temperature comfort</div>
         </div>
-        <div id="playabilityScore" class="ff-play-score">
-          --/10
-        </div>
+        <div id="playabilityScore" class="ff-play-score">--/10</div>
       </div>
     </section>
 
@@ -155,5 +152,18 @@
   </main>
 
   <script src="./app.js"></script>
+
+  <!-- Tiny spacing fix for "Sunrise18:39" WITHOUT touching app.js -->
+  <style>
+    /* If your current tile uses label/value inline with no space,
+       force a space visually when text is concatenated in one element */
+    .ff-current-row, .current-row, .meta-row { gap: 8px; }
+    .ff-current-row strong, .current-row strong, .meta-row strong { margin-left: 6px; }
+
+    /* Generic: any "label + value" pattern in one line */
+    .ff-kv { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+    .ff-kv .k { opacity:.8; }
+    .ff-kv .v { font-weight:700; }
+  </style>
 </body>
 </html>
