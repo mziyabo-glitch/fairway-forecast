@@ -46,16 +46,17 @@
           class="ff-btn ff-btn-geo"
           type="button"
           title="Near me"
+          aria-label="Near me"
         >
           ⌖
         </button>
       </div>
 
-      <div class="ff-units-row">
-        <label class="ff-label" for="unitsSelect">Units</label>
-        <select id="unitsSelect" class="ff-select">
-          <option value="metric">°C / m/s</option>
-          <option value="imperial">°F / mph</option>
+      <!-- Compact units toggle (replaces the tall Units row) -->
+      <div class="ff-units-inline" aria-label="Units">
+        <select id="unitsSelect" class="ff-select ff-select--compact">
+          <option value="metric">°C</option>
+          <option value="imperial">°F</option>
         </select>
       </div>
 
@@ -97,7 +98,7 @@
     </footer>
   </main>
 
-  <!-- JS (cache-busted) -->
-  <script src="./app.js?v=4"></script>
+  <!-- JS (cache-busted; bump if needed) -->
+  <script src="./app.js?v=5"></script>
 </body>
 </html>
