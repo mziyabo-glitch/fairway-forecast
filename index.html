@@ -107,7 +107,27 @@
       <div id="locationSlot"></div>
 
       <!-- 3rd tile: Play (verdict) -->
-      <div id="playSlot"></div>
+      <div id="playSlot">
+        <!-- Verdict card MUST exist in DOM for app.js to update it -->
+        <section
+          id="verdictCard"
+          class="ff-verdict ff-verdict--neutral"
+          aria-live="polite"
+        >
+          <div class="ff-verdict-main">
+            <span id="verdictIcon" class="ff-verdict-icon">—</span>
+            <div>
+              <div id="verdictLabel" class="ff-verdict-label">—</div>
+              <div id="verdictReason" class="ff-verdict-reason">—</div>
+            </div>
+          </div>
+
+          <div class="ff-verdict-meta">
+            Best tee time:
+            <strong id="verdictBestTime">—</strong>
+          </div>
+        </section>
+      </div>
 
       <!-- 4th tile: Forecast tiles -->
       <div id="forecastSlot"></div>
