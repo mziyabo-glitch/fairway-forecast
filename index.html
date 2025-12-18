@@ -68,7 +68,6 @@
           Search
         </button>
 
-        <!-- Optional: Near me -->
         <button
           id="btnGeo"
           class="ff-btn ff-btn-ghost"
@@ -87,18 +86,22 @@
           <option value="imperial">°F / mph</option>
         </select>
       </div>
-
-      <!-- Tip removed to save space (keep markup commented if you want it back)
-      <p class="ff-tip">
-        Tip: towns for places · add “golf / club / gc” for course-first results
-      </p>
-      -->
     </section>
 
-    <!-- ================= RESULTS (MOVED UP: location tile now sits under search) ================= -->
-    <section id="results" class="ff-results" aria-live="polite"></section>
+    <!-- ================= TABS (MOVED UP) ================= -->
+    <nav class="ff-tabs" aria-label="Forecast tabs">
+      <button id="tabCurrent" class="ff-tab active" type="button">
+        Current
+      </button>
+      <button id="tabHourly" class="ff-tab" type="button">
+        Hourly
+      </button>
+      <button id="tabDaily" class="ff-tab" type="button">
+        Daily
+      </button>
+    </nav>
 
-    <!-- ================= VERDICT (FRONT & CENTRE) ================= -->
+    <!-- ================= VERDICT ================= -->
     <section
       id="verdictCard"
       class="ff-verdict ff-verdict--neutral"
@@ -118,18 +121,8 @@
       </div>
     </section>
 
-    <!-- ================= TABS ================= -->
-    <nav class="ff-tabs" aria-label="Forecast tabs">
-      <button id="tabCurrent" class="ff-tab active" type="button">
-        Current
-      </button>
-      <button id="tabHourly" class="ff-tab" type="button">
-        Hourly
-      </button>
-      <button id="tabDaily" class="ff-tab" type="button">
-        Daily
-      </button>
-    </nav>
+    <!-- ================= RESULTS ================= -->
+    <section id="results" class="ff-results" aria-live="polite"></section>
 
     <!-- ================= PLAYABILITY ================= -->
     <section class="ff-panel">
@@ -152,8 +145,6 @@
     </footer>
   </main>
 
-  <!-- App -->
   <script src="./app.js"></script>
 </body>
 </html>
-```0
