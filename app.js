@@ -1,7 +1,12 @@
 /* =====================================================
    Fairway Forecast – app.js
    Stable, crash-safe, mobile-first
-   + Debounced & cached course suggestions (rate-limit safe)
+   - Search: city/course → pick result → current/hourly/daily
+   - Weather: supports multiple response shapes + derives from list[]
+   - Best tee time: ALWAYS returns meaningful message (no more "—" silently)
+   - Verdict: play / playable / no-play shown in #verdictCard (if present)
+   - Favourites: localStorage (star toggle)
+   - Suggestions: debounced + cached to reduce API rate limits
    ===================================================== */
 
 (() => {
@@ -11,14 +16,9 @@
   const API_BASE = "https://fairway-forecast-api.mziyabo.workers.dev";
   const MAX_RESULTS = 12;
 
-  // Suggestions behavior (prevents 429)
-  const SUGGEST_DEBOUNCE_MS = 450;     // slower = fewer calls
-  const SUGGEST_MIN_CHARS = 3;         // don’t hit API for tiny input
-  const SUGGEST_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h cache
-  const SUGGEST_MAX_OPTIONS = 8;
-
-  // If API returns 429, pause suggestions temporarily
-  const RATE_LIMIT_COOLDOWN_MS = 30 * 1000;
+  // Search/suggest caching to reduce rate limiting
+  const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+  const searchCache = new Map(); // key -> { t, data }
 
   /* ---------- DOM ---------- */
   const $ = (id) => document.getElementById(id);
@@ -36,6 +36,13 @@
   const unitsSelect = $("unitsSelect") || $("units"); // optional
   const suggestionsEl = $("searchSuggestions"); // optional datalist
 
+  // Verdict card (optional)
+  const verdictCard = $("verdictCard");
+  const verdictIcon = $("verdictIcon");
+  const verdictLabel = $("verdictLabel");
+  const verdictReason = $("verdictReason");
+  const verdictBestTime = $("verdictBestTime");
+
   if (!resultsEl) {
     console.warn("Missing #results – app halted safely.");
     return;
@@ -44,18 +51,9 @@
   /* ---------- STATE ---------- */
   let selectedCourse = null; // { name, city, state, country, lat, lon, id }
   let lastRawWeather = null; // raw worker response
-  let lastNorm = null; // normalized
+  let lastNorm = null; // normalized { current, hourly, daily, sunrise, sunset }
   let activeTab = "current";
   let initialized = false;
-
-  // Suggestions state
-  let suggestTimer = null;
-  let suggestAbort = null;
-  let suggestDisabledUntil = 0;
-  let lastSuggestQuery = "";
-
-  // Memory cache for suggestions/search results
-  const memCache = new Map(); // key -> { t, v }
 
   /* ---------- HELPERS ---------- */
   const esc = (s) =>
@@ -68,6 +66,26 @@
   const units = () => (unitsSelect?.value === "imperial" ? "imperial" : "metric");
   const windUnit = () => (units() === "imperial" ? "mph" : "m/s");
   const tempUnit = () => (units() === "imperial" ? "°F" : "°C");
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function fmtTime(tsSeconds) {
+    if (!tsSeconds) return "--:--";
+    return new Date(tsSeconds * 1000).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  function fmtDay(tsSeconds) {
+    return new Date(tsSeconds * 1000).toLocaleDateString([], {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  }
 
   function setActiveTab(next) {
     activeTab = next;
@@ -88,100 +106,67 @@
     )}</div>${hint}</div>`;
   }
 
-  function fmtTime(tsSeconds) {
-    if (!tsSeconds) return "--:--";
-    return new Date(tsSeconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
+  /* ---------- API ---------- */
+  async function apiGet(path) {
+    const url = `${API_BASE}${path}`;
+    const res = await fetch(url, { method: "GET" });
 
-  function fmtDay(tsSeconds) {
-    return new Date(tsSeconds * 1000).toLocaleDateString([], {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  }
-
-  function clamp(n, min, max) {
-    return Math.max(min, Math.min(max, n));
-  }
-
-  function nowMs() {
-    return Date.now();
+    if (!res.ok) {
+      let text = "";
+      try {
+        text = await res.text();
+      } catch {}
+      throw new Error(`HTTP ${res.status} ${res.statusText} ${text}`.trim());
+    }
+    return res.json();
   }
 
   function cacheKey(prefix, q) {
-    return `${prefix}:${(q || "").trim().toLowerCase()}`;
+    return `${prefix}:${units()}:${String(q || "").toLowerCase().trim()}`;
   }
 
-  function getLocalCache(key) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      const obj = JSON.parse(raw);
-      if (!obj || typeof obj !== "object") return null;
-      if (typeof obj.t !== "number") return null;
-      if (nowMs() - obj.t > SUGGEST_CACHE_TTL_MS) return null;
-      return obj.v ?? null;
-    } catch {
+  function getCached(key) {
+    const hit = searchCache.get(key);
+    if (!hit) return null;
+    if (Date.now() - hit.t > SEARCH_CACHE_TTL_MS) {
+      searchCache.delete(key);
       return null;
     }
+    return hit.data;
   }
 
-  function setLocalCache(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify({ t: nowMs(), v: value }));
-    } catch {
-      // ignore quota / private mode issues
-    }
+  function setCached(key, data) {
+    searchCache.set(key, { t: Date.now(), data });
   }
 
-  /* ---------- API ---------- */
-  async function apiGet(path, { signal } = {}) {
-    const url = `${API_BASE}${path}`;
-    const res = await fetch(url, { method: "GET", signal });
+  async function fetchCourses(query) {
+    const key = cacheKey("courses", query);
+    const cached = getCached(key);
+    if (cached) return cached;
 
-    // Try read body for debugging
-    let text = "";
-    try {
-      text = await res.text();
-    } catch {}
-
-    let jsonBody = null;
-    try {
-      jsonBody = text ? JSON.parse(text) : null;
-    } catch {
-      // keep null
-    }
-
-    if (!res.ok) {
-      const err = new Error(`HTTP ${res.status}`);
-      err.status = res.status;
-      err.body = jsonBody ?? text;
-      throw err;
-    }
-
-    return jsonBody ?? {};
-  }
-
-  async function fetchCourses(query, { signal } = {}) {
     const q = encodeURIComponent(query);
-    const data = await apiGet(`/courses?search=${q}`, { signal });
-    return Array.isArray(data?.courses) ? data.courses : [];
+    const data = await apiGet(`/courses?search=${q}`);
+    const list = Array.isArray(data?.courses) ? data.courses : [];
+
+    setCached(key, list);
+    return list;
   }
 
   async function fetchWeather(lat, lon) {
     const u = units();
-    const data = await apiGet(
+    return apiGet(
       `/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=${u}`
     );
-    return data;
   }
 
   /* ---------- NORMALIZE WEATHER SHAPES ---------- */
   function normalizeWeather(raw) {
+    // target: { current, hourly[], daily[], sunrise, sunset }
     const norm = { current: null, hourly: [], daily: [], sunrise: null, sunset: null };
+
     if (!raw || typeof raw !== "object") return norm;
 
+    // Sunrise/sunset can come from multiple places
     norm.sunrise =
       raw?.current?.sunrise ??
       raw?.city?.sunrise ??
@@ -196,6 +181,7 @@
       raw?.current?.sys?.sunset ??
       null;
 
+    // CURRENT (handle several schemas)
     if (raw?.current && typeof raw.current === "object") {
       const c = raw.current;
 
@@ -233,6 +219,7 @@
       };
     }
 
+    // Fallback: forecast list[0] as current
     if (!norm.current && Array.isArray(raw?.list) && raw.list.length) {
       const first = raw.list[0];
       norm.current = {
@@ -247,6 +234,7 @@
       };
     }
 
+    // HOURLY (prefer raw.hourly)
     if (Array.isArray(raw?.hourly) && raw.hourly.length) {
       norm.hourly = raw.hourly.map((h) => ({
         dt: h.dt,
@@ -265,6 +253,7 @@
       }));
     }
 
+    // DAILY (prefer raw.daily)
     if (Array.isArray(raw?.daily) && raw.daily.length) {
       norm.daily = raw.daily.map((d) => ({
         dt: d.dt,
@@ -359,17 +348,27 @@
     return clamp(Math.round(score), 0, 10);
   }
 
-  /* ---------- BEST TIME (DAYLIGHT ONLY) ---------- */
+  /* ---------- BEST TIME (DAYLIGHT ONLY, LEAST-BAD FALLBACK) ---------- */
   function bestTimeToday(norm) {
     const sunrise = norm?.sunrise;
     const sunset = norm?.sunset;
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
-    if (!sunrise || !sunset || hourly.length === 0) return null;
 
-    const start = sunrise + 3600;
-    const end = sunset - 3600;
-    const candidates = hourly.filter((h) => typeof h.dt === "number" && h.dt >= start && h.dt <= end);
-    if (candidates.length === 0) return null;
+    if (!sunrise || !sunset || hourly.length === 0) {
+      return { slot: null, note: "No hourly/daylight data available." };
+    }
+
+    const start = sunrise + 3600; // +1h
+    const end = sunset - 3600; // -1h
+
+    const candidates = hourly.filter((h) => {
+      const dt = typeof h?.dt === "number" ? h.dt : null;
+      return dt !== null && dt >= start && dt <= end;
+    });
+
+    if (candidates.length === 0) {
+      return { slot: null, note: "No suitable daylight slots left today." };
+    }
 
     function scoreSlot(h) {
       const pop = typeof h.pop === "number" ? h.pop : 0.3;
@@ -379,32 +378,237 @@
       const target = units() === "imperial" ? 65 : 18;
       const tempPenalty = temp === null ? 2 : Math.abs(temp - target) / 6;
 
-      return pop * 10 + wind * 0.8 + tempPenalty;
+      // heavier rain penalty so wet days become "no-play", but we can still pick a least-bad time
+      return pop * 14 + wind * 0.9 + tempPenalty;
     }
 
     let best = candidates[0];
     let bestScore = scoreSlot(best);
+    let bestPop = typeof best.pop === "number" ? best.pop : 0;
 
     for (const c of candidates.slice(1)) {
       const s = scoreSlot(c);
+      const p = typeof c.pop === "number" ? c.pop : 0;
       if (s < bestScore) {
-        bestScore = s;
         best = c;
+        bestScore = s;
+        bestPop = p;
       }
     }
 
-    return best;
+    const note = bestPop >= 0.85 ? "Rain likely all day — showing least-bad slot." : "";
+    return { slot: best, note };
+  }
+
+  /* ---------- VERDICT (PLAY / PLAYABLE / NO-PLAY) ---------- */
+  function computeVerdict(norm, bestPick) {
+    // Returns { status, icon, label, reason, bestTimeText }
+    const sunrise = norm?.sunrise;
+    const sunset = norm?.sunset;
+    const best = bestPick?.slot;
+
+    if (!norm?.current) {
+      return {
+        status: "neutral",
+        icon: "—",
+        label: "—",
+        reason: "Weather data unavailable.",
+        bestTimeText: "—",
+      };
+    }
+
+    if (!sunrise || !sunset) {
+      return {
+        status: "neutral",
+        icon: "—",
+        label: "—",
+        reason: "Daylight times unavailable.",
+        bestTimeText: best ? fmtTime(best.dt) : "—",
+      };
+    }
+
+    if (!best) {
+      return {
+        status: "no-play",
+        icon: "⛔",
+        label: "No-play recommended",
+        reason: bestPick?.note || "No suitable daylight slot found.",
+        bestTimeText: "—",
+      };
+    }
+
+    const pop = typeof best.pop === "number" ? best.pop : 0.3;
+    const wind = typeof best.wind_speed === "number" ? best.wind_speed : 5;
+    const temp = typeof best.temp === "number" ? best.temp : null;
+
+    // Build a score out of 100
+    let score = 100;
+
+    // Rain (dominant)
+    if (pop >= 0.85) score -= 55;
+    else if (pop >= 0.6) score -= 40;
+    else if (pop >= 0.35) score -= 25;
+    else if (pop >= 0.2) score -= 12;
+
+    // Wind
+    if (wind > 12) score -= 35;
+    else if (wind > 9) score -= 25;
+    else if (wind > 6) score -= 15;
+    else if (wind > 4) score -= 8;
+
+    // Temperature comfort
+    if (temp !== null) {
+      if (units() === "metric") {
+        if (temp < 2 || temp > 32) score -= 25;
+        else if (temp < 6 || temp > 28) score -= 15;
+      } else {
+        if (temp < 36 || temp > 90) score -= 25;
+        else if (temp < 43 || temp > 82) score -= 15;
+      }
+    } else {
+      score -= 10;
+    }
+
+    score = clamp(Math.round(score), 0, 100);
+
+    const bestTimeText = `${fmtTime(best.dt)} (${temp !== null ? Math.round(temp) + tempUnit() : "--"})`;
+
+    if (score >= 70) {
+      return {
+        status: "play",
+        icon: "✅",
+        label: "Play",
+        reason: "Good conditions for golf.",
+        bestTimeText,
+      };
+    }
+    if (score >= 45) {
+      return {
+        status: "playable",
+        icon: "⚠️",
+        label: "Playable (tough)",
+        reason: "Conditions are manageable but not ideal.",
+        bestTimeText,
+      };
+    }
+
+    // If rain is basically guaranteed, say it clearly:
+    const rainPct = Math.round(pop * 100);
+    const reason =
+      rainPct >= 85 ? `Rain likely (${rainPct}%) during daylight.` : "Poor overall conditions.";
+
+    return {
+      status: "no-play",
+      icon: "⛔",
+      label: "No-play recommended",
+      reason,
+      bestTimeText,
+    };
+  }
+
+  function updateVerdictUI(norm) {
+    if (!verdictCard) return;
+
+    const bestPick = bestTimeToday(norm);
+    const v = computeVerdict(norm, bestPick);
+
+    // class modifiers (optional)
+    verdictCard.classList.remove("ff-verdict--play", "ff-verdict--playable", "ff-verdict--no-play", "ff-verdict--neutral");
+    if (v.status === "play") verdictCard.classList.add("ff-verdict--play");
+    else if (v.status === "playable") verdictCard.classList.add("ff-verdict--playable");
+    else if (v.status === "no-play") verdictCard.classList.add("ff-verdict--no-play");
+    else verdictCard.classList.add("ff-verdict--neutral");
+
+    if (verdictIcon) verdictIcon.textContent = v.icon;
+    if (verdictLabel) verdictLabel.textContent = v.label;
+    if (verdictReason) verdictReason.textContent = v.reason;
+    if (verdictBestTime) verdictBestTime.textContent = v.bestTimeText;
+  }
+
+  /* ---------- FAVOURITES ---------- */
+  const FAV_KEY = "ff_favourites_v1";
+
+  function favIdFromCourse(c) {
+    if (!c) return null;
+    // stable-ish identifier
+    if (c.id) return `id:${c.id}`;
+    if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) return `ll:${c.lat.toFixed(5)},${c.lon.toFixed(5)}:${(c.name||"").toLowerCase()}`;
+    return `name:${(c.name || "").toLowerCase()}`;
+  }
+
+  function loadFavs() {
+    try {
+      const raw = localStorage.getItem(FAV_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveFavs(arr) {
+    try {
+      localStorage.setItem(FAV_KEY, JSON.stringify(arr));
+    } catch {}
+  }
+
+  function isFav(course) {
+    const id = favIdFromCourse(course);
+    if (!id) return false;
+    return loadFavs().some((f) => f?.favId === id);
+  }
+
+  function toggleFav(course) {
+    const id = favIdFromCourse(course);
+    if (!id) return;
+
+    const favs = loadFavs();
+    const idx = favs.findIndex((f) => f?.favId === id);
+
+    if (idx >= 0) {
+      favs.splice(idx, 1);
+    } else {
+      favs.unshift({
+        favId: id,
+        name: course?.name || "Favourite",
+        city: course?.city || "",
+        state: course?.state || "",
+        country: course?.country || "",
+        lat: course?.lat ?? null,
+        lon: course?.lon ?? null,
+        id: course?.id ?? null,
+        t: Date.now(),
+      });
+      favs.splice(12); // keep top 12
+    }
+
+    saveFavs(favs);
   }
 
   /* ---------- RENDER ---------- */
   function renderHeaderCard() {
     const name = selectedCourse?.name || "Selected location";
-    const line2 = [selectedCourse?.city, selectedCourse?.state, selectedCourse?.country].filter(Boolean).join(", ");
+    const line2 = [selectedCourse?.city, selectedCourse?.state, selectedCourse?.country]
+      .filter(Boolean)
+      .join(", ");
+
+    const favOn = selectedCourse ? isFav(selectedCourse) : false;
 
     return `
-      <div class="ff-card">
-        <div class="ff-big" style="font-size:1.2rem; line-height:1.2">${esc(name)}</div>
-        ${line2 ? `<div class="ff-sub muted">${esc(line2)}</div>` : ""}
+      <div class="ff-card ff-header-card">
+        <div class="ff-header-row">
+          <div>
+            <div class="ff-big" style="font-size:1.2rem; line-height:1.2">${esc(name)}</div>
+            ${line2 ? `<div class="ff-sub muted">${esc(line2)}</div>` : ""}
+          </div>
+          ${
+            selectedCourse
+              ? `<button type="button" class="ff-fav-btn" id="favBtn" aria-label="Favourite">
+                   ${favOn ? "★" : "☆"}
+                 </button>`
+              : ""
+          }
+        </div>
       </div>
     `;
   }
@@ -427,12 +631,16 @@
     const sr = norm.sunrise ? fmtTime(norm.sunrise) : "--:--";
     const ss = norm.sunset ? fmtTime(norm.sunset) : "--:--";
 
-    const best = bestTimeToday(norm);
+    const bestPick = bestTimeToday(norm);
+    const best = bestPick?.slot;
+
     const bestText = best
       ? `${fmtTime(best.dt)} · ${Math.round(best.temp)}${tempUnit()} · ${Math.round(
           (best.pop ?? 0) * 100
-        )}% rain · ${typeof best.wind_speed === "number" ? best.wind_speed.toFixed(1) : "--"} ${windUnit()}`
-      : "—";
+        )}% rain · ${typeof best.wind_speed === "number" ? best.wind_speed.toFixed(1) : "--"} ${windUnit()}${
+          bestPick.note ? ` (${bestPick.note})` : ""
+        }`
+      : (bestPick?.note || "—");
 
     resultsEl.innerHTML = `
       ${renderHeaderCard()}
@@ -464,9 +672,23 @@
       </div>
     `;
 
+    // Update playability
     if (playabilityScoreEl) {
       const p = calculatePlayability(norm);
       playabilityScoreEl.textContent = `${p}/10`;
+    }
+
+    // Update verdict card (if present in HTML)
+    updateVerdictUI(norm);
+
+    // Wire favourite button (if present)
+    const favBtn = $("favBtn");
+    if (favBtn && selectedCourse) {
+      favBtn.addEventListener("click", () => {
+        toggleFav(selectedCourse);
+        // re-render current to refresh star state
+        renderCurrent(lastNorm);
+      });
     }
   }
 
@@ -507,6 +729,8 @@
         </div>
       </div>
     `;
+
+    updateVerdictUI(norm);
   }
 
   function renderDaily(norm) {
@@ -548,6 +772,8 @@
         </div>
       </div>
     `;
+
+    updateVerdictUI(norm);
   }
 
   function renderActiveTab() {
@@ -615,47 +841,25 @@
     lastRawWeather = null;
     lastNorm = null;
     if (playabilityScoreEl) playabilityScoreEl.textContent = "--/10";
+    if (verdictCard) updateVerdictUI({}); // clear-ish
 
     showMessage("Searching…");
 
     try {
-      const key = cacheKey("search", q);
-
-      // mem cache
-      const hit = memCache.get(key);
-      if (hit && nowMs() - hit.t < SUGGEST_CACHE_TTL_MS) {
-        renderSearchResults(hit.v);
-        return;
-      }
-
-      // local cache
-      const local = getLocalCache(key);
-      if (local) {
-        memCache.set(key, { t: nowMs(), v: local });
-        renderSearchResults(local);
-        return;
-      }
-
       const courses = await fetchCourses(q);
-      memCache.set(key, { t: nowMs(), v: courses });
-      setLocalCache(key, courses);
-
       renderSearchResults(courses);
     } catch (err) {
       console.error(err);
 
-      const status = err?.status;
-      if (status === 429) {
-        showError("Course search is temporarily rate-limited (429).", "Wait 30 seconds and try again.");
-        return;
-      }
+      const msg = String(err?.message || "");
+      const isRate = msg.includes("429") || msg.toLowerCase().includes("rate");
+      const hint = isRate
+        ? "Rate limit hit. Slow down a bit, or use suggestions (it caches)."
+        : (msg.includes("Failed to fetch")
+            ? "If you see a CORS error in DevTools, your Worker must add Access-Control-Allow-Origin for your GitHub Pages domain."
+            : "");
 
-      const hint =
-        String(err?.message || "").includes("Failed to fetch")
-          ? "If you see a CORS error in DevTools, your Worker must add Access-Control-Allow-Origin for your GitHub Pages domain."
-          : "";
-
-      showError("Search failed.", hint);
+      showError(isRate ? "Search rate-limited." : "Search failed.", hint);
     }
   }
 
@@ -690,114 +894,46 @@
     } catch (err) {
       console.error(err);
 
-      const status = err?.status;
-      if (status === 429) {
-        showError("Weather is temporarily rate-limited (429).", "Wait a moment and try again.");
-        return;
-      }
-
-      const hint =
-        String(err?.message || "").includes("Failed to fetch")
-          ? "If you see a CORS error in DevTools, your Worker must add Access-Control-Allow-Origin for your GitHub Pages domain."
-          : "";
+      const msg = String(err?.message || "");
+      const isRate = msg.includes("429") || msg.toLowerCase().includes("rate");
+      const hint = isRate
+        ? "Weather request rate-limited. Try again in a moment."
+        : (msg.includes("Failed to fetch")
+            ? "If you see a CORS error in DevTools, your Worker must add Access-Control-Allow-Origin for your GitHub Pages domain."
+            : "");
 
       showError("Weather failed to load for this location.", hint);
     }
   }
 
   /* ---------- SUGGESTIONS (DATALIST) ---------- */
-  function clearSuggestions() {
-    if (suggestionsEl) suggestionsEl.innerHTML = "";
-  }
-
-  function setSuggestionsFromCourses(courses) {
-    if (!suggestionsEl) return;
-    const top = (Array.isArray(courses) ? courses : []).slice(0, SUGGEST_MAX_OPTIONS);
-
-    // Use name only, because datalist options must be plain values
-    suggestionsEl.innerHTML = top
-      .map((c) => {
-        const name = c?.name || c?.club_name || c?.course_name || "";
-        return name ? `<option value="${esc(name)}"></option>` : "";
-      })
-      .join("");
-  }
-
-  async function fetchSuggestionsSafe(q) {
-    // Cooldown after 429
-    if (nowMs() < suggestDisabledUntil) return;
-
-    const key = cacheKey("suggest", q);
-
-    // mem cache
-    const hit = memCache.get(key);
-    if (hit && nowMs() - hit.t < SUGGEST_CACHE_TTL_MS) {
-      setSuggestionsFromCourses(hit.v);
-      return;
-    }
-
-    // local cache
-    const local = getLocalCache(key);
-    if (local) {
-      memCache.set(key, { t: nowMs(), v: local });
-      setSuggestionsFromCourses(local);
-      return;
-    }
-
-    // Abort previous in-flight suggestion request
-    if (suggestAbort) suggestAbort.abort();
-    suggestAbort = new AbortController();
-
-    try {
-      const courses = await fetchCourses(q, { signal: suggestAbort.signal });
-
-      memCache.set(key, { t: nowMs(), v: courses });
-      setLocalCache(key, courses);
-
-      setSuggestionsFromCourses(courses);
-    } catch (err) {
-      // Abort is normal when typing fast
-      if (err?.name === "AbortError") return;
-
-      // If rate-limited, pause suggestions
-      if (err?.status === 429) {
-        suggestDisabledUntil = nowMs() + RATE_LIMIT_COOLDOWN_MS;
-        clearSuggestions();
-        return;
-      }
-
-      // Suggestions are non-critical; fail silently
-      clearSuggestions();
-    }
-  }
-
+  let suggestTimer = null;
   function wireSuggestions() {
     if (!suggestionsEl || !searchInput) return;
 
     searchInput.addEventListener("input", () => {
       const q = (searchInput.value || "").trim();
-
-      // Don’t hammer API
-      if (q.length < SUGGEST_MIN_CHARS) {
-        lastSuggestQuery = q;
-        clearSuggestions();
+      if (q.length < 2) {
+        suggestionsEl.innerHTML = "";
         return;
       }
 
-      // Skip duplicate query
-      if (q.toLowerCase() === lastSuggestQuery.toLowerCase()) return;
-      lastSuggestQuery = q;
-
       if (suggestTimer) window.clearTimeout(suggestTimer);
-      suggestTimer = window.setTimeout(() => {
-        fetchSuggestionsSafe(q);
-      }, SUGGEST_DEBOUNCE_MS);
-    });
 
-    // If user clears the input, clear suggestions too
-    searchInput.addEventListener("change", () => {
-      const q = (searchInput.value || "").trim();
-      if (!q) clearSuggestions();
+      suggestTimer = window.setTimeout(async () => {
+        try {
+          const courses = await fetchCourses(q);
+          const top = courses.slice(0, 8);
+          suggestionsEl.innerHTML = top
+            .map((c) => {
+              const name = c?.name || c?.club_name || c?.course_name || "";
+              return name ? `<option value="${esc(name)}"></option>` : "";
+            })
+            .join("");
+        } catch {
+          // suggestions are non-critical
+        }
+      }, 350);
     });
   }
 
@@ -892,10 +1028,9 @@
 
     geoBtn?.addEventListener("click", runGeolocation);
 
-    // ✅ Suggestions
     wireSuggestions();
 
-    showMessage('Type a course or city. Suggestions will appear as you type. Press Enter or Search to run the full search.');
+    showMessage('Search for a town/city or course name, then pick a result. (Tip: try “golf club swindon”)');
   }
 
   init();
