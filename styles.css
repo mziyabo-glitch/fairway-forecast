@@ -1,444 +1,282 @@
-/* =========================================================
-   Fairway Forecast – styles.css (clean + mobile-first)
-   Goals:
-   - Premium, slightly lighter dark theme
-   - Search + favourites visually grouped
-   - Results rendering full-width (hourly/daily never squashed)
-   - Tables + pre text blocks scroll instead of compressing
-   ========================================================= */
+/* ===============================
+   Fairway Forecast – Clean UI
+   Cosmetic + layout fixes only
+   =============================== */
 
-:root{
-  --bg0:#071316;
-  --bg1:#0a1b1f;
-  --card:#0f2a30;
-  --card2:#102f36;
-  --stroke:rgba(255,255,255,.10);
-  --stroke2:rgba(255,255,255,.08);
-
-  --text:#eaf6f7;
-  --muted:rgba(234,246,247,.72);
-
-  --primary:#1F6F78;
-  --primary2:#2aa6a8;
-  --danger:#ff6b6b;
-  --warn:#ffd166;
-  --ok:#2dd4bf;
-
-  --r14:14px;
-  --r18:18px;
-  --r22:22px;
-
-  --shadow: 0 10px 30px rgba(0,0,0,.35);
-  --shadow2: 0 6px 18px rgba(0,0,0,.25);
-
-  --pad:16px;
-  --gap:12px;
-
-  --max: 860px;
+:root {
+  --bg: #0f2e33;
+  --panel: #173f45;
+  --panel-soft: #1e5057;
+  --accent: #2dd4bf;
+  --accent-soft: rgba(45, 212, 191, 0.15);
+  --text: #e5f6f7;
+  --muted: #a7cfd4;
+  --danger: #ef4444;
+  --radius: 16px;
 }
 
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-body{
-  margin:0;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color:var(--text);
-  background:
-    radial-gradient(1200px 800px at 15% -10%, rgba(42,166,168,.22), transparent 60%),
-    radial-gradient(900px 600px at 90% 10%, rgba(31,111,120,.22), transparent 55%),
-    linear-gradient(180deg, var(--bg1), var(--bg0));
-  -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
+/* ---------- GLOBAL RESET ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.ff-wrap{
-  width:100%;
-  max-width:var(--max);
-  margin:0 auto;
-  padding: clamp(12px, 2.2vw, 20px);
-  padding-bottom: 28px;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(180deg, #0b252a, #10383e);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
 
-/* ---------- Panels / Cards ---------- */
-.ff-panel,
-.ff-verdict,
-.ff-results > .ff-card,
-.ff-results > .ff-panel{
-  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
-  border: 1px solid var(--stroke2);
-  border-radius: var(--r22);
-  box-shadow: var(--shadow2);
-  backdrop-filter: blur(10px);
+/* ---------- APP WRAPPER ---------- */
+.ff-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 14px 32px;
 }
 
-.ff-panel{ padding: var(--pad); margin-top: 12px; }
-
-/* ---------- Header ---------- */
-.ff-header{
-  margin-top: 2px;
-  margin-bottom: 12px;
+/* ---------- HEADER ---------- */
+.ff-header {
+  margin-bottom: 14px;
 }
 
-.ff-brand{
-  display:flex;
-  align-items:center;
+.ff-brand {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  border-radius: var(--r22);
-  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-  border: 1px solid var(--stroke2);
-  box-shadow: var(--shadow2);
+  background: var(--panel);
+  padding: 14px;
+  border-radius: var(--radius);
 }
 
-.ff-logo{
-  width:40px;
-  height:40px;
+.ff-logo {
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
-  padding: 6px;
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.10);
+  background: #ffffff;
   object-fit: contain;
 }
 
-.ff-brand-text strong{
-  display:block;
-  font-size: 1.12rem;
-  letter-spacing: .2px;
-  line-height: 1.15;
+.ff-brand-text strong {
+  font-size: 1.05rem;
 }
-.ff-brand-text span{
-  display:block;
-  margin-top: 2px;
-  font-size: .92rem;
+
+.ff-brand-text span {
+  display: block;
+  font-size: 0.85rem;
   color: var(--muted);
 }
 
-/* ---------- Inputs / Buttons ---------- */
-.ff-label{
-  display:block;
-  font-weight: 600;
-  font-size: .92rem;
-  margin-bottom: 8px;
-  color: rgba(234,246,247,.86);
+/* ---------- PANELS ---------- */
+.ff-panel {
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
 }
 
-.ff-input,
-.ff-select{
-  width:100%;
-  border-radius: 16px;
-  border: 1px solid var(--stroke);
-  background: rgba(0,0,0,.18);
-  color: var(--text);
-  outline: none;
+.ff-panel--search {
+  background: var(--panel-soft);
+}
+
+/* ---------- SEARCH ---------- */
+.ff-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ff-input {
+  flex: 1;
   padding: 12px 14px;
+  border-radius: 12px;
+  border: none;
+  background: #0f2e33;
+  color: var(--text);
+}
+
+.ff-btn {
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: none;
+  background: #0f2e33;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.ff-btn-primary {
+  background: linear-gradient(180deg, #2dd4bf, #14b8a6);
+  color: #053133;
+  font-weight: 600;
+}
+
+.ff-btn-ghost {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ---------- UNITS ---------- */
+.ff-units-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ff-select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #0f2e33;
+  color: var(--text);
+  border: none;
+}
+
+/* ---------- VERDICT ---------- */
+.ff-verdict {
+  background: linear-gradient(180deg, #123b41, #0f2e33);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.ff-verdict-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ff-verdict-icon {
+  font-size: 1.4rem;
+}
+
+.ff-verdict-label {
+  font-weight: 700;
+}
+
+.ff-verdict-reason {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.ff-verdict-meta {
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+/* ---------- TABS ---------- */
+.ff-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.ff-tab {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 12px;
+  background: #0f2e33;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.ff-tab.active {
+  background: linear-gradient(180deg, #2dd4bf, #14b8a6);
+  color: #053133;
+  font-weight: 600;
+}
+
+/* ---------- LOCATION HEADER ---------- */
+.ff-location {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel-soft);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.ff-location h3 {
+  margin: 0;
   font-size: 1rem;
 }
 
-.ff-input::placeholder{ color: rgba(234,246,247,.55); }
-.ff-input:focus,
-.ff-select:focus{
-  border-color: rgba(42,166,168,.55);
-  box-shadow: 0 0 0 4px rgba(42,166,168,.18);
+.ff-location small {
+  display: block;
+  color: var(--muted);
 }
 
-.ff-btn{
-  border: 1px solid var(--stroke);
-  background: rgba(255,255,255,.06);
-  color: var(--text);
-  border-radius: 16px;
-  padding: 12px 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform .08s ease, background .12s ease, border-color .12s ease;
-  user-select:none;
-  -webkit-tap-highlight-color: transparent;
-}
-.ff-btn:active{ transform: scale(.98); }
-.ff-btn:hover{ border-color: rgba(255,255,255,.16); }
-
-.ff-btn-primary{
-  background: linear-gradient(180deg, rgba(42,166,168,.55), rgba(31,111,120,.55));
-  border-color: rgba(42,166,168,.55);
-}
-.ff-btn-primary:hover{
-  border-color: rgba(42,166,168,.75);
-  background: linear-gradient(180deg, rgba(42,166,168,.62), rgba(31,111,120,.62));
+.ff-location .ff-btn {
+  padding: 10px;
 }
 
-.ff-btn-ghost{
-  width: 46px;
-  padding: 12px 0;
-  text-align:center;
+/* ---------- CURRENT WEATHER ---------- */
+.ff-current {
+  background: var(--panel-soft);
+  border-radius: var(--radius);
+  padding: 16px;
 }
 
-/* ---------- Search + favourites grouped ---------- */
-.ff-panel--search{
-  padding: 14px 14px 12px;
+.ff-current strong {
+  font-size: 1.4rem;
 }
 
-.ff-search-row{
-  display:grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
-  align-items:center;
-}
-
-.ff-units-row{
-  display:grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.ff-tip{
-  margin: 10px 2px 0;
-  color: rgba(234,246,247,.62);
-  font-size: .92rem;
-  line-height: 1.25;
-}
-
-/* a dedicated container that your JS can use for favourites
-   (if you already render it into results, this still styles it) */
-.ff-favs{
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,.07);
-}
-.ff-favs-title{
-  font-weight: 700;
-  font-size: .95rem;
-  color: rgba(234,246,247,.86);
-  margin-bottom: 10px;
-}
-.ff-fav-item{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap: 12px;
-  padding: 12px 12px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(0,0,0,.14);
-  margin-bottom: 10px;
-}
-.ff-fav-item:last-child{ margin-bottom: 0; }
-.ff-fav-item strong{ display:block; }
-.ff-fav-item .muted{ color: rgba(234,246,247,.62); font-size:.92rem; }
-
-/* ---------- Verdict ---------- */
-.ff-verdict{
-  margin-top: 12px;
-  padding: 14px 16px;
-}
-
-.ff-verdict-main{
-  display:flex;
-  gap: 12px;
-  align-items:flex-start;
-}
-
-.ff-verdict-icon{
-  width: 36px;
-  height: 36px;
-  border-radius: 14px;
-  display:grid;
-  place-items:center;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.10);
-  font-size: 18px;
-}
-
-.ff-verdict-label{
-  font-weight: 800;
-  font-size: 1.05rem;
-}
-.ff-verdict-reason{
-  color: rgba(234,246,247,.70);
-  margin-top: 2px;
-  font-size: .95rem;
-}
-
-.ff-verdict-meta{
-  margin-top: 10px;
-  color: rgba(234,246,247,.72);
-  font-size: .95rem;
-}
-
-.ff-verdict--play .ff-verdict-icon{ background: rgba(45,212,191,.14); border-color: rgba(45,212,191,.30); }
-.ff-verdict--maybe .ff-verdict-icon{ background: rgba(255,209,102,.14); border-color: rgba(255,209,102,.28); }
-.ff-verdict--no .ff-verdict-icon{ background: rgba(255,107,107,.14); border-color: rgba(255,107,107,.28); }
-
-/* ---------- Tabs ---------- */
-.ff-tabs{
-  display:flex;
+.ff-current-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-top: 12px;
 }
 
-.ff-tab{
-  flex:1;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.14);
-  color: rgba(234,246,247,.85);
-  padding: 12px 10px;
-  font-weight: 800;
-  cursor:pointer;
-  transition: background .12s ease, border-color .12s ease;
-  -webkit-tap-highlight-color: transparent;
+.ff-metric {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 0.9rem;
 }
 
-.ff-tab.active{
-  background: linear-gradient(180deg, rgba(42,166,168,.55), rgba(31,111,120,.55));
-  border-color: rgba(42,166,168,.55);
-  color: var(--text);
-}
-
-/* ---------- Results container ---------- */
-.ff-results{
+/* ---------- HOURLY / DAILY TABLE ---------- */
+.ff-table {
   margin-top: 12px;
-  display:flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
-/* Generic result “card” if your JS uses it */
-.ff-card{
-  padding: var(--pad);
-  border-radius: var(--r22);
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.14);
-  box-shadow: var(--shadow2);
+.ff-table-header,
+.ff-table-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  padding: 8px 0;
+  font-size: 0.9rem;
 }
 
-/* Prevent “tiny column” rendering – force full width always */
-#results,
-.ff-results{
-  width:100%;
-  max-width:100%;
-}
-#results > *{
-  width:100%;
-  max-width:100%;
+.ff-table-header {
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* ---------- Tables (Hourly/Daily) ---------- */
-#results table,
-.ff-results table{
-  width:100%;
-  max-width:100%;
-  border-collapse: collapse;
-  table-layout: fixed;
+.ff-table-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-#results thead th{
-  font-weight: 800;
-  color: rgba(234,246,247,.92);
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255,255,255,.12);
-  font-size: .95rem;
-}
-
-#results tbody td{
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-  color: rgba(234,246,247,.86);
-  font-size: .95rem;
-  overflow:hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* allow table to scroll on small screens instead of squashing */
-@media (max-width: 560px){
-  #results table{
-    display:block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
-/* ---------- Pre / “text table” rendering (your screenshots) ---------- */
-#results pre,
-#results .ff-pre,
-#results .mono,
-#results .ff-mono{
-  width:100%;
-  max-width:100%;
-  margin:0;
-  padding: 12px 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,.10);
-  background: rgba(0,0,0,.16);
-  overflow-x: auto;              /* key fix */
-  -webkit-overflow-scrolling: touch;
-  white-space: pre;               /* keep columns aligned */
-  font-size: .95rem;
-  line-height: 1.35;
-}
-
-/* If you render row blocks */
-#results .row,
-#results .ff-row{
-  display:flex;
+/* ---------- PLAYABILITY ---------- */
+.ff-play {
+  display: flex;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,.08);
-  background: rgba(0,0,0,.14);
+  align-items: center;
 }
 
-/* ---------- Playability ---------- */
-.ff-play{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 14px;
+.ff-play-score {
+  background: var(--accent-soft);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
 }
 
-.ff-play-title{
-  font-weight: 900;
-  font-size: 1.05rem;
+/* ---------- FOOTER ---------- */
+.ff-foot {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 20px;
 }
-.ff-play-sub{
-  color: rgba(234,246,247,.62);
-  font-size: .92rem;
-  margin-top: 2px;
-}
-
-.ff-play-score{
-  min-width: 86px;
-  text-align:center;
-  padding: 10px 12px;
-  border-radius: 18px;
-  border: 1px solid rgba(42,166,168,.45);
-  background: rgba(42,166,168,.12);
-  font-weight: 900;
-}
-
-/* ---------- Footer ---------- */
-.ff-foot{
-  text-align:center;
-  margin-top: 14px;
-  color: rgba(234,246,247,.55);
-  font-size: .88rem;
-  padding-bottom: 10px;
-}
-
-/* ---------- Utilities ---------- */
-.muted{ color: rgba(234,246,247,.62); }
-.ff-sub{ color: rgba(234,246,247,.62); font-size: .92rem; }
-
-/* Make touch targets slightly nicer on mobile */
-@media (max-width: 480px){
-  :root{ --pad:14px; }
-  .ff-search-row{ grid-template-columns: 1fr auto auto; }
-  .ff-btn{ padding: 12px 12px; }
-}
-
-/* Reduce motion */
-@media (prefers-reduced-motion: reduce){
-  *{ transition:none !important; }
-}
-```0
