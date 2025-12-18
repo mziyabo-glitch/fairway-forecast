@@ -11,40 +11,45 @@
 
 <body>
   <main class="ff-wrap">
-    <!-- BRAND -->
     <header class="ff-hero">
       <div class="ff-brand">
-        <div class="ff-mark" aria-hidden="true"></div>
+        <!-- Logo (add file at: /assets/logo.png) -->
+        <img
+          class="ff-logo"
+          src="./assets/logo.png"
+          alt="Fairway Forecast logo"
+          onerror="this.style.display='none'; document.getElementById('ffMarkFallback').style.display='block';"
+        />
+        <!-- Fallback mark if logo missing -->
+        <div id="ffMarkFallback" class="ff-mark" aria-hidden="true" style="display:none"></div>
+
         <div>
           <h1 class="ff-title">Fairway Forecast</h1>
-          <p class="ff-tag">Golf-first weather</p>
+          <p class="ff-tag">Know before you tee.</p>
         </div>
       </div>
     </header>
 
-    <!-- SEARCH + UNITS (compact + cleaner) -->
     <section class="ff-panel">
-      <div class="ff-search-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px;">
-        <label class="ff-label" for="searchInput" style="margin:0;">
-          Search location or golf course
-        </label>
+      <div class="ff-panel-head">
+        <label class="ff-label" for="searchInput">Search location or golf course</label>
 
-        <!-- compact units selector on the same row -->
-        <div style="display:flex; align-items:center; gap:8px;">
-          <label class="ff-label" for="unitsSelect" style="margin:0;">Units</label>
-          <select id="unitsSelect" class="ff-select" style="height:36px;">
+        <!-- Units compact (no big row) -->
+        <div class="ff-units-compact">
+          <span class="ff-units-label">Units</span>
+          <select id="unitsSelect" class="ff-select ff-select-compact">
             <option value="metric">°C</option>
             <option value="imperial">°F</option>
           </select>
         </div>
       </div>
 
-      <div class="ff-search-row" style="margin-top:10px;">
+      <div class="ff-search-row">
         <input
           id="searchInput"
           class="ff-input"
           type="text"
-          placeholder='e.g. Swindon, GB or "golf / club / gc"'
+          placeholder='e.g. Swindon or “Shrivenham golf club”'
           autocomplete="off"
           inputmode="search"
           list="searchSuggestions"
@@ -52,44 +57,38 @@
         <datalist id="searchSuggestions"></datalist>
 
         <button id="searchBtn" class="ff-btn" type="button">Search</button>
-
-        <!-- Optional Near-me button -->
-        <button id="btnGeo" class="ff-btn ff-btn-geo" type="button" title="Use my location">⌖</button>
+        <button id="btnGeo" class="ff-btn ff-btn-geo" type="button" title="Near me">⌖</button>
       </div>
 
       <p class="ff-tip">
-        Tip: town/city works for places. Adding “golf” makes it course-first.
+        Tip: city/town finds places. Adding “golf / club / gc” makes it course-first.
       </p>
     </section>
 
-    <!-- TABS -->
     <nav class="ff-tabs" aria-label="Forecast tabs">
       <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
       <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
       <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
-    <!-- RESULTS (search results + current/hourly/daily render here) -->
+    <!-- Results (course + weather cards) -->
     <section id="results" class="ff-results" aria-live="polite"></section>
 
-    <!-- GOLF DECISION / VERDICT CARD -->
-    <section id="verdictCard" class="ff-card">
-      <div class="ff-row">
-        <div style="font-size:22px; font-weight:900; color:var(--accent);" id="verdictIcon">—</div>
+    <!-- Verdict (front and centre) -->
+    <section id="verdictCard" class="ff-verdict ff-verdict--neutral" aria-live="polite">
+      <div class="ff-verdict-main">
+        <span id="verdictIcon" class="ff-verdict-icon">—</span>
         <div>
-          <div class="ff-big" style="font-size:16px;" id="verdictLabel">—</div>
-          <div class="ff-sub" id="verdictReason">—</div>
+          <div id="verdictLabel" class="ff-verdict-label">—</div>
+          <div id="verdictReason" class="ff-verdict-reason">—</div>
         </div>
       </div>
 
-      <div class="ff-metrics" style="margin-top:12px;">
-        <div>Best tee time<br><b id="verdictBestTime">—</b></div>
-        <div>Sunrise<br><b id="verdictSunrise">—</b></div>
-        <div>Sunset<br><b id="verdictSunset">—</b></div>
+      <div class="ff-verdict-meta">
+        Best tee time: <strong id="verdictBestTime">—</strong>
       </div>
     </section>
 
-    <!-- PLAYABILITY -->
     <section class="ff-panel">
       <div class="ff-play">
         <div>
