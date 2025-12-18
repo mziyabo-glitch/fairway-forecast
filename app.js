@@ -1,17 +1,32 @@
 /* =====================================================
    Fairway Forecast – app.js
    Stable, crash-safe, mobile-first
-   Search: city/course → pick result → current/hourly/daily
-   Weather: supports multiple response shapes + derives from list[]
+   Uses Cloudflare Worker:
+     - GET /courses?search=...
+     - GET /weather?lat=...&lon=...&units=metric|imperial
+
+   Features:
+   - Search works (button + Enter)
+   - Course suggestions as you type (datalist)
+   - Tap a result → loads current/hourly/daily
+   - Current temp always displays (handles multiple shapes)
+   - Hourly/Daily never blank (derives from list[] when needed)
+   - Sunrise/Sunset + Best tee time within daylight
+   - Golf verdict card
+   - Favourites (save/load)
    ===================================================== */
 
 (() => {
   "use strict";
 
   /* ---------- CONFIG ---------- */
-  // Use your Worker (must send CORS headers for your GitHub Pages domain)
   const API_BASE = "https://fairway-forecast-api.mziyabo.workers.dev";
   const MAX_RESULTS = 12;
+  const SUGGEST_MIN_CHARS = 2;
+  const SUGGEST_DEBOUNCE_MS = 250;
+
+  const FAV_KEY = "ff_favourites_v1"; // localStorage
+  const LAST_TAB_KEY = "ff_last_tab_v1";
 
   /* ---------- DOM ---------- */
   const $ = (id) => document.getElementById(id);
@@ -27,7 +42,16 @@
 
   const geoBtn = $("btnGeo") || $("geoBtn"); // optional
   const unitsSelect = $("unitsSelect") || $("units"); // optional
-  const suggestionsEl = $("searchSuggestions"); // optional datalist
+  const suggestionsEl = $("searchSuggestions"); // datalist (optional but in your HTML)
+
+  // Verdict card elements
+  const verdictCard = $("verdictCard");
+  const verdictIcon = $("verdictIcon");
+  const verdictLabel = $("verdictLabel");
+  const verdictReason = $("verdictReason");
+  const verdictBestTime = $("verdictBestTime");
+  const verdictSunrise = $("verdictSunrise");
+  const verdictSunset = $("verdictSunset");
 
   if (!resultsEl) {
     console.warn("Missing #results – app halted safely.");
@@ -36,10 +60,13 @@
 
   /* ---------- STATE ---------- */
   let selectedCourse = null; // { name, city, state, country, lat, lon, id }
-  let lastRawWeather = null; // raw worker response
-  let lastNorm = null; // normalized { current, hourly, daily, sunrise, sunset }
+  let lastRawWeather = null;
+  let lastNorm = null;
   let activeTab = "current";
   let initialized = false;
+
+  // favourites: [{ name, city, state, country, lat, lon }]
+  let favourites = loadFavourites();
 
   /* ---------- HELPERS ---------- */
   const esc = (s) =>
@@ -53,12 +80,8 @@
   const windUnit = () => (units() === "imperial" ? "mph" : "m/s");
   const tempUnit = () => (units() === "imperial" ? "°F" : "°C");
 
-  function setActiveTab(next) {
-    activeTab = next;
-    [tabCurrent, tabHourly, tabDaily].forEach((b) => b?.classList.remove("active"));
-    if (next === "current") tabCurrent?.classList.add("active");
-    if (next === "hourly") tabHourly?.classList.add("active");
-    if (next === "daily") tabDaily?.classList.add("active");
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
   }
 
   function showMessage(msg) {
@@ -67,9 +90,13 @@
 
   function showError(msg, extra = "") {
     const hint = extra ? `<div class="ff-sub muted" style="margin-top:8px">${esc(extra)}</div>` : "";
-    resultsEl.innerHTML = `<div class="ff-card"><div class="ff-big">⚠️</div><div>${esc(
-      msg
-    )}</div>${hint}</div>`;
+    resultsEl.innerHTML = `
+      <div class="ff-card">
+        <div class="ff-big">⚠️</div>
+        <div>${esc(msg)}</div>
+        ${hint}
+      </div>
+    `;
   }
 
   function fmtTime(tsSeconds) {
@@ -85,8 +112,22 @@
     });
   }
 
-  function clamp(n, min, max) {
-    return Math.max(min, Math.min(max, n));
+  function setActiveTab(next) {
+    activeTab = next;
+    localStorage.setItem(LAST_TAB_KEY, next);
+
+    [tabCurrent, tabHourly, tabDaily].forEach((b) => b?.classList.remove("active"));
+    if (next === "current") tabCurrent?.classList.add("active");
+    if (next === "hourly") tabHourly?.classList.add("active");
+    if (next === "daily") tabDaily?.classList.add("active");
+  }
+
+  function restoreTab() {
+    const saved = localStorage.getItem(LAST_TAB_KEY);
+    if (saved === "hourly" || saved === "daily" || saved === "current") {
+      activeTab = saved;
+      setActiveTab(saved);
+    }
   }
 
   /* ---------- API ---------- */
@@ -108,18 +149,19 @@
 
   async function fetchWeather(lat, lon) {
     const u = units();
-    const data = await apiGet(`/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=${u}`);
+    const data = await apiGet(
+      `/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=${encodeURIComponent(u)}`
+    );
     return data;
   }
 
   /* ---------- NORMALIZE WEATHER SHAPES ---------- */
   function normalizeWeather(raw) {
-    // target: { current, hourly[], daily[], sunrise, sunset }
     const norm = { current: null, hourly: [], daily: [], sunrise: null, sunset: null };
 
     if (!raw || typeof raw !== "object") return norm;
 
-    // Sunrise/sunset can come from multiple places
+    // Sunrise/sunset
     norm.sunrise =
       raw?.current?.sunrise ??
       raw?.city?.sunrise ??
@@ -134,8 +176,7 @@
       raw?.current?.sys?.sunset ??
       null;
 
-    // CURRENT (handle several schemas)
-    // 1) Worker may provide current.temp directly (preferred)
+    // CURRENT
     if (raw?.current && typeof raw.current === "object") {
       const c = raw.current;
 
@@ -173,7 +214,7 @@
       };
     }
 
-    // 2) Fallback: forecast list[0] as "current"
+    // fallback current from list[0]
     if (!norm.current && Array.isArray(raw?.list) && raw.list.length) {
       const first = raw.list[0];
       norm.current = {
@@ -186,9 +227,13 @@
         pop: typeof first?.pop === "number" ? first.pop : null,
         weather: Array.isArray(first?.weather) ? first.weather : [],
       };
+
+      // sunrise/sunset often on city for forecast schema
+      norm.sunrise = norm.sunrise ?? raw?.city?.sunrise ?? null;
+      norm.sunset = norm.sunset ?? raw?.city?.sunset ?? null;
     }
 
-    // HOURLY (prefer raw.hourly)
+    // HOURLY
     if (Array.isArray(raw?.hourly) && raw.hourly.length) {
       norm.hourly = raw.hourly.map((h) => ({
         dt: h.dt,
@@ -198,7 +243,6 @@
         weather: Array.isArray(h.weather) ? h.weather : [],
       }));
     } else if (Array.isArray(raw?.list) && raw.list.length) {
-      // derive next 24h = 8 x 3-hour blocks
       norm.hourly = raw.list.slice(0, 8).map((it) => ({
         dt: it.dt,
         temp: it?.main?.temp ?? null,
@@ -208,7 +252,7 @@
       }));
     }
 
-    // DAILY (prefer raw.daily)
+    // DAILY
     if (Array.isArray(raw?.daily) && raw.daily.length) {
       norm.daily = raw.daily.map((d) => ({
         dt: d.dt,
@@ -219,13 +263,12 @@
         icon: d?.weather?.[0]?.icon ?? d?.icon ?? null,
       }));
     } else if (Array.isArray(raw?.list) && raw.list.length) {
-      // derive daily from list[] grouping by local date
       const byDay = new Map();
 
       for (const it of raw.list) {
         const dt = it.dt;
         if (!dt) continue;
-        const key = new Date(dt * 1000).toLocaleDateString(); // local date grouping
+        const key = new Date(dt * 1000).toLocaleDateString();
         const tMin = it?.main?.temp_min;
         const tMax = it?.main?.temp_max;
         const pop = typeof it?.pop === "number" ? it.pop : null;
@@ -238,9 +281,7 @@
             popMax: typeof pop === "number" ? pop : null,
             icon: it?.weather?.[0]?.icon ?? null,
             weatherMain: it?.weather?.[0]?.main ?? "",
-            // try to replace icon around midday
             middayIcon: null,
-            middayDt: null,
           });
         } else {
           const d = byDay.get(key);
@@ -251,13 +292,12 @@
           const hour = new Date(dt * 1000).getHours();
           if (hour >= 11 && hour <= 14) {
             d.middayIcon = it?.weather?.[0]?.icon ?? d.middayIcon;
-            d.middayDt = dt;
             d.weatherMain = it?.weather?.[0]?.main ?? d.weatherMain;
           }
         }
       }
 
-      const derived = Array.from(byDay.values())
+      norm.daily = Array.from(byDay.values())
         .sort((a, b) => (a.dt ?? 0) - (b.dt ?? 0))
         .slice(0, 7)
         .map((d) => ({
@@ -268,8 +308,6 @@
           icon: d.middayIcon || d.icon,
           weather: d.weatherMain ? [{ main: d.weatherMain, icon: d.middayIcon || d.icon }] : [],
         }));
-
-      norm.daily = derived;
     }
 
     return norm;
@@ -286,17 +324,14 @@
     const temp = typeof c.temp === "number" ? c.temp : null;
     const pop = typeof c.pop === "number" ? c.pop : 0;
 
-    // wind penalty
     if (w > 10) score -= 3;
     else if (w > 6) score -= 2;
     else if (w > 4) score -= 1;
 
-    // rain penalty
     if (pop >= 0.7) score -= 3;
     else if (pop >= 0.4) score -= 2;
     else if (pop >= 0.2) score -= 1;
 
-    // temperature comfort penalty
     if (temp !== null) {
       if (units() === "metric") {
         if (temp < 4) score -= 2;
@@ -312,56 +347,154 @@
     return clamp(Math.round(score), 0, 10);
   }
 
-  /* ---------- BEST TIME (DAYLIGHT ONLY) ---------- */
+  /* ---------- BEST TEE TIME (DAYLIGHT ONLY) ---------- */
   function bestTimeToday(norm) {
     const sunrise = norm?.sunrise;
     const sunset = norm?.sunset;
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
-
     if (!sunrise || !sunset || hourly.length === 0) return null;
 
-    const start = sunrise + 3600; // +1h
-    const end = sunset - 3600; // -1h
+    const start = sunrise + 3600; // sunrise + 1h
+    const end = sunset - 3600; // sunset - 1h
+
     const candidates = hourly.filter((h) => typeof h.dt === "number" && h.dt >= start && h.dt <= end);
+    if (!candidates.length) return null;
 
-    if (candidates.length === 0) return null;
-
-    function scoreSlot(h) {
-      // lower is better
+    function slotScore(h) {
       const pop = typeof h.pop === "number" ? h.pop : 0.3;
       const wind = typeof h.wind_speed === "number" ? h.wind_speed : 5;
       const temp = typeof h.temp === "number" ? h.temp : null;
 
-      // target temp: ~18C or ~65F
       const target = units() === "imperial" ? 65 : 18;
-      const tempPenalty = temp === null ? 2 : Math.abs(temp - target) / 6; // gentle
+      const tempPenalty = temp === null ? 2 : Math.abs(temp - target) / 6;
 
       return pop * 10 + wind * 0.8 + tempPenalty;
     }
 
     let best = candidates[0];
-    let bestScore = scoreSlot(best);
-
+    let bestScore = slotScore(best);
     for (const c of candidates.slice(1)) {
-      const s = scoreSlot(c);
+      const s = slotScore(c);
       if (s < bestScore) {
-        bestScore = s;
         best = c;
+        bestScore = s;
+      }
+    }
+    return best;
+  }
+
+  /* ---------- VERDICT (PLAY / PLAYABLE / NO-PLAY) ---------- */
+  function calculateVerdict(norm) {
+    if (!norm?.current) {
+      return { icon: "—", label: "No decision yet", reason: "Search a course or location to begin.", best: "—" };
+    }
+
+    let score = 100;
+    const c = norm.current;
+
+    const wind = typeof c.wind_speed === "number" ? c.wind_speed : 0;
+    const pop = typeof c.pop === "number" ? c.pop : 0.25;
+    const temp = typeof c.temp === "number" ? c.temp : null;
+
+    const sunrise = norm.sunrise;
+    const sunset = norm.sunset;
+
+    // daylight availability check
+    if (!sunrise || !sunset) {
+      score -= 15;
+    }
+
+    // penalties
+    if (wind > 12) score -= 40;
+    else if (wind > 8) score -= 25;
+    else if (wind > 5) score -= 15;
+
+    if (pop > 0.7) score -= 40;
+    else if (pop > 0.4) score -= 25;
+    else if (pop > 0.2) score -= 15;
+
+    if (temp !== null) {
+      if (units() === "metric") {
+        if (temp < 4 || temp > 30) score -= 25;
+        else if (temp < 8 || temp > 27) score -= 15;
+      } else {
+        if (temp < 40 || temp > 86) score -= 25;
+        else if (temp < 46 || temp > 82) score -= 15;
       }
     }
 
-    return best;
+    const best = bestTimeToday(norm);
+    const bestText = best
+      ? `${fmtTime(best.dt)} (${Math.round(best.temp)}${tempUnit()})`
+      : "No good slot (daylight)";
+
+    if (score >= 70) return { icon: "✅", label: "Play", reason: "Good conditions for golf.", best: bestText };
+    if (score >= 45) return { icon: "⚠️", label: "Playable (tough)", reason: "Manageable but challenging.", best: bestText };
+    return { icon: "⛔", label: "No-play recommended", reason: "Poor overall conditions.", best: bestText };
+  }
+
+  function updateVerdictUI(norm) {
+    if (!verdictCard) return;
+
+    const v = calculateVerdict(norm);
+
+    if (verdictIcon) verdictIcon.textContent = v.icon;
+    if (verdictLabel) verdictLabel.textContent = v.label;
+    if (verdictReason) verdictReason.textContent = v.reason;
+    if (verdictBestTime) verdictBestTime.textContent = v.best;
+
+    const sr = norm?.sunrise ? fmtTime(norm.sunrise) : "—";
+    const ss = norm?.sunset ? fmtTime(norm.sunset) : "—";
+    if (verdictSunrise) verdictSunrise.textContent = sr;
+    if (verdictSunset) verdictSunset.textContent = ss;
   }
 
   /* ---------- RENDER ---------- */
   function renderHeaderCard() {
     const name = selectedCourse?.name || "Selected location";
     const line2 = [selectedCourse?.city, selectedCourse?.state, selectedCourse?.country].filter(Boolean).join(", ");
+    const fav = isFavourite(selectedCourse);
 
     return `
       <div class="ff-card">
-        <div class="ff-big" style="font-size:1.2rem; line-height:1.2">${esc(name)}</div>
-        ${line2 ? `<div class="ff-sub muted">${esc(line2)}</div>` : ""}
+        <div class="ff-row" style="align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="ff-big" style="font-size:1.1rem; line-height:1.2">${esc(name)}</div>
+            ${line2 ? `<div class="ff-sub muted">${esc(line2)}</div>` : ""}
+          </div>
+
+          <button
+            type="button"
+            class="ff-btn"
+            id="btnFavToggle"
+            style="height:40px; padding:0 12px; border-radius:12px;"
+            aria-label="Toggle favourite"
+            data-fav="${fav ? "1" : "0"}"
+            title="${fav ? "Remove favourite" : "Add favourite"}"
+          >
+            ${fav ? "★ Saved" : "☆ Save"}
+          </button>
+        </div>
+
+        ${
+          favourites.length
+            ? `<div class="ff-sub muted" style="margin-top:10px;">Favourites:</div>
+               <div class="ff-results-list" style="margin-top:8px;">
+                 ${favourites
+                   .slice(0, 6)
+                   .map(
+                     (f, i) => `
+                   <button type="button" class="ff-result" data-fav-idx="${i}">
+                     <div class="ff-result-title">${esc(f.name)}</div>
+                     <div class="ff-sub muted">${esc(
+                       [f.city, f.state, f.country].filter(Boolean).join(", ")
+                     )}</div>
+                   </button>`
+                   )
+                   .join("")}
+               </div>`
+            : `<div class="ff-sub muted" style="margin-top:10px;">No favourites yet. Tap “Save” on a course.</div>`
+        }
       </div>
     `;
   }
@@ -370,18 +503,13 @@
     const c = norm?.current;
     if (!c) {
       showMessage("Current weather not available.");
+      updateVerdictUI(norm);
       return;
     }
 
     const icon = c?.weather?.[0]?.icon;
     const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "";
-    const t = typeof c.temp === "number"
-    ? Math.round(c.temp)
-    : typeof c?.main?.temp === "number"
-    ? Math.round(c.main.temp)
-    : typeof raw?.weather?.main?.temp === "number"
-    ? Math.round(raw.weather.main.temp)
-    : null;
+    const t = typeof c.temp === "number" ? Math.round(c.temp) : null;
 
     const windVal = typeof c.wind_speed === "number" ? c.wind_speed.toFixed(1) : "--";
     const gustVal = typeof c.wind_gust === "number" ? c.wind_gust.toFixed(1) : "--";
@@ -392,10 +520,10 @@
 
     const best = bestTimeToday(norm);
     const bestText = best
-      ? `${fmtTime(best.dt)} · ${Math.round(best.temp)}${tempUnit()} · ${Math.round(
-          (best.pop ?? 0) * 100
-        )}% rain · ${typeof best.wind_speed === "number" ? best.wind_speed.toFixed(1) : "--"} ${windUnit()}`
-      : "—";
+      ? `${fmtTime(best.dt)} · ${Math.round(best.temp)}${tempUnit()} · ${Math.round((best.pop ?? 0) * 100)}% rain · ${
+          typeof best.wind_speed === "number" ? best.wind_speed.toFixed(1) : "--"
+        } ${windUnit()}`
+      : "No good tee time during daylight.";
 
     resultsEl.innerHTML = `
       ${renderHeaderCard()}
@@ -420,9 +548,9 @@
         </div>
 
         <div class="ff-metrics" style="margin-top:10px">
-          <div>Sunrise ${esc(sr)}</div>
-          <div>Sunset ${esc(ss)}</div>
-          <div>Best time ${esc(bestText)}</div>
+          <div>Sunrise<br><b>${esc(sr)}</b></div>
+          <div>Sunset<br><b>${esc(ss)}</b></div>
+          <div>Best time<br><b>${esc(bestText)}</b></div>
         </div>
       </div>
     `;
@@ -431,12 +559,15 @@
       const p = calculatePlayability(norm);
       playabilityScoreEl.textContent = `${p}/10`;
     }
+
+    updateVerdictUI(norm);
   }
 
   function renderHourly(norm) {
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     if (hourly.length === 0) {
       showMessage("Hourly data not available.");
+      updateVerdictUI(norm);
       return;
     }
 
@@ -456,11 +587,7 @@
               return `
                 <div class="ff-hour">
                   <div class="ff-hour-time">${esc(time)}</div>
-                  ${
-                    icon
-                      ? `<img src="https://openweathermap.org/img/wn/${esc(icon)}@2x.png" alt="" />`
-                      : ""
-                  }
+                  ${icon ? `<img src="https://openweathermap.org/img/wn/${esc(icon)}@2x.png" alt="" />` : ""}
                   <div class="ff-hour-temp">${esc(temp)}${esc(tempUnit())}</div>
                   <div class="ff-hour-meta">${esc(pop)}% · ${esc(wind)} ${esc(windUnit())}</div>
                 </div>
@@ -470,12 +597,15 @@
         </div>
       </div>
     `;
+
+    updateVerdictUI(norm);
   }
 
   function renderDaily(norm) {
     const daily = Array.isArray(norm?.daily) ? norm.daily : [];
     if (daily.length === 0) {
       showMessage("Daily forecast not available.");
+      updateVerdictUI(norm);
       return;
     }
 
@@ -497,13 +627,9 @@
               return `
                 <div class="ff-day">
                   <div class="ff-day-date">${esc(date)}</div>
-                  ${
-                    icon
-                      ? `<img src="https://openweathermap.org/img/wn/${esc(icon)}@2x.png" alt="" />`
-                      : ""
-                  }
+                  ${icon ? `<img src="https://openweathermap.org/img/wn/${esc(icon)}@2x.png" alt="" />` : ""}
                   <div class="ff-day-desc">${esc(main)}${pop === null ? "" : ` · ${esc(pop)}%`}</div>
-                  <div class="ff-day-temp">${esc(max)}${esc(tempUnit())} ${esc(min)}${esc(tempUnit())}</div>
+                  <div class="ff-day-temp">${esc(max)}${esc(tempUnit())} / ${esc(min)}${esc(tempUnit())}</div>
                 </div>
               `;
             })
@@ -511,6 +637,8 @@
         </div>
       </div>
     `;
+
+    updateVerdictUI(norm);
   }
 
   function renderActiveTab() {
@@ -520,7 +648,7 @@
     else renderDaily(lastNorm);
   }
 
-  /* ---------- SEARCH UI ---------- */
+  /* ---------- SEARCH RESULTS ---------- */
   function renderSearchResults(list) {
     if (!Array.isArray(list) || list.length === 0) {
       showMessage("No courses found. Try a broader search (e.g. “Swindon” or “golf club swindon”).");
@@ -528,7 +656,6 @@
     }
 
     const items = list.slice(0, MAX_RESULTS);
-
     resultsEl.innerHTML = `
       <div class="ff-card">
         <div class="ff-sub muted">Select a result</div>
@@ -574,11 +701,11 @@
       return;
     }
 
-    // reset state so tabs don’t show stale data
     selectedCourse = null;
     lastRawWeather = null;
     lastNorm = null;
     if (playabilityScoreEl) playabilityScoreEl.textContent = "--/10";
+    updateVerdictUI(null);
 
     showMessage("Searching…");
 
@@ -587,13 +714,9 @@
       renderSearchResults(courses);
     } catch (err) {
       console.error(err);
-
-      // Most common real-world failure: CORS misconfig on Worker
-      const hint =
-        String(err?.message || "").includes("Failed to fetch")
-          ? "If you see a CORS error in DevTools, your Worker must add Access-Control-Allow-Origin for your GitHub Pages domain."
-          : "";
-
+      const hint = String(err?.message || "").includes("Failed to fetch")
+        ? "If DevTools shows a CORS error, update your Worker to allow your GitHub Pages domain."
+        : "";
       showError("Search failed.", hint);
     }
   }
@@ -616,7 +739,6 @@
       lon,
     };
 
-    // put selection into input (nice UX)
     if (searchInput) searchInput.value = selectedCourse.name;
 
     showMessage("Loading weather…");
@@ -625,32 +747,35 @@
       lastRawWeather = await fetchWeather(lat, lon);
       lastNorm = normalizeWeather(lastRawWeather);
 
-      // ensure tabs start at Current
-      setActiveTab("current");
+      // if current is missing temp but hourly exists, use first hourly temp as fallback
+      if (lastNorm?.current && (typeof lastNorm.current.temp !== "number") && lastNorm.hourly?.[0]?.temp != null) {
+        lastNorm.current.temp = lastNorm.hourly[0].temp;
+      }
+
+      // keep current selected tab
       renderActiveTab();
     } catch (err) {
       console.error(err);
-
-      const hint =
-        String(err?.message || "").includes("Failed to fetch")
-          ? "If you see a CORS error in DevTools, your Worker must add Access-Control-Allow-Origin for your GitHub Pages domain."
-          : "";
-
+      const hint = String(err?.message || "").includes("Failed to fetch")
+        ? "If DevTools shows a CORS error, update your Worker to allow your GitHub Pages domain."
+        : "";
       showError("Weather failed to load for this location.", hint);
     }
   }
 
   /* ---------- SUGGESTIONS (DATALIST) ---------- */
   let suggestTimer = null;
+
   function wireSuggestions() {
     if (!suggestionsEl || !searchInput) return;
 
     searchInput.addEventListener("input", () => {
       const q = (searchInput.value || "").trim();
-      if (q.length < 2) {
+      if (q.length < SUGGEST_MIN_CHARS) {
         suggestionsEl.innerHTML = "";
         return;
       }
+
       if (suggestTimer) window.clearTimeout(suggestTimer);
       suggestTimer = window.setTimeout(async () => {
         try {
@@ -663,13 +788,13 @@
             })
             .join("");
         } catch {
-          // suggestions are non-critical; fail silently
+          // non-critical
         }
-      }, 250);
+      }, SUGGEST_DEBOUNCE_MS);
     });
   }
 
-  /* ---------- GEOLOCATION (OPTIONAL) ---------- */
+  /* ---------- GEOLOCATION (OPTIONAL / SAFE) ---------- */
   async function runGeolocation() {
     if (!navigator.geolocation) {
       showError("Geolocation not supported.", "Use manual search instead.");
@@ -688,24 +813,100 @@
           return;
         }
 
-        // Minimal/safe: just load weather for your coords (no “near me courses” complexity)
         selectedCourse = { name: "Your location", city: "", state: "", country: "", lat, lon };
+        if (searchInput) searchInput.value = "Your location";
 
         try {
           lastRawWeather = await fetchWeather(lat, lon);
           lastNorm = normalizeWeather(lastRawWeather);
-          setActiveTab("current");
+
+          // fallback for current temp
+          if (lastNorm?.current && (typeof lastNorm.current.temp !== "number") && lastNorm.hourly?.[0]?.temp != null) {
+            lastNorm.current.temp = lastNorm.hourly[0].temp;
+          }
+
           renderActiveTab();
         } catch (err) {
           console.error(err);
           showError("Weather failed to load for your location.");
         }
       },
-      () => {
-        showError("Location permission denied.", "Use manual search instead.");
-      },
+      () => showError("Location permission denied.", "Use manual search instead."),
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 }
     );
+  }
+
+  /* ---------- FAVOURITES ---------- */
+  function loadFavourites() {
+    try {
+      const raw = localStorage.getItem(FAV_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveFavourites() {
+    try {
+      localStorage.setItem(FAV_KEY, JSON.stringify(favourites));
+    } catch {
+      // ignore
+    }
+  }
+
+  function favKeyOf(obj) {
+    if (!obj) return "";
+    const lat = Number(obj.lat);
+    const lon = Number(obj.lon);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) return `${lat.toFixed(5)},${lon.toFixed(5)}`;
+    return (obj.name || "").toLowerCase().trim();
+  }
+
+  function isFavourite(obj) {
+    const k = favKeyOf(obj);
+    if (!k) return false;
+    return favourites.some((f) => favKeyOf(f) === k);
+  }
+
+  function toggleFavourite() {
+    if (!selectedCourse) return;
+    const k = favKeyOf(selectedCourse);
+    if (!k) return;
+
+    const exists = favourites.findIndex((f) => favKeyOf(f) === k);
+    if (exists >= 0) {
+      favourites.splice(exists, 1);
+    } else {
+      favourites.unshift({
+        name: selectedCourse.name,
+        city: selectedCourse.city,
+        state: selectedCourse.state,
+        country: selectedCourse.country,
+        lat: selectedCourse.lat,
+        lon: selectedCourse.lon,
+      });
+      favourites = favourites.slice(0, 20);
+    }
+
+    saveFavourites();
+    renderActiveTab();
+  }
+
+  function loadFavouriteByIndex(idx) {
+    const f = favourites[idx];
+    if (!f) return;
+    selectedCourse = { ...f };
+    if (searchInput) searchInput.value = f.name || "";
+    loadCourseFromDataset({
+      id: "",
+      name: f.name || "Favourite",
+      city: f.city || "",
+      state: f.state || "",
+      country: f.country || "",
+      lat: String(f.lat),
+      lon: String(f.lon),
+    });
   }
 
   /* ---------- EVENTS (ATTACH ONCE) ---------- */
@@ -713,10 +914,12 @@
     if (initialized) return;
     initialized = true;
 
+    restoreTab();
+
     // Search click
     searchBtn?.addEventListener("click", runSearch);
 
-    // Enter key
+    // Enter key triggers search
     searchInput?.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -724,11 +927,25 @@
       }
     });
 
-    // Results click (event delegation)
+    // Results click (course results + favourites + fav toggle)
     resultsEl.addEventListener("click", (e) => {
+      const favToggle = e.target?.closest?.("#btnFavToggle");
+      if (favToggle) {
+        toggleFavourite();
+        return;
+      }
+
+      const favBtn = e.target?.closest?.("[data-fav-idx]");
+      if (favBtn) {
+        const idx = Number(favBtn.getAttribute("data-fav-idx"));
+        if (Number.isFinite(idx)) loadFavouriteByIndex(idx);
+        return;
+      }
+
       const btn = e.target?.closest?.(".ff-result");
-      if (!btn) return;
-      loadCourseFromDataset(btn.dataset);
+      if (btn) {
+        loadCourseFromDataset(btn.dataset);
+      }
     });
 
     // Tabs
@@ -737,26 +954,29 @@
       setActiveTab("current");
       renderActiveTab();
     });
-
     tabHourly?.addEventListener("click", () => {
       if (!lastNorm) return;
       setActiveTab("hourly");
       renderActiveTab();
     });
-
     tabDaily?.addEventListener("click", () => {
       if (!lastNorm) return;
       setActiveTab("daily");
       renderActiveTab();
     });
 
-    // Units change should re-fetch (most accurate)
+    // Units change re-fetches
     unitsSelect?.addEventListener("change", async () => {
       if (!selectedCourse?.lat || !selectedCourse?.lon) return;
       showMessage("Updating units…");
       try {
         lastRawWeather = await fetchWeather(selectedCourse.lat, selectedCourse.lon);
         lastNorm = normalizeWeather(lastRawWeather);
+
+        if (lastNorm?.current && (typeof lastNorm.current.temp !== "number") && lastNorm.hourly?.[0]?.temp != null) {
+          lastNorm.current.temp = lastNorm.hourly[0].temp;
+        }
+
         renderActiveTab();
       } catch (err) {
         console.error(err);
@@ -769,54 +989,10 @@
 
     wireSuggestions();
 
-    showMessage('Search for a town/city or course name, then pick a result. (Tip: try “golf club swindon”)');
+    showMessage('Search for a town/city or course name, then pick a result. (Try “golf club swindon”)');
+    updateVerdictUI(null);
   }
 
-  // init immediately (script is loaded at end of body)
+  // script is loaded at end of body
   init();
-function calculateVerdict(weather) {
-  if (!weather?.current) {
-    return {
-      status: "NO-PLAY",
-      label: "No-play recommended",
-      reason: "Weather data unavailable"
-    };
-  }
-
-  let score = 100;
-
-  const wind = weather.current.wind?.speed ?? 0;
-  const temp = weather.current.temp;
-  const pop = weather.hourly?.[0]?.pop ?? 0;
-  const sunrise = weather.current.sunrise;
-  const sunset = weather.current.sunset;
-  const now = Math.floor(Date.now() / 1000);
-
-  // Hard daylight rule
-  if (!sunrise || !sunset || now > sunset - 3600) {
-    return {
-      status: "NO-PLAY",
-      label: "No-play recommended",
-      reason: "Limited daylight today"
-    };
-  }
-
-  if (wind > 12) score -= 40;
-  else if (wind > 8) score -= 25;
-  else if (wind > 5) score -= 15;
-
-  if (pop > 0.7) score -= 40;
-  else if (pop > 0.4) score -= 25;
-  else if (pop > 0.2) score -= 15;
-
-  if (temp < 4 || temp > 30) score -= 25;
-  else if (temp < 8 || temp > 27) score -= 15;
-
-  if (score >= 70) return { status: "PLAY", label: "Play", reason: "Good conditions for golf" };
-  if (score >= 45) return { status: "PLAYABLE", label: "Playable (tough)", reason: "Conditions are manageable but challenging" };
-
-  return { status: "NO-PLAY", label: "No-play recommended", reason: "Poor overall conditions" };
-}   
 })();
-
-
