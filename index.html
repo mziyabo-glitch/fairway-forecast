@@ -1,43 +1,53 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fairway Forecast</title>
-  <meta name="description" content="Golf-first weather. Know before you tee." />
 
-  <!-- PWA (GitHub Pages subpath) -->
-  <link rel="manifest" href="/fairway-forecast/manifest.json" />
-  <meta name="theme-color" content="#0b1f24" />
+  <title>Fairway Forecast – Know before you tee</title>
+  <meta name="description" content="Golf-first weather forecasts. Know before you tee." />
 
-  <!-- Icons (repo /icons folder) -->
-  <link rel="icon" href="/fairway-forecast/icons/favicon.ico" />
-  <link rel="apple-touch-icon" href="/fairway-forecast/icons/icon-192.png" />
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#1F6F78">
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="/fairway-forecast/styles.css" />
+  <!-- Icons -->
+  <link rel="icon" href="./icons/favicon.ico">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
   <main class="ff-wrap">
+
+    <!-- HEADER -->
     <header class="ff-hero">
       <div class="ff-brand">
-        <!-- Uses your uploaded icon. If you later add /branding/logos/logo-icon.svg, swap src to that -->
+        <!-- LOGO -->
         <img
-          src="/fairway-forecast/icons/icon-192.png"
+          src="./branding/logos/logo-icon.svg"
           alt="Fairway Forecast"
           class="ff-logo"
-          width="40"
-          height="40"
-          loading="eager"
         />
-        <div>
+
+        <div class="ff-brand-text">
           <h1 class="ff-title">Fairway Forecast</h1>
           <p class="ff-tag">Know before you tee.</p>
         </div>
       </div>
     </header>
 
+    <!-- SEARCH PANEL -->
     <section class="ff-panel">
       <label class="ff-label" for="searchInput">Search location or golf course</label>
 
@@ -48,21 +58,14 @@
           type="text"
           placeholder='e.g. Swindon, GB or "golf / club / gc"'
           autocomplete="off"
-          inputmode="search"
-          list="searchSuggestions"
         />
-        <datalist id="searchSuggestions"></datalist>
 
-        <button id="searchBtn" class="ff-btn" type="button">Search</button>
-
-        <!-- Optional Near-me button -->
-        <button id="btnGeo" class="ff-btn ff-btn-geo" type="button" title="Near me">⌖</button>
-
-        <!-- Units: keep compact (your CSS should style this tighter) -->
-        <select id="unitsSelect" class="ff-select" aria-label="Units">
+        <select id="unitsSelect" class="ff-units">
           <option value="metric">°C</option>
           <option value="imperial">°F</option>
         </select>
+
+        <button id="searchBtn" class="ff-btn">Search</button>
       </div>
 
       <p class="ff-tip">
@@ -70,16 +73,20 @@
       </p>
     </section>
 
-    <nav class="ff-tabs" aria-label="Forecast tabs">
-      <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
-      <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
-      <button id="tabDaily" class="ff-tab" type="button">Daily</button>
+    <!-- TABS -->
+    <nav class="ff-tabs">
+      <button id="tabCurrent" class="ff-tab active">Current</button>
+      <button id="tabHourly" class="ff-tab">Hourly</button>
+      <button id="tabDaily" class="ff-tab">Daily</button>
     </nav>
 
-    <!-- VERDICT (front and centre) -->
-    <section id="verdictCard" class="ff-verdict ff-verdict--neutral" aria-live="polite">
+    <!-- RESULTS -->
+    <section id="results" class="ff-results"></section>
+
+    <!-- DECISION / VERDICT -->
+    <section id="verdictCard" class="ff-verdict ff-verdict--neutral">
       <div class="ff-verdict-main">
-        <span id="verdictIcon" aria-hidden="true">—</span>
+        <span id="verdictIcon">—</span>
         <div>
           <div id="verdictLabel" class="ff-verdict-label">—</div>
           <div id="verdictReason" class="ff-verdict-reason">—</div>
@@ -91,24 +98,27 @@
       </div>
     </section>
 
-    <!-- Results -->
-    <section id="results" class="ff-results" aria-live="polite"></section>
-
+    <!-- PLAYABILITY -->
     <section class="ff-panel">
       <div class="ff-play">
         <div>
           <div class="ff-play-title">Playability</div>
-          <div class="ff-play-sub">Wind, rain probability &amp; temperature comfort</div>
+          <div class="ff-play-sub">
+            Wind, rain probability & temperature comfort
+          </div>
         </div>
         <div id="playabilityScore" class="ff-play-score">--/10</div>
       </div>
     </section>
 
+    <!-- FOOTER -->
     <footer class="ff-foot">
       Weather data © OpenWeather · Course data © GolfCourseAPI
     </footer>
+
   </main>
 
-  <script src="/fairway-forecast/app.js"></script>
+  <!-- APP LOGIC -->
+  <script src="./app.js"></script>
 </body>
 </html>
