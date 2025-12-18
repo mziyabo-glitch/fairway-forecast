@@ -25,28 +25,6 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="./styles.css" />
-
-  <!-- Tiny spacing fix for "Sunrise18:39" WITHOUT touching app.js -->
-  <style>
-    /* If app.js renders label/value using <strong> or similar, enforce spacing */
-    .ff-current-row strong,
-    .current-row strong,
-    .meta-row strong,
-    .ff-meta strong,
-    .ff-meta b,
-    .ff-meta .value { margin-left: 6px; }
-
-    /* If meta rows are flex, ensure gap */
-    .ff-current-row,
-    .current-row,
-    .meta-row,
-    .ff-meta { gap: 8px; }
-
-    /* Safe helper class for any key/value rows you might already have */
-    .ff-kv { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
-    .ff-kv .k { opacity:.8; }
-    .ff-kv .v { font-weight:700; }
-  </style>
 </head>
 
 <body>
@@ -81,10 +59,11 @@
           inputmode="search"
           list="searchSuggestions"
         />
-
         <datalist id="searchSuggestions"></datalist>
 
-        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">Search</button>
+        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">
+          Search
+        </button>
 
         <button
           id="btnGeo"
@@ -92,7 +71,9 @@
           type="button"
           title="Use my location"
           aria-label="Use my location"
-        >⌖</button>
+        >
+          ⌖
+        </button>
       </div>
 
       <div class="ff-units-row">
@@ -111,34 +92,31 @@
       <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
+    <!-- ================= PLAY / NO-PLAY (MOVED OUT OF RESULTS so JS can't wipe it) ================= -->
+    <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
+      <div class="ff-verdict-main">
+        <div class="ff-verdict-badge" aria-hidden="true">
+          <span id="verdictIcon">⏳</span>
+        </div>
+
+        <div class="ff-verdict-text">
+          <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
+          <div id="verdictReason" class="ff-verdict-reason">—</div>
+
+          <div class="ff-verdict-meta">
+            <span>Best tee time:</span>
+            <strong id="verdictBestTime">—</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= RESULTS (ORDER LOCKED) ================= -->
     <section id="results" class="ff-results" aria-live="polite">
       <!-- 2nd tile: Location / favourites -->
       <div id="locationSlot"></div>
 
-      <!-- 3rd tile: Play (verdict) -->
-      <div id="playSlot">
-        <!-- These IDs MUST exist for your current app.js (renderVerdictCard) -->
-        <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
-          <div class="ff-verdict-main">
-            <div class="ff-verdict-badge" aria-hidden="true">
-              <span id="verdictIcon">—</span>
-            </div>
-
-            <div class="ff-verdict-text">
-              <div id="verdictLabel" class="ff-verdict-label">—</div>
-              <div id="verdictReason" class="ff-verdict-reason">—</div>
-
-              <div class="ff-verdict-meta">
-                <span>Best tee time:</span>
-                <strong id="verdictBestTime">—</strong>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- 4th tile: Forecast tiles -->
+      <!-- 3rd tile: Forecast tiles -->
       <div id="forecastSlot"></div>
     </section>
 
