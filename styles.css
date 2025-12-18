@@ -1,503 +1,577 @@
 /* =====================================================
-   Fairway Forecast – styles.css
-   Option A: Off-White + Calm Teal (NHS-like, premium)
-   Mobile-first, GitHub Pages friendly
+   Fairway Forecast – styles.css (Option A: off-white, premium, mobile-first)
+   - Clean “NHS-like” neutrals + teal accent
+   - Better spacing, card hierarchy, tap targets
+   - Fixes container sizing/overflows on mobile
+   - Supports new favourites strip (#favsStrip)
    ===================================================== */
 
-/* ---------- THEME TOKENS ---------- */
 :root{
-  --bg:#F4F7F6;
-  --bg2:#EEF3F2;
-  --panel:#FFFFFF;
-  --panel2:#F9FBFA;
-  --stroke:#E2E8E6;
-  --stroke2:#D7E0DD;
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --surface-2: #f0f4f6;
+  --border: rgba(16, 24, 40, .10);
+  --shadow: 0 10px 28px rgba(16,24,40,.08);
 
-  --text:#1F2933;
-  --muted:#6B7280;
+  --text: #0f172a;
+  --muted: #5b6776;
 
-  --accent:#1F6F78;
-  --accent2:#22C9C2;
+  --brand: #0f6b73;
+  --brand-2: #0b5d65;
+  --brand-soft: rgba(15,107,115,.10);
 
-  --ok:#1FA971;
-  --warn:#E6A700;
-  --danger:#D64545;
+  --good: #16a34a;
+  --warn: #f59e0b;
+  --bad:  #ef4444;
 
-  --radius:18px;
-  --radius-sm:14px;
-  --shadow:0 10px 26px rgba(0,0,0,.08);
+  --radius: 18px;
+  --radius-sm: 14px;
 
-  --tap:44px;
-  --font:"Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  --pad: 14px;
+  --gap: 12px;
+
+  --tap: 44px;
 }
 
-/* ---------- BASE ---------- */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
   margin:0;
-  font-family:var(--font);
-  color:var(--text);
-  background: radial-gradient(1200px 600px at 20% -10%, #ffffff 0%, var(--bg) 45%, var(--bg2) 100%);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px 600px at 20% -10%, rgba(15,107,115,.14), transparent 60%),
+              radial-gradient(900px 500px at 110% 10%, rgba(15,107,115,.10), transparent 55%),
+              var(--bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-img{ max-width:100%; display:block; }
-button, input, select{ font:inherit; }
-a{ color:inherit; }
 
-/* ---------- LAYOUT ---------- */
+img{ max-width:100%; display:block; }
+
+/* ---------- Layout ---------- */
 .ff-wrap{
-  max-width:720px;
-  margin:0 auto;
-  padding:14px 12px 28px;
+  width:100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 14px 14px 28px;
 }
 
-/* ---------- HEADER / BRAND ---------- */
+/* ---------- Header / Brand ---------- */
 .ff-header{
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  padding: 10px 6px 10px;
-  background: rgba(244,247,246,.86);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(226,232,230,.7);
+  margin-top: 8px;
+  margin-bottom: 12px;
 }
 
 .ff-brand{
   display:flex;
   align-items:center;
-  gap:12px;
+  gap: 12px;
+  padding: 14px 14px;
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
 .ff-logo{
-  width:42px;
-  height:42px;
-  border-radius:14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: #fff;
-  border: 1px solid var(--stroke);
-  padding:6px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.06);
+  border: 1px solid var(--border);
+  padding: 6px;
 }
 
 .ff-brand-text strong{
   display:block;
-  font-size:1.05rem;
-  line-height:1.15;
-  letter-spacing:.2px;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.1;
+  letter-spacing: -.2px;
 }
 .ff-brand-text span{
   display:block;
-  font-size:.85rem;
-  color:var(--muted);
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
-/* ---------- PANELS / CARDS ---------- */
+/* ---------- Panels / Cards ---------- */
 .ff-panel{
-  margin-top:12px;
-  background: var(--panel);
-  border:1px solid var(--stroke);
+  background: rgba(255,255,255,.78);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 12px;
+  padding: var(--pad);
+  margin: 12px 0;
 }
 
 .ff-panel--search{
-  padding: 12px;
+  padding-bottom: 12px;
 }
 
-.ff-card{
-  background: var(--panel);
-  border:1px solid var(--stroke);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
-}
-
-.muted{ color: var(--muted); }
-
-/* ---------- TYPOGRAPHY ---------- */
+/* ---------- Labels / Inputs ---------- */
 .ff-label{
   display:block;
-  font-size:.88rem;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--muted);
-  margin-bottom:8px;
+  margin-bottom: 8px;
 }
 
-.ff-tip{
-  margin:10px 2px 0;
-  font-size:.82rem;
-  color: var(--muted);
-  /* You can hide this entirely if you want ultra clean */
-  display:none;
-}
-
-.ff-big{
-  font-size: 1.8rem;
-  font-weight: 800;
-  letter-spacing: -.2px;
-}
-
-.ff-sub{
-  font-size:.92rem;
-  color: var(--muted);
-  margin-top: 3px;
-}
-
-/* ---------- SEARCH ROW ---------- */
 .ff-search-row{
-  display:flex;
-  gap:8px;
-  align-items:stretch;
+  display:grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .ff-input{
-  flex: 1 1 auto;
-  height: 44px;
+  width:100%;
+  height: var(--tap);
+  padding: 0 14px;
   border-radius: 14px;
-  border:1px solid var(--stroke);
+  border: 1px solid var(--border);
   background: #fff;
-  padding: 0 12px;
+  color: var(--text);
+  font-size: 16px; /* avoids iOS zoom */
   outline: none;
-  box-shadow: 0 2px 10px rgba(0,0,0,.03);
 }
-
 .ff-input:focus{
-  border-color: rgba(31,111,120,.55);
-  box-shadow: 0 0 0 4px rgba(31,111,120,.12);
+  border-color: rgba(15,107,115,.35);
+  box-shadow: 0 0 0 4px rgba(15,107,115,.12);
 }
 
 .ff-btn{
-  height: 44px;
-  min-width: 44px;
-  border-radius: 14px;
-  border:1px solid var(--stroke);
-  background:#fff;
-  color: var(--text);
+  height: var(--tap);
+  min-width: var(--tap);
   padding: 0 14px;
-  cursor:pointer;
-  box-shadow: 0 4px 16px rgba(0,0,0,.06);
-  transition: transform .06s ease, box-shadow .12s ease, border-color .12s ease;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 8px;
+  -webkit-tap-highlight-color: transparent;
 }
-
 .ff-btn:active{ transform: translateY(1px); }
-.ff-btn:hover{ border-color: var(--stroke2); }
 
 .ff-btn-primary{
-  background: linear-gradient(135deg, var(--accent) 0%, #1D8184 55%, var(--accent2) 130%);
-  color:#fff;
-  border-color: transparent;
+  background: linear-gradient(180deg, rgba(15,107,115,.95), rgba(11,93,101,.95));
+  border-color: rgba(0,0,0,.06);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(15,107,115,.22);
 }
 
 .ff-btn-ghost{
-  background: #fff;
-  color: var(--accent);
-  border-color: rgba(31,111,120,.25);
-  font-weight: 700;
+  background: rgba(255,255,255,.85);
 }
 
-/* Make the Search button more “user friendly” */
-.ff-btn-primary{
-  min-width: 92px;
-  font-weight: 700;
-}
-
-/* Units row — tighter, cleaner */
 .ff-units-row{
+  margin-top: 12px;
   display:flex;
   align-items:center;
-  gap:10px;
-  margin-top:10px;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .ff-select{
   height: 40px;
-  border-radius: 12px;
-  border:1px solid var(--stroke);
-  background:#fff;
-  padding: 0 10px;
-  outline:none;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-weight: 700;
 }
 
-.ff-select:focus{
-  border-color: rgba(31,111,120,.55);
-  box-shadow: 0 0 0 4px rgba(31,111,120,.10);
-}
+/* Hide tip (you asked to remove space-wasting info) */
+.ff-tip{ display:none; }
 
-/* ---------- VERDICT (FRONT & CENTRE) ---------- */
+/* ---------- Verdict (Top priority info) ---------- */
 .ff-verdict{
-  margin-top: 12px;
+  background: rgba(255,255,255,.86);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  border: 1px solid var(--stroke);
-  background: var(--panel);
   box-shadow: var(--shadow);
-  padding: 12px 14px;
+  padding: 14px;
+  margin: 12px 0;
 }
 
 .ff-verdict-main{
   display:flex;
   align-items:flex-start;
-  gap:10px;
+  gap: 12px;
 }
 
 .ff-verdict-icon{
-  font-size: 1.35rem;
-  line-height: 1;
-  margin-top: 2px;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 18px;
 }
 
 .ff-verdict-label{
-  font-weight: 800;
-  font-size: 1.02rem;
-  letter-spacing: -.1px;
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: -.2px;
 }
-
 .ff-verdict-reason{
-  color: var(--muted);
   margin-top: 2px;
-  font-size: .92rem;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .ff-verdict-meta{
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(226,232,230,.8);
+  border-top: 1px dashed rgba(16,24,40,.12);
   color: var(--muted);
-  font-size: .9rem;
+  font-size: 13px;
 }
 
-.ff-verdict--neutral{ background: var(--panel); }
 .ff-verdict--play{
-  border-color: rgba(31,169,113,.25);
-  background: linear-gradient(180deg, rgba(31,169,113,.09), rgba(255,255,255,.9));
+  border-color: rgba(22,163,74,.28);
+  background: linear-gradient(180deg, rgba(22,163,74,.10), rgba(255,255,255,.88));
 }
-.ff-verdict--maybe{
-  border-color: rgba(230,167,0,.25);
-  background: linear-gradient(180deg, rgba(230,167,0,.10), rgba(255,255,255,.9));
-}
-.ff-verdict--no{
-  border-color: rgba(214,69,69,.25);
-  background: linear-gradient(180deg, rgba(214,69,69,.10), rgba(255,255,255,.9));
-}
+.ff-verdict--play .ff-verdict-icon{ background: rgba(22,163,74,.12); border-color: rgba(22,163,74,.25); }
 
-/* ---------- TABS ---------- */
+.ff-verdict--maybe{
+  border-color: rgba(245,158,11,.28);
+  background: linear-gradient(180deg, rgba(245,158,11,.12), rgba(255,255,255,.88));
+}
+.ff-verdict--maybe .ff-verdict-icon{ background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.25); }
+
+.ff-verdict--no{
+  border-color: rgba(239,68,68,.28);
+  background: linear-gradient(180deg, rgba(239,68,68,.12), rgba(255,255,255,.88));
+}
+.ff-verdict--no .ff-verdict-icon{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.25); }
+
+/* ---------- Tabs ---------- */
 .ff-tabs{
-  margin-top: 12px;
-  display:flex;
-  gap:8px;
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
 }
 
 .ff-tab{
-  flex: 1 1 0;
-  height: 42px;
-  border-radius: 14px;
-  border: 1px solid var(--stroke);
-  background: #fff;
-  cursor:pointer;
-  font-weight: 700;
-  color: var(--text);
-  box-shadow: 0 4px 14px rgba(0,0,0,.05);
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.78);
+  color: var(--muted);
+  font-weight: 900;
+  letter-spacing: -.2px;
+  cursor: pointer;
 }
 
 .ff-tab.active{
-  background: linear-gradient(135deg, var(--accent), #1D8184);
-  border-color: transparent;
-  color:#fff;
+  background: linear-gradient(180deg, rgba(15,107,115,.95), rgba(11,93,101,.95));
+  color: #fff;
+  border-color: rgba(0,0,0,.06);
+  box-shadow: 0 10px 22px rgba(15,107,115,.20);
 }
 
-/* ---------- RESULTS (keep close to search) ---------- */
+/* ---------- Results area ---------- */
 .ff-results{
-  margin-top: 12px;
+  margin: 10px 0 8px;
 }
 
-/* Search result list */
-.ff-results-list{
+/* Generic cards the JS renders */
+.ff-card{
+  background: rgba(255,255,255,.86);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  margin: 10px 0;
+}
+
+.ff-card.muted{ color: var(--muted); }
+
+.ff-big{
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.ff-sub{ font-size: 13px; color: var(--muted); }
+
+/* ---------- Location header card (course + favourite) ---------- */
+.ff-location{
   display:flex;
-  flex-direction:column;
-  gap:8px;
-  margin-top: 10px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.ff-result{
-  width:100%;
-  text-align:left;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--stroke);
-  background: #fff;
-  padding: 12px;
-  cursor:pointer;
-  box-shadow: 0 4px 14px rgba(0,0,0,.05);
+.ff-location-title{
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: -.2px;
+}
+.ff-location-sub{
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
-.ff-result:active{ transform: translateY(1px); }
-
-.ff-result-title{
-  font-weight: 800;
-  letter-spacing: -.1px;
-}
-
-/* ---------- CURRENT VIEW ---------- */
-.ff-row{
+.ff-fav-btn{
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.9);
   display:flex;
-  gap:12px;
   align-items:center;
+  justify-content:center;
+  font-size: 18px;
+}
+
+/* ---------- “Important info at top” blocks ---------- */
+.ff-kpi{
+  display:grid;
+  gap: 10px;
+}
+
+.ff-kpi-row{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.ff-kpi-main{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ff-temp{
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -.6px;
+}
+.ff-desc{
+  color: var(--muted);
+  font-weight: 700;
+  margin-top: 2px;
 }
 
 .ff-icon{
-  width: 58px;
-  height: 58px;
-  border-radius: 16px;
-  background: rgba(31,111,120,.07);
-  border: 1px solid rgba(31,111,120,.18);
-  padding: 6px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.ff-icon img{
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
 }
 
-.ff-metrics{
-  margin-top: 12px;
+/* Small stat pills (rain/wind/sunrise etc) */
+.ff-pills{
   display:grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.ff-pill{
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.72);
+  border-radius: 16px;
+  padding: 10px 12px;
+}
+
+.ff-pill .k{
+  font-size: 12px;
   color: var(--muted);
-  font-size: .92rem;
+  font-weight: 800;
+}
+.ff-pill .v{
+  margin-top: 2px;
+  font-weight: 900;
+  font-size: 14px;
 }
 
-.ff-metrics > div{
-  background: rgba(0,0,0,.02);
-  border: 1px solid rgba(226,232,230,.65);
-  border-radius: 14px;
-  padding: 10px 10px;
+/* ---------- Tables (Hourly/Daily) ---------- */
+.ff-table{
+  width:100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow:hidden;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.86);
+  box-shadow: var(--shadow);
 }
 
-/* ---------- PLAYABILITY ---------- */
+.ff-table th, .ff-table td{
+  padding: 12px 12px;
+  text-align:left;
+  font-size: 13px;
+}
+.ff-table th{
+  color: var(--muted);
+  font-weight: 900;
+  background: rgba(15,107,115,.06);
+  border-bottom: 1px solid rgba(16,24,40,.08);
+}
+.ff-table tr:not(:last-child) td{
+  border-bottom: 1px solid rgba(16,24,40,.06);
+}
+.ff-table td{
+  font-weight: 700;
+}
+.ff-table .iconcell{
+  width: 42px;
+}
+.ff-table .iconcell img{
+  width: 22px;
+  height: 22px;
+  vertical-align: middle;
+}
+
+/* ---------- Playability card ---------- */
 .ff-play{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap:12px;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .ff-play-title{
   font-weight: 900;
-  font-size: 1.02rem;
+  font-size: 15px;
 }
 .ff-play-sub{
   margin-top: 2px;
+  font-size: 12px;
   color: var(--muted);
-  font-size: .86rem;
+  font-weight: 700;
 }
-
 .ff-play-score{
-  min-width: 84px;
-  height: 46px;
+  height: 44px;
+  min-width: 78px;
+  border-radius: 16px;
+  border: 1px solid rgba(15,107,115,.22);
+  background: rgba(15,107,115,.10);
   display:flex;
   align-items:center;
   justify-content:center;
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(31,111,120,.15), rgba(34,201,194,.15));
-  border: 1px solid rgba(31,111,120,.18);
   font-weight: 900;
-  font-size: 1.05rem;
-  color: var(--text);
 }
 
-/* ---------- HOURLY ---------- */
-.ff-hourly{
-  margin-top: 10px;
-  display:grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+/* ---------- Favourites strip (new) ---------- */
+.ff-favs{
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255,255,255,.78);
+  padding: 12px;
 }
 
-.ff-hour{
-  border: 1px solid var(--stroke);
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 4px 14px rgba(0,0,0,.05);
-  padding: 10px;
-}
-
-.ff-hour img{
-  width: 44px;
-  height: 44px;
-}
-
-.ff-hour-time{
-  font-weight: 800;
-  font-size: .92rem;
-}
-
-.ff-hour-temp{
-  font-weight: 900;
-  font-size: 1.05rem;
-  margin-top: 2px;
-}
-
-.ff-hour-meta{
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: .85rem;
-}
-
-/* ---------- DAILY ---------- */
-.ff-daily{
-  margin-top: 10px;
-  display:flex;
-  flex-direction:column;
-  gap: 10px;
-}
-
-.ff-day{
+.ff-favs-head{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.ff-favs-title{
+  font-weight: 900;
+  color: var(--text);
+}
+.ff-favs-close{
+  height: 36px;
+  width: 36px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-weight: 900;
+  cursor:pointer;
+}
+
+.ff-favs-list{
+  display:flex;
   gap: 10px;
-  border: 1px solid var(--stroke);
+  overflow-x: auto;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+.ff-favs-list::-webkit-scrollbar{ height: 8px; }
+.ff-favs-list::-webkit-scrollbar-thumb{ background: rgba(16,24,40,.12); border-radius: 99px; }
+
+.ff-fav-chip{
+  flex: 0 0 auto;
+  max-width: 240px;
+  border: 1px solid var(--border);
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 4px 14px rgba(0,0,0,.05);
   padding: 10px 12px;
+  box-shadow: 0 10px 22px rgba(16,24,40,.06);
+  cursor:pointer;
 }
-
-.ff-day img{
-  width: 42px;
-  height: 42px;
-}
-
-.ff-day-date{
+.ff-fav-chip .t{
   font-weight: 900;
-  width: 118px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-.ff-day-desc{
+.ff-fav-chip .s{
+  margin-top: 2px;
   color: var(--muted);
-  font-size: .9rem;
-  flex: 1 1 auto;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.ff-day-temp{
-  font-weight: 900;
-  text-align:right;
-  min-width: 96px;
-}
-
-/* ---------- FOOTER ---------- */
+/* ---------- Footer ---------- */
 .ff-foot{
-  margin-top: 16px;
-  text-align:center;
+  margin-top: 14px;
   color: var(--muted);
-  font-size: .82rem;
-  padding: 8px 0 0;
+  font-size: 12px;
+  text-align:center;
 }
 
-/* ---------- RESPONSIVE ---------- */
-@media (min-width: 520px){
-  .ff-wrap{ padding: 18px 16px 34px; }
-  .ff-hourly{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+/* ---------- Mobile tweaks ---------- */
+@media (max-width: 420px){
+  .ff-wrap{ padding: 12px 12px 26px; }
+
+  .ff-search-row{
+    grid-template-columns: 1fr auto auto;
+    grid-auto-rows: auto;
+  }
+
+  /* On small screens, keep only Search + Geo in row;
+     Favourites stays but squeezes nicely */
+  #btnFavs{ display:none; } /* keep footprint tiny; favs still accessible via star in location card */
+  .ff-pills{ grid-template-columns: 1fr; }
+  .ff-temp{ font-size: 32px; }
 }
 
-/* Small phones */
-@media (max-width: 360px){
-  .ff-btn-primary{ min-width: 78px; padding: 0 10px; }
-  .ff-metrics{ grid-template-columns: 1fr; }
-  .ff-hourly{ grid-template-columns: 1fr 1fr; }
+/* ---------- Accessibility ---------- */
+@media (prefers-reduced-motion: reduce){
+  *{ scroll-behavior:auto !important; transition:none !important; }
 }
+```0
