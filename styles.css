@@ -43,6 +43,9 @@ body{
 
 img{ max-width:100%; display:block; }
 
+/* Prevent accidental horizontal scroll on mobile */
+body{ overflow-x:hidden; }
+
 .ff-wrap{
   max-width: 560px;
   margin: 0 auto;
@@ -188,7 +191,9 @@ img{ max-width:100%; display:block; }
   display:none; /* OPTION A: remove tips to save space */
 }
 
-/* ---------- Verdict (Playability banner) ---------- */
+/* ---------- Verdict (Play / No-play card) ---------- */
+/* Your HTML uses .ff-verdict-badge, not .ff-verdict-icon.
+   So we style BOTH to be safe. */
 .ff-verdict{
   padding: 12px 14px;
   border-radius: var(--r-xl);
@@ -200,16 +205,21 @@ img{ max-width:100%; display:block; }
   gap: 12px;
 }
 
+/* Support both class names */
+.ff-verdict-badge,
 .ff-verdict-icon{
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
   background: var(--surface-2);
   border: 1px solid var(--line);
   display:grid;
   place-items:center;
   font-weight: 900;
+  font-size: 18px;
 }
+
+.ff-verdict-text{ flex:1; min-width:0; }
 
 .ff-verdict-label{
   font-weight: 900;
@@ -224,24 +234,53 @@ img{ max-width:100%; display:block; }
 }
 
 .ff-verdict-meta{
-  margin-top: 10px;
-  padding-top: 10px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px dashed rgba(15, 23, 42, .12);
   color: var(--muted);
   font-size: 13px;
 }
 
-.ff-verdict--neutral .ff-verdict-icon{ background: var(--surface-2); }
-.ff-verdict--good{
-  background: linear-gradient(180deg, rgba(15,107,110,.10), #fff);
+/* IMPORTANT: app.js uses --play/--maybe/--no/--neutral
+   So we style those (and keep your older good/bad as fallback). */
+.ff-verdict--neutral{
+  background: #fff;
 }
+
+.ff-verdict--play,
+.ff-verdict--good{
+  background: linear-gradient(180deg, rgba(15,107,110,.12), #fff);
+  border: 1px solid rgba(15,107,110,.28);
+}
+
+.ff-verdict--play .ff-verdict-badge,
+.ff-verdict--good .ff-verdict-badge,
+.ff-verdict--play .ff-verdict-icon,
 .ff-verdict--good .ff-verdict-icon{
   background: rgba(15,107,110,.16);
   border-color: rgba(15,107,110,.25);
 }
-.ff-verdict--bad{
-  background: linear-gradient(180deg, var(--danger-soft), #fff);
+
+.ff-verdict--maybe{
+  background: linear-gradient(180deg, rgba(245,158,11,.14), #fff);
+  border: 1px solid rgba(245,158,11,.30);
 }
+
+.ff-verdict--maybe .ff-verdict-badge,
+.ff-verdict--maybe .ff-verdict-icon{
+  background: rgba(245,158,11,.16);
+  border-color: rgba(245,158,11,.25);
+}
+
+.ff-verdict--no,
+.ff-verdict--bad{
+  background: linear-gradient(180deg, rgba(225,29,72,.14), #fff);
+  border: 1px solid rgba(225,29,72,.30);
+}
+
+.ff-verdict--no .ff-verdict-badge,
+.ff-verdict--bad .ff-verdict-badge,
+.ff-verdict--no .ff-verdict-icon,
 .ff-verdict--bad .ff-verdict-icon{
   background: rgba(225,29,72,.16);
   border-color: rgba(225,29,72,.25);
@@ -252,6 +291,7 @@ img{ max-width:100%; display:block; }
   display:grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
+  margin-bottom: 4px;
 }
 
 .ff-tab{
@@ -278,13 +318,15 @@ img{ max-width:100%; display:block; }
   gap: var(--gap);
 }
 
-/* The app.js renders cards inside #results.
-   We make every direct child look like a premium card. */
 #results > *{
   padding: 14px;
 }
 
-/* Location header card should feel compact & premium */
+/* Ensure the play tile always shows (CSS can't fix missing HTML IDs, but prevents hiding) */
+#playSlot{ display:block; }
+#verdictCard{ display:block !important; }
+
+/* Location header card compact & premium */
 #results h2, #results h3{
   margin: 0 0 6px 0;
   font-size: 18px;
@@ -297,7 +339,7 @@ img{ max-width:100%; display:block; }
   font-size: 13px;
 }
 
-/* Favourites area: make chips wrap nicely */
+/* Favourites chips wrap nicely */
 #results .favourites,
 #results .favorites,
 #results [data-favourites],
@@ -307,6 +349,7 @@ img{ max-width:100%; display:block; }
   border-radius: 18px;
   background: var(--surface-2);
   border: 1px solid var(--line);
+  overflow:auto;
 }
 
 #results button,
@@ -330,9 +373,6 @@ img{ max-width:100%; display:block; }
 }
 
 /* ---------- Current Weather Card tightening ---------- */
-/* Many versions render a big icon + a big block of details.
-   This compresses and centres content so it doesn't look disorganised. */
-
 #results .current,
 #results .current-card,
 #results [data-view="current"],
@@ -353,7 +393,6 @@ img{ max-width:100%; display:block; }
   filter: drop-shadow(0 6px 10px rgba(2,12,27,.10));
 }
 
-/* Make temp/summary a neat “headline” */
 #results .temp,
 #results .temperature,
 #results .summary{
@@ -396,10 +435,12 @@ img{ max-width:100%; display:block; }
   min-height: 52px;
 }
 
+/* label/value spacing helpers (fixes Sunrise18:39 when rendered as separate nodes) */
 #results .metrics strong,
 #results .stats strong,
 #results .kv strong,
-#results .details strong{
+#results .details strong,
+#results strong{
   display:block;
   font-size: 16px;
   letter-spacing: .1px;
@@ -448,7 +489,6 @@ img{ max-width:100%; display:block; }
   border-bottom: 0;
 }
 
-/* Add a little spacing for icon column */
 #results td img{
   width: 22px;
   height: 22px;
@@ -457,16 +497,12 @@ img{ max-width:100%; display:block; }
 }
 
 /* ---------- Daily: bigger icons + hide last “Summary” column ---------- */
-/* We keep this safe by hiding the last column only on smaller screens.
-   Icons + temps + rain are enough. */
 @media (max-width: 520px){
-  #results table.daily td img,
   #results table td img{
     width: 28px;
     height: 28px;
   }
 
-  /* Hide last column (often Summary) to reduce clutter */
   #results table thead th:last-child,
   #results table tbody td:last-child{
     display:none;
@@ -535,83 +571,4 @@ img{ max-width:100%; display:block; }
 
 #results{
   scroll-margin-top: 12px;
-}
-/* =========================================================
-   FIX: Restore & prioritise Play / No-Play verdict
-   CSS-ONLY — safe
-   ========================================================= */
-
-/* Ensure verdict card is always visible & distinct */
-.ff-verdict,
-#verdict,
-.play-verdict,
-.verdict,
-[data-verdict] {
-  display: block !important;
-  order: -1; /* force above weather tiles */
-  margin-top: 6px;
-  margin-bottom: 6px;
-}
-
-/* Compact but premium layout */
-.ff-verdict {
-  padding: 12px 14px;
-  border-radius: 18px;
-}
-
-/* Strong decision emphasis */
-.ff-verdict-label {
-  font-size: 17px;
-  font-weight: 900;
-}
-
-.ff-verdict-reason {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-/* Best tee time stays but is subtle */
-.ff-verdict-meta {
-  font-size: 12.5px;
-  padding-top: 8px;
-  margin-top: 8px;
-}
-
-/* Play = calm green confidence */
-.ff-verdict--good {
-  background: linear-gradient(
-    180deg,
-    rgba(15, 107, 110, 0.18),
-    #ffffff
-  );
-  border: 1px solid rgba(15, 107, 110, 0.35);
-}
-
-/* No-play = NHS-style warning */
-.ff-verdict--bad {
-  background: linear-gradient(
-    180deg,
-    rgba(225, 29, 72, 0.18),
-    #ffffff
-  );
-  border: 1px solid rgba(225, 29, 72, 0.35);
-}
-
-/* Icon size & clarity */
-.ff-verdict-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 14px;
-  font-size: 18px;
-}
-
-/* Prevent verdict being swallowed by results cards */
-.ff-results {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Tabs → Verdict → Weather (visual order) */
-.ff-tabs {
-  margin-bottom: 4px;
-}
+   }
