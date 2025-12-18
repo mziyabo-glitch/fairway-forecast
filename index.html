@@ -4,25 +4,33 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fairway Forecast</title>
+  <meta name="description" content="Golf-first weather. Know before you tee." />
 
-  <link rel="stylesheet" href="./styles.css" />
+  <!-- PWA (GitHub Pages subpath) -->
+  <link rel="manifest" href="/fairway-forecast/manifest.json" />
   <meta name="theme-color" content="#0b1f24" />
+
+  <!-- Icons (repo /icons folder) -->
+  <link rel="icon" href="/fairway-forecast/icons/favicon.ico" />
+  <link rel="apple-touch-icon" href="/fairway-forecast/icons/icon-192.png" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/fairway-forecast/styles.css" />
 </head>
 
 <body>
   <main class="ff-wrap">
     <header class="ff-hero">
       <div class="ff-brand">
-        <!-- Logo (add file at: /assets/logo.png) -->
+        <!-- Uses your uploaded icon. If you later add /branding/logos/logo-icon.svg, swap src to that -->
         <img
+          src="/fairway-forecast/icons/icon-192.png"
+          alt="Fairway Forecast"
           class="ff-logo"
-          src="./assets/logo.png"
-          alt="Fairway Forecast logo"
-          onerror="this.style.display='none'; document.getElementById('ffMarkFallback').style.display='block';"
+          width="40"
+          height="40"
+          loading="eager"
         />
-        <!-- Fallback mark if logo missing -->
-        <div id="ffMarkFallback" class="ff-mark" aria-hidden="true" style="display:none"></div>
-
         <div>
           <h1 class="ff-title">Fairway Forecast</h1>
           <p class="ff-tag">Know before you tee.</p>
@@ -31,25 +39,14 @@
     </header>
 
     <section class="ff-panel">
-      <div class="ff-panel-head">
-        <label class="ff-label" for="searchInput">Search location or golf course</label>
-
-        <!-- Units compact (no big row) -->
-        <div class="ff-units-compact">
-          <span class="ff-units-label">Units</span>
-          <select id="unitsSelect" class="ff-select ff-select-compact">
-            <option value="metric">°C</option>
-            <option value="imperial">°F</option>
-          </select>
-        </div>
-      </div>
+      <label class="ff-label" for="searchInput">Search location or golf course</label>
 
       <div class="ff-search-row">
         <input
           id="searchInput"
           class="ff-input"
           type="text"
-          placeholder='e.g. Swindon or “Shrivenham golf club”'
+          placeholder='e.g. Swindon, GB or "golf / club / gc"'
           autocomplete="off"
           inputmode="search"
           list="searchSuggestions"
@@ -57,11 +54,19 @@
         <datalist id="searchSuggestions"></datalist>
 
         <button id="searchBtn" class="ff-btn" type="button">Search</button>
+
+        <!-- Optional Near-me button -->
         <button id="btnGeo" class="ff-btn ff-btn-geo" type="button" title="Near me">⌖</button>
+
+        <!-- Units: keep compact (your CSS should style this tighter) -->
+        <select id="unitsSelect" class="ff-select" aria-label="Units">
+          <option value="metric">°C</option>
+          <option value="imperial">°F</option>
+        </select>
       </div>
 
       <p class="ff-tip">
-        Tip: city/town finds places. Adding “golf / club / gc” makes it course-first.
+        Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
       </p>
     </section>
 
@@ -71,13 +76,10 @@
       <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
-    <!-- Results (course + weather cards) -->
-    <section id="results" class="ff-results" aria-live="polite"></section>
-
-    <!-- Verdict (front and centre) -->
+    <!-- VERDICT (front and centre) -->
     <section id="verdictCard" class="ff-verdict ff-verdict--neutral" aria-live="polite">
       <div class="ff-verdict-main">
-        <span id="verdictIcon" class="ff-verdict-icon">—</span>
+        <span id="verdictIcon" aria-hidden="true">—</span>
         <div>
           <div id="verdictLabel" class="ff-verdict-label">—</div>
           <div id="verdictReason" class="ff-verdict-reason">—</div>
@@ -88,6 +90,9 @@
         Best tee time: <strong id="verdictBestTime">—</strong>
       </div>
     </section>
+
+    <!-- Results -->
+    <section id="results" class="ff-results" aria-live="polite"></section>
 
     <section class="ff-panel">
       <div class="ff-play">
@@ -104,6 +109,6 @@
     </footer>
   </main>
 
-  <script src="./app.js"></script>
+  <script src="/fairway-forecast/app.js"></script>
 </body>
 </html>
