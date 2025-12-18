@@ -572,3 +572,29 @@ body{ overflow-x:hidden; }
 #results{
   scroll-margin-top: 12px;
    }
+/* =========================================================
+   FINAL ORDER FIX (CSS ONLY)
+   Search → Location → Verdict → Weather
+   ========================================================= */
+
+/* Ensure results stack normally */
+.ff-results {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Location card first */
+#locationSlot {
+  order: 1;
+}
+
+/* Play / No-play verdict directly UNDER location */
+#verdictCard {
+  order: 2;
+  margin-top: 4px;
+}
+
+/* Weather (current / hourly / daily) after verdict */
+#forecastSlot {
+  order: 3;
+}
