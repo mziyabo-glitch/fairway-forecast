@@ -1,4 +1,3 @@
-```js
 /* =====================================================
    Fairway Forecast – app.js (FULL)
    - Fixes "stuck on loading"
@@ -1020,4 +1019,3 @@
   renderPlayability(null);
   renderAll();
 })();
-```
