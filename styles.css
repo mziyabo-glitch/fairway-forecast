@@ -299,3 +299,37 @@ body{
   .ff-metrics{grid-template-columns:1fr}
   .ff-big{font-size:2.0rem}
 }
+/* ===== Header polish (logo area) ===== */
+.ff-header,
+.ff-hero {
+  padding: 14px 14px 10px;
+}
+
+.ff-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ff-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  object-fit: contain;
+  background: rgba(255,255,255,.08);
+  padding: 6px;
+  /* removes “black outline” look caused by shadows/borders */
+  box-shadow: none !important;
+  border: 1px solid rgba(255,255,255,.10);
+}
+
+.ff-brand-text strong,
+.ff-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.ff-brand-text span,
+.ff-tag {
+  opacity: 0.85;
+}
