@@ -536,3 +536,82 @@ img{ max-width:100%; display:block; }
 #results{
   scroll-margin-top: 12px;
 }
+/* =========================================================
+   FIX: Restore & prioritise Play / No-Play verdict
+   CSS-ONLY — safe
+   ========================================================= */
+
+/* Ensure verdict card is always visible & distinct */
+.ff-verdict,
+#verdict,
+.play-verdict,
+.verdict,
+[data-verdict] {
+  display: block !important;
+  order: -1; /* force above weather tiles */
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+/* Compact but premium layout */
+.ff-verdict {
+  padding: 12px 14px;
+  border-radius: 18px;
+}
+
+/* Strong decision emphasis */
+.ff-verdict-label {
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.ff-verdict-reason {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Best tee time stays but is subtle */
+.ff-verdict-meta {
+  font-size: 12.5px;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+/* Play = calm green confidence */
+.ff-verdict--good {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 107, 110, 0.18),
+    #ffffff
+  );
+  border: 1px solid rgba(15, 107, 110, 0.35);
+}
+
+/* No-play = NHS-style warning */
+.ff-verdict--bad {
+  background: linear-gradient(
+    180deg,
+    rgba(225, 29, 72, 0.18),
+    #ffffff
+  );
+  border: 1px solid rgba(225, 29, 72, 0.35);
+}
+
+/* Icon size & clarity */
+.ff-verdict-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  font-size: 18px;
+}
+
+/* Prevent verdict being swallowed by results cards */
+.ff-results {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tabs → Verdict → Weather (visual order) */
+.ff-tabs {
+  margin-bottom: 4px;
+}
