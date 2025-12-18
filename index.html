@@ -11,6 +11,7 @@
 
 <body>
   <main class="ff-wrap">
+    <!-- HEADER -->
     <header class="ff-hero">
       <div class="ff-brand">
         <div class="ff-mark" aria-hidden="true"></div>
@@ -21,6 +22,7 @@
       </div>
     </header>
 
+    <!-- SEARCH PANEL -->
     <section class="ff-panel">
       <label class="ff-label" for="searchInput">Search location or golf course</label>
 
@@ -29,7 +31,7 @@
           id="searchInput"
           class="ff-input"
           type="text"
-          placeholder='e.g. Swindon, GB or "golf / club / gc"'
+          placeholder='e.g. Swindon or "golf club swindon"'
           autocomplete="off"
           inputmode="search"
           list="searchSuggestions"
@@ -38,8 +40,15 @@
 
         <button id="searchBtn" class="ff-btn" type="button">Search</button>
 
-        <!-- Optional Near-me button (works if present; safe if you remove it) -->
-        <button id="btnGeo" class="ff-btn ff-btn-geo" type="button" title="Near me">⌖</button>
+        <!-- Optional Near-me button -->
+        <button
+          id="btnGeo"
+          class="ff-btn ff-btn-geo"
+          type="button"
+          title="Near me"
+        >
+          ⌖
+        </button>
       </div>
 
       <div class="ff-units-row">
@@ -51,46 +60,44 @@
       </div>
 
       <p class="ff-tip">
-        Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
+        Tip: search towns/cities for places, or include “golf / club / gc” for course-first results.
       </p>
     </section>
 
+    <!-- TABS -->
     <nav class="ff-tabs" aria-label="Forecast tabs">
       <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
       <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
       <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
-    <section id="results" class="ff-results" aria-live="polite"></section>
-<section id="verdictCard" class="ff-verdict ff-verdict--neutral">
-  <div class="ff-verdict-main">
-    <span id="verdictIcon">—</span>
-    <div>
-      <div id="verdictLabel" class="ff-verdict-label">—</div>
-      <div id="verdictReason" class="ff-verdict-reason">—</div>
-    </div>
-  </div>
+    <!-- RESULTS -->
+    <section
+      id="results"
+      class="ff-results"
+      aria-live="polite"
+    ></section>
 
-  <div class="ff-verdict-meta">
-    Best tee time: <strong id="verdictBestTime">—</strong>
-  </div>
-</section>
+    <!-- PLAYABILITY -->
     <section class="ff-panel">
       <div class="ff-play">
         <div>
           <div class="ff-play-title">Playability</div>
-          <div class="ff-play-sub">Wind, rain probability &amp; temperature comfort</div>
+          <div class="ff-play-sub">
+            Wind, rain probability &amp; temperature comfort
+          </div>
         </div>
         <div id="playabilityScore" class="ff-play-score">--/10</div>
       </div>
     </section>
 
+    <!-- FOOTER -->
     <footer class="ff-foot">
       Weather data © OpenWeather · Course data © GolfCourseAPI
     </footer>
   </main>
 
-  <script src="./app.js"></script>
+  <!-- JS (cache-busted) -->
+  <script src="./app.js?v=4"></script>
 </body>
 </html>
-
