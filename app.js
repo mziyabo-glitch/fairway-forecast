@@ -375,7 +375,13 @@
 
     const icon = c?.weather?.[0]?.icon;
     const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "";
-    const t = typeof c.temp === "number" ? Math.round(c.temp) : null;
+    const t = typeof c.temp === "number"
+    ? Math.round(c.temp)
+    : typeof c?.main?.temp === "number"
+    ? Math.round(c.main.temp)
+    : typeof raw?.weather?.main?.temp === "number"
+    ? Math.round(raw.weather.main.temp)
+    : null;
 
     const windVal = typeof c.wind_speed === "number" ? c.wind_speed.toFixed(1) : "--";
     const gustVal = typeof c.wind_gust === "number" ? c.wind_gust.toFixed(1) : "--";
@@ -812,4 +818,5 @@ function calculateVerdict(weather) {
   return { status: "NO-PLAY", label: "No-play recommended", reason: "Poor overall conditions" };
 }   
 })();
+
 
