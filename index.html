@@ -11,7 +11,7 @@
 
 <body>
   <main class="ff-wrap">
-    <!-- HEADER -->
+    <!-- BRAND -->
     <header class="ff-hero">
       <div class="ff-brand">
         <div class="ff-mark" aria-hidden="true"></div>
@@ -22,16 +22,29 @@
       </div>
     </header>
 
-    <!-- SEARCH PANEL -->
+    <!-- SEARCH + UNITS (compact + cleaner) -->
     <section class="ff-panel">
-      <label class="ff-label" for="searchInput">Search location or golf course</label>
+      <div class="ff-search-head" style="display:flex; align-items:flex-end; justify-content:space-between; gap:10px;">
+        <label class="ff-label" for="searchInput" style="margin:0;">
+          Search location or golf course
+        </label>
 
-      <div class="ff-search-row">
+        <!-- compact units selector on the same row -->
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label class="ff-label" for="unitsSelect" style="margin:0;">Units</label>
+          <select id="unitsSelect" class="ff-select" style="height:36px;">
+            <option value="metric">°C</option>
+            <option value="imperial">°F</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ff-search-row" style="margin-top:10px;">
         <input
           id="searchInput"
           class="ff-input"
           type="text"
-          placeholder='e.g. Swindon or "golf club swindon"'
+          placeholder='e.g. Swindon, GB or "golf / club / gc"'
           autocomplete="off"
           inputmode="search"
           list="searchSuggestions"
@@ -41,27 +54,11 @@
         <button id="searchBtn" class="ff-btn" type="button">Search</button>
 
         <!-- Optional Near-me button -->
-        <button
-          id="btnGeo"
-          class="ff-btn ff-btn-geo"
-          type="button"
-          title="Near me"
-          aria-label="Near me"
-        >
-          ⌖
-        </button>
-      </div>
-
-      <!-- Compact units toggle (replaces the tall Units row) -->
-      <div class="ff-units-inline" aria-label="Units">
-        <select id="unitsSelect" class="ff-select ff-select--compact">
-          <option value="metric">°C</option>
-          <option value="imperial">°F</option>
-        </select>
+        <button id="btnGeo" class="ff-btn ff-btn-geo" type="button" title="Use my location">⌖</button>
       </div>
 
       <p class="ff-tip">
-        Tip: search towns/cities for places, or include “golf / club / gc” for course-first results.
+        Tip: town/city works for places. Adding “golf” makes it course-first.
       </p>
     </section>
 
@@ -72,33 +69,42 @@
       <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
-    <!-- RESULTS -->
-    <section
-      id="results"
-      class="ff-results"
-      aria-live="polite"
-    ></section>
+    <!-- RESULTS (search results + current/hourly/daily render here) -->
+    <section id="results" class="ff-results" aria-live="polite"></section>
+
+    <!-- GOLF DECISION / VERDICT CARD -->
+    <section id="verdictCard" class="ff-card">
+      <div class="ff-row">
+        <div style="font-size:22px; font-weight:900; color:var(--accent);" id="verdictIcon">—</div>
+        <div>
+          <div class="ff-big" style="font-size:16px;" id="verdictLabel">—</div>
+          <div class="ff-sub" id="verdictReason">—</div>
+        </div>
+      </div>
+
+      <div class="ff-metrics" style="margin-top:12px;">
+        <div>Best tee time<br><b id="verdictBestTime">—</b></div>
+        <div>Sunrise<br><b id="verdictSunrise">—</b></div>
+        <div>Sunset<br><b id="verdictSunset">—</b></div>
+      </div>
+    </section>
 
     <!-- PLAYABILITY -->
     <section class="ff-panel">
       <div class="ff-play">
         <div>
           <div class="ff-play-title">Playability</div>
-          <div class="ff-play-sub">
-            Wind, rain probability &amp; temperature comfort
-          </div>
+          <div class="ff-play-sub">Wind, rain probability &amp; temperature comfort</div>
         </div>
         <div id="playabilityScore" class="ff-play-score">--/10</div>
       </div>
     </section>
 
-    <!-- FOOTER -->
     <footer class="ff-foot">
       Weather data © OpenWeather · Course data © GolfCourseAPI
     </footer>
   </main>
 
-  <!-- JS (cache-busted; bump if needed) -->
-  <script src="./app.js?v=5"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
