@@ -768,4 +768,48 @@
 
   // init immediately (script is loaded at end of body)
   init();
+function calculateVerdict(weather) {
+  if (!weather?.current) {
+    return {
+      status: "NO-PLAY",
+      label: "No-play recommended",
+      reason: "Weather data unavailable"
+    };
+  }
+
+  let score = 100;
+
+  const wind = weather.current.wind?.speed ?? 0;
+  const temp = weather.current.temp;
+  const pop = weather.hourly?.[0]?.pop ?? 0;
+  const sunrise = weather.current.sunrise;
+  const sunset = weather.current.sunset;
+  const now = Math.floor(Date.now() / 1000);
+
+  // Hard daylight rule
+  if (!sunrise || !sunset || now > sunset - 3600) {
+    return {
+      status: "NO-PLAY",
+      label: "No-play recommended",
+      reason: "Limited daylight today"
+    };
+  }
+
+  if (wind > 12) score -= 40;
+  else if (wind > 8) score -= 25;
+  else if (wind > 5) score -= 15;
+
+  if (pop > 0.7) score -= 40;
+  else if (pop > 0.4) score -= 25;
+  else if (pop > 0.2) score -= 15;
+
+  if (temp < 4 || temp > 30) score -= 25;
+  else if (temp < 8 || temp > 27) score -= 15;
+
+  if (score >= 70) return { status: "PLAY", label: "Play", reason: "Good conditions for golf" };
+  if (score >= 45) return { status: "PLAYABLE", label: "Playable (tough)", reason: "Conditions are manageable but challenging" };
+
+  return { status: "NO-PLAY", label: "No-play recommended", reason: "Poor overall conditions" };
+}   
 })();
+
