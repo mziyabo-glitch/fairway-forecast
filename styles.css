@@ -380,3 +380,71 @@ body{
 #verdictCard{
   margin-bottom: 12px;
 }
+/* ===========================
+   Hourly/Daily table fixes
+   (make them full width + readable)
+   =========================== */
+
+/* Any card content should be able to stretch */
+.ff-card,
+.ff-panel,
+.ff-section,
+#results {
+  width: 100%;
+}
+
+/* If your hourly/daily output uses a <table> */
+.ff-table,
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+table th,
+table td {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+table thead th {
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+/* If your hourly/daily output is plain text inside <pre> */
+pre,
+.ff-pre,
+.ff-mono {
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  overflow-x: auto;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  white-space: pre; /* keep columns aligned */
+}
+
+/* If the output is a “rows” div layout */
+.ff-rows,
+.ff-hourly,
+.ff-daily {
+  width: 100%;
+}
+
+/* Mobile: allow horizontal scroll if needed */
+@media (max-width: 520px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
