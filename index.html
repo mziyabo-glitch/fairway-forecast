@@ -2,97 +2,171 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fairway Forecast</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Fairway Forecast – Know before you tee</title>
+  <meta name="description" content="Golf-first weather forecasts and conditions. Know before you tee." />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#1F6F78" />
+
+  <!-- Favicon (optional, stops 404 if you add it) -->
+  <link rel="icon" href="./favicon.ico" />
 
   <link rel="stylesheet" href="./styles.css" />
-  <meta name="theme-color" content="#0b1f24" />
 </head>
 
 <body>
-  <main class="ff-wrap">
-    <header class="ff-hero">
-      <div class="ff-brand">
-        <!-- ✅ FIX: correct GitHub Pages-safe logo path -->
-        <img class="ff-logo" src="./icons/icon-192.png" alt="Fairway Forecast logo" />
-        <div>
-          <h1 class="ff-title">Fairway Forecast</h1>
-          <p class="ff-tag">Know before you tee.</p>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="ff-logo" aria-hidden="true">
+          <!-- If you have a logo image, put it here -->
+          <!-- <img src="./icons/icon-192.png" alt="Fairway Forecast" /> -->
+        </div>
+        <div class="brand-text">
+          <h1>Fairway Forecast</h1>
+          <p>Know before you tee.</p>
         </div>
       </div>
     </header>
 
-    <section class="ff-panel">
-      <label class="ff-label" for="searchInput">Search location or golf course</label>
+    <main class="content">
+      <!-- SEARCH -->
+      <section class="card">
+        <div class="card-title">Search location or golf course</div>
 
-      <div class="ff-search-row">
-        <input
-          id="searchInput"
-          class="ff-input"
-          type="text"
-          placeholder='e.g. Swindon, GB or "golf / club / gc"'
-          autocomplete="off"
-          inputmode="search"
-          list="searchSuggestions"
-        />
-        <datalist id="searchSuggestions"></datalist>
+        <div class="search-row">
+          <!-- IMPORTANT: wrapper is relative so dropdown can anchor under the input -->
+          <div class="search-wrapper">
+            <input id="searchInput" class="input" type="text" placeholder="Search location or golf course" autocomplete="off" />
+            <!-- Results now sit DIRECTLY under the search bar -->
+            <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Search results"></div>
+          </div>
 
-        <button id="searchBtn" class="ff-btn" type="button">Search</button>
-
-        <!-- Optional Near-me button -->
-        <button id="btnGeo" class="ff-btn ff-btn-geo" type="button" title="Near me">⌖</button>
-      </div>
-
-      <div class="ff-units-row">
-        <label class="ff-label" for="unitsSelect">Units</label>
-        <select id="unitsSelect" class="ff-select">
-          <option value="metric">°C / m/s</option>
-          <option value="imperial">°F / mph</option>
-        </select>
-      </div>
-
-      <p class="ff-tip">
-        Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
-      </p>
-    </section>
-
-    <nav class="ff-tabs" aria-label="Forecast tabs">
-      <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
-      <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
-      <button id="tabDaily" class="ff-tab" type="button">Daily</button>
-    </nav>
-
-    <!-- ✅ FIX: Verdict moved ABOVE results so it’s front-and-centre -->
-    <section id="verdictCard" class="ff-verdict ff-verdict--neutral">
-      <div class="ff-verdict-main">
-        <span id="verdictIcon">—</span>
-        <div>
-          <div id="verdictLabel" class="ff-verdict-label">—</div>
-          <div id="verdictReason" class="ff-verdict-reason">—</div>
+          <button id="searchBtn" class="btn btn-primary" type="button">Search</button>
+          <button id="geoBtn" class="btn btn-icon" type="button" title="Use my location" aria-label="Use my location">⌖</button>
         </div>
-      </div>
 
-      <div class="ff-verdict-meta">
-        Best tee time: <strong id="verdictBestTime">—</strong>
-      </div>
-    </section>
-
-    <section id="results" class="ff-results" aria-live="polite"></section>
-
-    <section class="ff-panel">
-      <div class="ff-play">
-        <div>
-          <div class="ff-play-title">Playability</div>
-          <div class="ff-play-sub">Wind, rain probability &amp; temperature comfort</div>
+        <div class="row">
+          <div class="label">Units</div>
+          <select id="unitsSelect" class="select">
+            <option value="metric">°C / m/s</option>
+            <option value="imperial">°F / mph</option>
+          </select>
         </div>
-        <div id="playabilityScore" class="ff-play-score">--/10</div>
-      </div>
-    </section>
 
-    <footer class="ff-foot">
-      Weather data © OpenWeather · Course data © GolfCourseAPI
-    </footer>
-  </main>
+        <p class="tip">
+          Tip: type a town/city for places, or include “golf / club / gc” for course-first results.
+        </p>
+      </section>
+
+      <!-- TABS -->
+      <section class="tabs">
+        <button class="tab active" data-tab="current" id="tabCurrent" type="button">Current</button>
+        <button class="tab" data-tab="hourly" id="tabHourly" type="button">Hourly</button>
+        <button class="tab" data-tab="daily" id="tabDaily" type="button">Daily</button>
+      </section>
+
+      <!-- FAVORITES -->
+      <section class="card" id="favsCard">
+        <div class="card-title">Favourites</div>
+        <div id="favsList" class="favs-list">
+          <!-- JS fills -->
+        </div>
+      </section>
+
+      <!-- SELECTED PLACE/COURSE -->
+      <section class="card" id="selectedCard">
+        <div class="selected-row">
+          <div>
+            <div id="selectedName" class="selected-name">—</div>
+            <div id="selectedMeta" class="selected-meta">—</div>
+          </div>
+          <button id="favToggleBtn" class="btn btn-icon" type="button" title="Toggle favourite" aria-label="Toggle favourite">★</button>
+        </div>
+      </section>
+
+      <!-- CURRENT -->
+      <section class="card" id="currentCard">
+        <div class="current-head">
+          <div class="wx-icon" id="currentIcon" aria-hidden="true">⛅</div>
+          <div>
+            <div class="temp" id="currentTemp">—</div>
+            <div class="desc" id="currentDesc">—</div>
+          </div>
+        </div>
+
+        <!-- IMPORTANT: only 6 tiles, so no empty “—” tiles appear -->
+        <div class="stats-grid">
+          <div class="stat">
+            <div class="stat-label">Wind</div>
+            <div class="stat-value" id="statWind">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Gust</div>
+            <div class="stat-value" id="statGust">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Rain chance</div>
+            <div class="stat-value" id="statPop">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Sunrise</div>
+            <div class="stat-value" id="statSunrise">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Sunset</div>
+            <div class="stat-value" id="statSunset">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Best time</div>
+            <div class="stat-value" id="statBestTime">—</div>
+          </div>
+        </div>
+
+        <!-- Play recommendation -->
+        <div class="play-card" id="playCard">
+          <div class="play-row">
+            <div class="play-badge" id="playBadge" aria-hidden="true">⛔</div>
+            <div>
+              <div class="play-title" id="playTitle">—</div>
+              <div class="play-sub" id="playSub">—</div>
+            </div>
+          </div>
+          <div class="play-footer">
+            <span class="muted">Best tee time:</span>
+            <strong id="playBestTee">—</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- HOURLY -->
+      <section class="card hidden" id="hourlyCard">
+        <div class="card-title">Hourly</div>
+        <div id="hourlyList" class="list"></div>
+      </section>
+
+      <!-- DAILY -->
+      <section class="card hidden" id="dailyCard">
+        <div class="card-title">Daily</div>
+        <div id="dailyList" class="list"></div>
+      </section>
+
+      <!-- PLAYABILITY -->
+      <section class="card playability-card">
+        <div>
+          <div class="card-title">Playability</div>
+          <div class="muted">Wind, rain probability & temperature comfort</div>
+        </div>
+        <div class="pill" id="playabilityPill">--/10</div>
+      </section>
+
+      <footer class="footer">
+        Weather data © OpenWeather · Course data © GolfCourseAPI
+      </footer>
+    </main>
+  </div>
 
   <script src="./app.js"></script>
 </body>
