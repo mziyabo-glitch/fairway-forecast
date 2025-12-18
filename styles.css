@@ -1,527 +1,444 @@
+/* =========================================================
+   Fairway Forecast – styles.css (clean + mobile-first)
+   Goals:
+   - Premium, slightly lighter dark theme
+   - Search + favourites visually grouped
+   - Results rendering full-width (hourly/daily never squashed)
+   - Tables + pre text blocks scroll instead of compressing
+   ========================================================= */
+
 :root{
-  --bg0:#07161a;
-  --bg1:#0b2429;
-  --panel:rgba(255,255,255,.06);
-  --panel2:rgba(255,255,255,.08);
+  --bg0:#071316;
+  --bg1:#0a1b1f;
+  --card:#0f2a30;
+  --card2:#102f36;
   --stroke:rgba(255,255,255,.10);
-  --stroke2:rgba(255,255,255,.14);
+  --stroke2:rgba(255,255,255,.08);
 
   --text:#eaf6f7;
   --muted:rgba(234,246,247,.72);
 
-  --accent:#33d6c8;
-  --accent2:#1fb7aa;
+  --primary:#1F6F78;
+  --primary2:#2aa6a8;
+  --danger:#ff6b6b;
+  --warn:#ffd166;
+  --ok:#2dd4bf;
 
-  --danger:#ff5f6d;
-  --ok:#2ee59d;
-  --warn:#ffcc66;
+  --r14:14px;
+  --r18:18px;
+  --r22:22px;
 
-  --radius:22px;
-  --radius2:16px;
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+  --shadow2: 0 6px 18px rgba(0,0,0,.25);
+
+  --pad:16px;
+  --gap:12px;
+
+  --max: 860px;
 }
 
-*{box-sizing:border-box}
-html,body{height:100%}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
 body{
   margin:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color:var(--text);
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
   background:
-    radial-gradient(1200px 700px at 15% -10%, rgba(51,214,200,.20), transparent 55%),
-    radial-gradient(900px 600px at 85% 0%, rgba(31,183,170,.16), transparent 55%),
-    linear-gradient(180deg,var(--bg0),var(--bg1));
+    radial-gradient(1200px 800px at 15% -10%, rgba(42,166,168,.22), transparent 60%),
+    radial-gradient(900px 600px at 90% 10%, rgba(31,111,120,.22), transparent 55%),
+    linear-gradient(180deg, var(--bg1), var(--bg0));
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 
 .ff-wrap{
-  max-width:900px;
+  width:100%;
+  max-width:var(--max);
   margin:0 auto;
-  padding:14px 14px 28px;
+  padding: clamp(12px, 2.2vw, 20px);
+  padding-bottom: 28px;
 }
 
-.ff-hero{
-  margin-bottom:12px;
+/* ---------- Panels / Cards ---------- */
+.ff-panel,
+.ff-verdict,
+.ff-results > .ff-card,
+.ff-results > .ff-panel{
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+  border: 1px solid var(--stroke2);
+  border-radius: var(--r22);
+  box-shadow: var(--shadow2);
+  backdrop-filter: blur(10px);
+}
+
+.ff-panel{ padding: var(--pad); margin-top: 12px; }
+
+/* ---------- Header ---------- */
+.ff-header{
+  margin-top: 2px;
+  margin-bottom: 12px;
 }
 
 .ff-brand{
   display:flex;
-  gap:12px;
   align-items:center;
-  padding:14px 14px;
-  border-radius:var(--radius);
-  background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
-  border:1px solid var(--stroke);
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--r22);
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  border: 1px solid var(--stroke2);
+  box-shadow: var(--shadow2);
 }
 
-.ff-mark{
-  width:42px;
-  height:42px;
-  border-radius:16px;
-  background:linear-gradient(180deg, rgba(51,214,200,.30), rgba(255,255,255,.06));
-  border:1px solid var(--stroke2);
+.ff-logo{
+  width:40px;
+  height:40px;
+  border-radius: 12px;
+  padding: 6px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.10);
+  object-fit: contain;
 }
 
-.ff-title{
-  margin:0;
-  font-size:1.05rem;
-  line-height:1.1;
-  letter-spacing:.2px;
+.ff-brand-text strong{
+  display:block;
+  font-size: 1.12rem;
+  letter-spacing: .2px;
+  line-height: 1.15;
 }
-.ff-tag{
-  margin:4px 0 0;
-  color:var(--muted);
-  font-size:.9rem;
-}
-
-.ff-panel{
-  padding:14px;
-  border-radius:var(--radius);
-  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
-  border:1px solid var(--stroke);
-  box-shadow: 0 12px 35px rgba(0,0,0,.22);
-  margin-bottom:12px;
+.ff-brand-text span{
+  display:block;
+  margin-top: 2px;
+  font-size: .92rem;
+  color: var(--muted);
 }
 
+/* ---------- Inputs / Buttons ---------- */
 .ff-label{
   display:block;
-  font-size:.85rem;
-  color:var(--muted);
-  margin-bottom:8px;
+  font-weight: 600;
+  font-size: .92rem;
+  margin-bottom: 8px;
+  color: rgba(234,246,247,.86);
+}
+
+.ff-input,
+.ff-select{
+  width:100%;
+  border-radius: 16px;
+  border: 1px solid var(--stroke);
+  background: rgba(0,0,0,.18);
+  color: var(--text);
+  outline: none;
+  padding: 12px 14px;
+  font-size: 1rem;
+}
+
+.ff-input::placeholder{ color: rgba(234,246,247,.55); }
+.ff-input:focus,
+.ff-select:focus{
+  border-color: rgba(42,166,168,.55);
+  box-shadow: 0 0 0 4px rgba(42,166,168,.18);
+}
+
+.ff-btn{
+  border: 1px solid var(--stroke);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .08s ease, background .12s ease, border-color .12s ease;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
+}
+.ff-btn:active{ transform: scale(.98); }
+.ff-btn:hover{ border-color: rgba(255,255,255,.16); }
+
+.ff-btn-primary{
+  background: linear-gradient(180deg, rgba(42,166,168,.55), rgba(31,111,120,.55));
+  border-color: rgba(42,166,168,.55);
+}
+.ff-btn-primary:hover{
+  border-color: rgba(42,166,168,.75);
+  background: linear-gradient(180deg, rgba(42,166,168,.62), rgba(31,111,120,.62));
+}
+
+.ff-btn-ghost{
+  width: 46px;
+  padding: 12px 0;
+  text-align:center;
+}
+
+/* ---------- Search + favourites grouped ---------- */
+.ff-panel--search{
+  padding: 14px 14px 12px;
 }
 
 .ff-search-row{
-  display:flex;
-  gap:10px;
+  display:grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
   align-items:center;
-}
-
-.ff-input{
-  flex:1;
-  height:44px;
-  padding:0 14px;
-  border-radius:18px;
-  background:rgba(0,0,0,.16);
-  border:1px solid var(--stroke);
-  color:var(--text);
-  outline:none;
-}
-.ff-input::placeholder{color:rgba(234,246,247,.55)}
-.ff-input:focus{border-color:rgba(51,214,200,.45)}
-
-.ff-btn{
-  height:44px;
-  padding:0 14px;
-  border-radius:16px;
-  border:1px solid rgba(51,214,200,.35);
-  background:linear-gradient(180deg, rgba(51,214,200,.28), rgba(51,214,200,.14));
-  color:var(--text);
-  font-weight:600;
-}
-.ff-btn:active{transform:translateY(1px)}
-.ff-btn-geo{
-  width:44px;
-  padding:0;
-  border-radius:16px;
 }
 
 .ff-units-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-top:10px;
+  display:grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 12px;
 }
-
-.ff-select{
-  height:40px;
-  min-width:140px;
-  border-radius:16px;
-  padding:0 10px;
-  background:rgba(0,0,0,.16);
-  border:1px solid var(--stroke);
-  color:var(--text);
-  outline:none;
-}
-.ff-select:focus{border-color:rgba(51,214,200,.45)}
 
 .ff-tip{
-  margin:10px 0 0;
-  color:rgba(234,246,247,.60);
-  font-size:.85rem;
+  margin: 10px 2px 0;
+  color: rgba(234,246,247,.62);
+  font-size: .92rem;
+  line-height: 1.25;
 }
 
+/* a dedicated container that your JS can use for favourites
+   (if you already render it into results, this still styles it) */
+.ff-favs{
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+.ff-favs-title{
+  font-weight: 700;
+  font-size: .95rem;
+  color: rgba(234,246,247,.86);
+  margin-bottom: 10px;
+}
+.ff-fav-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.14);
+  margin-bottom: 10px;
+}
+.ff-fav-item:last-child{ margin-bottom: 0; }
+.ff-fav-item strong{ display:block; }
+.ff-fav-item .muted{ color: rgba(234,246,247,.62); font-size:.92rem; }
+
+/* ---------- Verdict ---------- */
+.ff-verdict{
+  margin-top: 12px;
+  padding: 14px 16px;
+}
+
+.ff-verdict-main{
+  display:flex;
+  gap: 12px;
+  align-items:flex-start;
+}
+
+.ff-verdict-icon{
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  display:grid;
+  place-items:center;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  font-size: 18px;
+}
+
+.ff-verdict-label{
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+.ff-verdict-reason{
+  color: rgba(234,246,247,.70);
+  margin-top: 2px;
+  font-size: .95rem;
+}
+
+.ff-verdict-meta{
+  margin-top: 10px;
+  color: rgba(234,246,247,.72);
+  font-size: .95rem;
+}
+
+.ff-verdict--play .ff-verdict-icon{ background: rgba(45,212,191,.14); border-color: rgba(45,212,191,.30); }
+.ff-verdict--maybe .ff-verdict-icon{ background: rgba(255,209,102,.14); border-color: rgba(255,209,102,.28); }
+.ff-verdict--no .ff-verdict-icon{ background: rgba(255,107,107,.14); border-color: rgba(255,107,107,.28); }
+
+/* ---------- Tabs ---------- */
 .ff-tabs{
   display:flex;
-  gap:10px;
-  margin:12px 0;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .ff-tab{
   flex:1;
-  height:44px;
-  border-radius:18px;
-  border:1px solid var(--stroke);
-  background:rgba(255,255,255,.05);
-  color:rgba(234,246,247,.85);
-  font-weight:700;
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.14);
+  color: rgba(234,246,247,.85);
+  padding: 12px 10px;
+  font-weight: 800;
+  cursor:pointer;
+  transition: background .12s ease, border-color .12s ease;
+  -webkit-tap-highlight-color: transparent;
 }
+
 .ff-tab.active{
-  border-color:rgba(51,214,200,.45);
-  background:linear-gradient(180deg, rgba(51,214,200,.22), rgba(51,214,200,.10));
-  color:var(--text);
+  background: linear-gradient(180deg, rgba(42,166,168,.55), rgba(31,111,120,.55));
+  border-color: rgba(42,166,168,.55);
+  color: var(--text);
 }
 
-.ff-results{margin:0 0 12px}
-.ff-results--search{margin-top:-4px}
-
-.ff-card{
-  border-radius:var(--radius);
-  padding:14px;
-  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
-  border:1px solid var(--stroke);
-  box-shadow: 0 12px 32px rgba(0,0,0,.20);
-  margin-bottom:12px;
-}
-
-.muted{color:var(--muted)}
-
-.ff-big{
-  font-size:2.2rem;
-  font-weight:800;
-  letter-spacing:-.5px;
-}
-.ff-sub{font-size:.92rem; color:var(--muted)}
-
-.ff-row{
+/* ---------- Results container ---------- */
+.ff-results{
+  margin-top: 12px;
   display:flex;
-  gap:12px;
-  align-items:center;
-}
-.ff-icon{width:54px;height:54px}
-
-.ff-metrics{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-  margin-top:12px;
-}
-.ff-metrics > div{
-  padding:12px 12px;
-  border-radius:16px;
-  background:rgba(0,0,0,.14);
-  border:1px solid var(--stroke);
-  color:rgba(234,246,247,.92);
-}
-
-.ff-hourly, .ff-daily{
-  display:grid;
-  gap:10px;
-  margin-top:12px;
-}
-.ff-hour{
-  border-radius:18px;
-  padding:12px;
-  background:rgba(0,0,0,.14);
-  border:1px solid var(--stroke);
-  display:grid;
-  gap:6px;
-  justify-items:start;
-}
-.ff-hour img{width:42px;height:42px}
-
-.ff-day{
-  border-radius:18px;
-  padding:12px;
-  background:rgba(0,0,0,.14);
-  border:1px solid var(--stroke);
-  display:grid;
-  grid-template-columns:auto 1fr auto;
-  align-items:center;
-  gap:10px;
-}
-.ff-day img{width:42px;height:42px}
-.ff-day-temp{font-weight:800}
-
-.ff-results-list{display:grid; gap:10px; margin-top:10px}
-.ff-result{
-  width:100%;
-  text-align:left;
-  padding:12px;
-  border-radius:18px;
-  background:rgba(0,0,0,.14);
-  border:1px solid var(--stroke);
-  color:var(--text);
-}
-.ff-result:active{transform:translateY(1px)}
-.ff-result-title{font-weight:800}
-
-.ff-verdict{
-  border-radius:var(--radius);
-  padding:14px;
-  background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
-  border:1px solid var(--stroke);
-  box-shadow: 0 12px 32px rgba(0,0,0,.20);
-  margin-bottom:12px;
-}
-.ff-verdict-main{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-.ff-verdict-label{font-weight:900; font-size:1.05rem}
-.ff-verdict-reason{color:var(--muted); margin-top:2px}
-.ff-verdict-meta{margin-top:10px; color:rgba(234,246,247,.85)}
-
-.ff-play{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-}
-.ff-play-title{font-weight:900}
-.ff-play-sub{color:var(--muted); font-size:.9rem}
-.ff-play-score{
-  padding:10px 12px;
-  border-radius:16px;
-  background:rgba(51,214,200,.12);
-  border:1px solid rgba(51,214,200,.28);
-  font-weight:900;
-}
-
-.ff-foot{
-  text-align:center;
-  color:rgba(234,246,247,.55);
-  font-size:.82rem;
-  padding:8px 0 0;
-}
-
-@media (max-width:520px){
-  .ff-metrics{grid-template-columns:1fr}
-  .ff-big{font-size:2.0rem}
-}
-/* ===== Header polish (logo area) ===== */
-.ff-header,
-.ff-hero {
-  padding: 14px 14px 10px;
-}
-
-.ff-brand {
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
 }
 
-.ff-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  object-fit: contain;
-  background: rgba(255,255,255,.08);
-  padding: 6px;
-  /* removes “black outline” look caused by shadows/borders */
-  box-shadow: none !important;
-  border: 1px solid rgba(255,255,255,.10);
-}
-
-.ff-brand-text strong,
-.ff-title {
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.ff-brand-text span,
-.ff-tag {
-  opacity: 0.85;
-}
-/* --- Mobile layout fixes --- */
-.ff-grid{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:12px;
-  margin-top:12px;
-}
-
-@media (max-width: 520px){
-  .ff-grid{ grid-template-columns: 1fr; }
-}
-
-.ff-pill{
-  border-radius: 14px;
-  padding: 12px 14px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-  line-height: 1.2;
-}
-
-.ff-pill strong{
-  display:block;
-  font-size: 0.85rem;
-  opacity: .78;
-  margin-bottom: 4px;
-}
-
-.ff-current .ff-temp{
-  font-size: 2.2rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.ff-current .ff-desc{
-  opacity: .8;
-  margin-top: 6px;
-}
-
-/* Prevent weird stretching/overflow on small screens */
+/* Generic result “card” if your JS uses it */
 .ff-card{
-  overflow:hidden;
+  padding: var(--pad);
+  border-radius: var(--r22);
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.14);
+  box-shadow: var(--shadow2);
 }
 
-/* Verdict spacing looks cleaner on mobile */
-#verdictCard{
-  margin-bottom: 12px;
+/* Prevent “tiny column” rendering – force full width always */
+#results,
+.ff-results{
+  width:100%;
+  max-width:100%;
 }
-/* ===========================
-   Hourly/Daily table fixes
-   (make them full width + readable)
-   =========================== */
-
-/* Any card content should be able to stretch */
-.ff-card,
-.ff-panel,
-.ff-section,
-#results {
-  width: 100%;
+#results > *{
+  width:100%;
+  max-width:100%;
 }
 
-/* If your hourly/daily output uses a <table> */
-.ff-table,
-table {
-  width: 100%;
+/* ---------- Tables (Hourly/Daily) ---------- */
+#results table,
+.ff-results table{
+  width:100%;
+  max-width:100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
-table th,
-table td {
-  text-align: left;
+#results thead th{
+  font-weight: 800;
+  color: rgba(234,246,247,.92);
   padding: 10px 12px;
-  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  font-size: .95rem;
+}
+
+#results tbody td{
+  padding: 10px 12px;
   border-bottom: 1px solid rgba(255,255,255,.07);
-  white-space: nowrap;
-  overflow: hidden;
+  color: rgba(234,246,247,.86);
+  font-size: .95rem;
+  overflow:hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-table thead th {
-  font-weight: 700;
-  opacity: 0.9;
-}
-
-/* If your hourly/daily output is plain text inside <pre> */
-pre,
-.ff-pre,
-.ff-mono {
-  width: 100%;
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: rgba(255,255,255,.05);
-  border: 1px solid rgba(255,255,255,.08);
-  overflow-x: auto;
-  font-size: 0.95rem;
-  line-height: 1.35;
-  white-space: pre; /* keep columns aligned */
-}
-
-/* If the output is a “rows” div layout */
-.ff-rows,
-.ff-hourly,
-.ff-daily {
-  width: 100%;
-}
-
-/* Mobile: allow horizontal scroll if needed */
-@media (max-width: 520px) {
-  table {
-    display: block;
+/* allow table to scroll on small screens instead of squashing */
+@media (max-width: 560px){
+  #results table{
+    display:block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 }
-/* =========================================================
-   Results layout fix (Hourly/Daily not stuck in tiny column)
-   Works for: <table>, <pre>, div-based rows
-   ========================================================= */
 
-#results,
-.ff-results {
-  width: 100%;
-  max-width: 100%;
-}
-
-#results > * {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* If your JS renders a table */
-#results table,
-.ff-results table {
-  width: 100%;
-  max-width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed; /* keeps columns stable */
-}
-
-#results th,
-#results td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: 0.95rem;
-}
-
-#results thead th {
-  font-weight: 700;
-  opacity: 0.9;
-}
-
-/* If your JS renders mono text (common for “tables” like your screenshot) */
+/* ---------- Pre / “text table” rendering (your screenshots) ---------- */
 #results pre,
 #results .ff-pre,
 #results .mono,
-#results .ff-mono {
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
+#results .ff-mono{
+  width:100%;
+  max-width:100%;
+  margin:0;
   padding: 12px 14px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  overflow-x: auto; /* IMPORTANT: prevents squashing */
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.16);
+  overflow-x: auto;              /* key fix */
   -webkit-overflow-scrolling: touch;
-  white-space: pre; /* keep columns aligned */
-  font-size: 0.95rem;
+  white-space: pre;               /* keep columns aligned */
+  font-size: .95rem;
   line-height: 1.35;
 }
 
-/* If your JS renders rows in divs */
-#results .ff-hourly,
-#results .ff-daily,
-#results .ff-rows,
-#results .rows {
-  width: 100%;
-  max-width: 100%;
+/* If you render row blocks */
+#results .row,
+#results .ff-row{
+  display:flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.14);
 }
 
-/* Mobile: allow sideways scroll for dense tables */
-@media (max-width: 520px) {
-  #results table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+/* ---------- Playability ---------- */
+.ff-play{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 14px;
 }
+
+.ff-play-title{
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+.ff-play-sub{
+  color: rgba(234,246,247,.62);
+  font-size: .92rem;
+  margin-top: 2px;
+}
+
+.ff-play-score{
+  min-width: 86px;
+  text-align:center;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(42,166,168,.45);
+  background: rgba(42,166,168,.12);
+  font-weight: 900;
+}
+
+/* ---------- Footer ---------- */
+.ff-foot{
+  text-align:center;
+  margin-top: 14px;
+  color: rgba(234,246,247,.55);
+  font-size: .88rem;
+  padding-bottom: 10px;
+}
+
+/* ---------- Utilities ---------- */
+.muted{ color: rgba(234,246,247,.62); }
+.ff-sub{ color: rgba(234,246,247,.62); font-size: .92rem; }
+
+/* Make touch targets slightly nicer on mobile */
+@media (max-width: 480px){
+  :root{ --pad:14px; }
+  .ff-search-row{ grid-template-columns: 1fr auto auto; }
+  .ff-btn{ padding: 12px 12px; }
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; }
+}
+```0
