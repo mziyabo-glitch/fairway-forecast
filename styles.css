@@ -1,520 +1,103 @@
-/* =========================
-   Fairway Forecast – Option A (Premium Light)
-   Mobile-first, neat containers, tighter current tile,
-   bigger daily icons, hide daily Summary column.
-========================= */
+/* =========================================
+   SAFE VISUAL REORDER (NO JS CHANGES)
+   ========================================= */
 
-:root{
-  --bg: #eef5f6;
-  --bg2:#e7f0f1;
-
-  --card: #ffffff;
-  --card2:#ffffff;
-
-  --text: #0f172a;
-  --muted:#64748b;
-
-  --brand:#1F6F78;
-  --brand-2:#2b8c97;
-
-  --border: rgba(15,23,42,.08);
-  --shadow: 0 10px 30px rgba(15,23,42,.08);
-
-  --radius-xl: 22px;
-  --radius-lg: 18px;
-  --radius-md: 14px;
-
-  --pad: 14px;
-  --gap: 12px;
-
-  --focus: 0 0 0 3px rgba(31,111,120,.18);
-}
-
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-body{
-  margin:0;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: var(--text);
-  background: radial-gradient(1200px 700px at 10% 0%, #f7fbfc 0%, var(--bg) 50%, var(--bg2) 100%);
-}
-
-/* App wrap */
-.ff-wrap{
-  max-width: 520px;
-  margin: 0 auto;
-  padding: 14px 14px 26px;
-}
-
-/* Header */
-.ff-header{
-  margin: 6px 0 12px;
-}
-.ff-brand{
-  display:flex;
-  align-items:center;
-  gap: 12px;
-  background: rgba(255,255,255,.7);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 12px 14px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
-}
-.ff-logo{
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background:#fff;
-  border: 1px solid var(--border);
-}
-.ff-brand-text strong{
-  display:block;
-  font-size: 18px;
-  line-height: 1.1;
-}
-.ff-brand-text span{
-  display:block;
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-
-/* Panels / cards */
-.ff-panel{
-  background: rgba(255,255,255,.8);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: var(--pad);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
-  margin-bottom: 12px;
-}
-
-/* Search */
-.ff-label{
-  display:block;
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-.ff-search-row{
-  display:grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
-  align-items:center;
-}
-.ff-input{
-  width:100%;
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  padding: 14px 14px;
-  background: #fff;
-  font-size: 16px;
-  outline:none;
-}
-.ff-input:focus{ box-shadow: var(--focus); border-color: rgba(31,111,120,.35); }
-
-.ff-btn{
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 18px;
-  padding: 12px 14px;
-  font-weight: 700;
-  font-size: 15px;
-  cursor:pointer;
-  user-select:none;
-}
-.ff-btn:active{ transform: translateY(1px); }
-
-.ff-btn-primary{
-  background: linear-gradient(180deg, var(--brand) 0%, #155a61 100%);
-  color:#fff;
-  border-color: rgba(31,111,120,.35);
-  padding-left: 18px;
-  padding-right: 18px;
-  min-width: 98px;
-}
-.ff-btn-ghost{
-  min-width: 52px;
-  height: 46px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size: 18px;
-}
-
-/* Units row */
-.ff-units-row{
-  margin-top: 10px;
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.ff-select{
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  padding: 10px 12px;
-  background:#fff;
-  font-weight:700;
-  outline:none;
-}
-.ff-select:focus{ box-shadow: var(--focus); }
-
-/* Verdict */
-.ff-verdict{
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.85);
-  padding: 14px;
-  box-shadow: var(--shadow);
-  margin: 0 0 12px;
-}
-.ff-verdict-main{
-  display:flex;
-  align-items:center;
-  gap: 12px;
-}
-.ff-verdict-icon{
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size: 20px;
-  border: 1px solid var(--border);
-  background:#fff;
-}
-.ff-verdict-label{
-  font-weight: 800;
-  font-size: 18px;
-  line-height: 1.2;
-}
-.ff-verdict-reason{
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 2px;
-}
-.ff-verdict-meta{
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-/* Tabs */
-.ff-tabs{
-  display:grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  margin: 0 0 12px;
-}
-.ff-tab{
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  padding: 12px 10px;
-  font-weight: 800;
-  background: rgba(255,255,255,.8);
-  color: var(--text);
-  cursor:pointer;
-}
-.ff-tab.active{
-  background: linear-gradient(180deg, var(--brand) 0%, #155a61 100%);
-  color:#fff;
-  border-color: rgba(31,111,120,.35);
-}
-
-/* Results container */
-.ff-results{
-  display:flex;
+#results {
+  display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
 }
 
-/* ---------------------------
-   CURRENT TILE – make it tight, centered, premium
-   This targets common markup patterns your JS renders:
-   - a "location/title" area
-   - a "current weather" card with icon/temp/desc + stat rows
---------------------------- */
-
-.ff-results .ff-panel,
-.ff-results .ff-card,
-.ff-results .card,
-.ff-results .panel{
-  /* in case JS uses different wrapper names */
-  background: rgba(255,255,255,.85);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow);
+/* --- Location / course card --- */
+#results > .ff-panel:has(h3),
+#results > .ff-panel:has(.ff-location),
+#results > .ff-panel:has(.ff-favourites) {
+  order: 1;
 }
 
-/* Location header card: align star + text nicely */
-.ff-results .ff-location,
-.ff-results .location,
-.ff-results .location-card{
-  display:grid;
+/* --- Play / No-play verdict --- */
+#results > .ff-verdict,
+#results > .ff-panel:has(.ff-verdict),
+#results > .ff-panel:has(.ff-play) {
+  order: 2;
+}
+
+/* --- Weather blocks (current / hourly / daily) --- */
+#results > .ff-weather,
+#results > .ff-panel:not(:has(.ff-play)):not(:has(.ff-verdict)) {
+  order: 3;
+}
+
+/* =========================================
+   CURRENT TILE – MAKE IT COMPACT & PREMIUM
+   ========================================= */
+
+.ff-current {
+  display: grid;
   grid-template-columns: 1fr auto;
+  align-items: center;
   gap: 12px;
-  align-items:center;
-}
-.ff-results .ff-location h3,
-.ff-results .location h3,
-.ff-results .location-card h3{
-  margin: 0;
-  font-size: 18px;
-  font-weight: 900;
-}
-.ff-results .ff-location .sub,
-.ff-results .location .sub,
-.ff-results .location-card .sub{
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 13px;
+  padding: 14px 16px;
 }
 
-/* Star button sizing */
-.ff-results .fav-btn,
-.ff-results .star-btn,
-.ff-results button[aria-label*="favorite"],
-.ff-results button[aria-label*="Favourite"],
-.ff-results button[title*="Favourite"],
-.ff-results button[title*="favorite"]{
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size: 18px;
+.ff-current-icon {
+  width: 56px;
+  height: 56px;
 }
 
-/* Current weather main card: tighten + center */
-.ff-results .ff-current,
-.ff-results .current,
-.ff-results .current-card{
-  padding: 14px !important;
-}
-
-/* If the current card uses a top "hero" row */
-.ff-results .ff-current .hero,
-.ff-results .current .hero,
-.ff-results .current-card .hero{
-  display:grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  align-items:center;
-  justify-items:center;
-  text-align:center;
-}
-
-/* Temperature + description */
-.ff-results .ff-current .temp,
-.ff-results .current .temp,
-.ff-results .current-card .temp{
-  font-size: 34px;
-  font-weight: 900;
+.ff-current-temp {
+  font-size: 28px;
+  font-weight: 700;
   line-height: 1;
-  margin: 6px 0 0;
 }
-.ff-results .ff-current .desc,
-.ff-results .current .desc,
-.ff-results .current-card .desc{
-  color: var(--muted);
-  font-weight: 700;
-  margin-top: 4px;
+
+.ff-current-desc {
   font-size: 14px;
+  opacity: 0.7;
 }
 
-/* Weather icon: keep it centered and not huge */
-.ff-results img.weather-icon,
-.ff-results img.icon,
-.ff-results .ff-weather-icon img,
-.ff-results .current img{
-  width: 74px;
-  height: 74px;
-  object-fit: contain;
-  display:block;
-  margin: 6px auto 0;
+/* Reduce stacked info blocks */
+.ff-current-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
 }
 
-/* Stats grid (wind/gust/rain/sunrise/sunset etc) */
-.ff-results .ff-current .stats,
-.ff-results .current .stats,
-.ff-results .current-card .stats,
-.ff-results .stats-grid{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 12px;
+/* =========================================
+   DAILY TABLE – BIGGER ICONS, LESS CLUTTER
+   ========================================= */
+
+.ff-daily-table td.icon {
+  width: 44px;
 }
 
-/* Each stat chip */
-.ff-results .stat,
-.ff-results .stats-grid > div,
-.ff-results .ff-stat{
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.9);
-  border-radius: 16px;
-  padding: 10px 10px;
-  min-height: 44px;
-  display:flex;
-  flex-direction: column;
-  justify-content:center;
-  gap: 2px;
-}
-.ff-results .stat .k,
-.ff-results .ff-stat .k{
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 700;
-}
-.ff-results .stat .v,
-.ff-results .ff-stat .v{
-  font-size: 14px;
-  font-weight: 900;
-}
-
-/* Favourites chip row */
-.ff-results .favourites,
-.ff-results .favorites,
-.ff-results .ff-favs{
-  display:flex;
-  gap: 10px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  padding-bottom: 6px;
-}
-.ff-results .favourites::-webkit-scrollbar,
-.ff-results .favorites::-webkit-scrollbar{ height: 6px; }
-.ff-results .favourites::-webkit-scrollbar-thumb,
-.ff-results .favorites::-webkit-scrollbar-thumb{
-  background: rgba(15,23,42,.12);
-  border-radius: 999px;
-}
-.ff-results .fav-chip,
-.ff-results .favourites button,
-.ff-results .favorites button{
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.95);
-  border-radius: 16px;
-  padding: 10px 12px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-/* ---------------------------
-   HOURLY + DAILY tables (contained)
---------------------------- */
-table{
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  overflow:hidden;
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.9);
-}
-thead th{
-  text-align:left;
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 900;
-  padding: 12px 12px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(239,246,247,.9);
-}
-tbody td{
-  padding: 12px 12px;
-  border-bottom: 1px solid rgba(15,23,42,.05);
-  font-weight: 700;
-}
-tbody tr:last-child td{ border-bottom:none; }
-
-/* Make icons in tables larger + crisp */
-table img{
+.ff-daily-table img,
+.ff-daily-table svg {
   width: 28px;
   height: 28px;
-  object-fit: contain;
 }
 
-/* DAILY: increase weather icons more, hide "Summary" column */
-.ff-results .daily table img,
-table.daily img{
-  width: 34px;
-  height: 34px;
+/* Hide redundant summary column (icons already say it) */
+.ff-daily-table th:last-child,
+.ff-daily-table td:last-child {
+  display: none;
 }
 
-/* Hide Summary column (4th column) on Daily table */
-.ff-results .daily table thead th:nth-child(4),
-.ff-results .daily table tbody td:nth-child(4){
-  display:none;
-}
+/* =========================================
+   MOBILE POLISH
+   ========================================= */
 
-/* Also hide on small screens even if markup differs */
-@media (max-width: 520px){
-  .ff-results table thead th:nth-child(4),
-  .ff-results table tbody td:nth-child(4){
-    display:none;
+@media (max-width: 480px) {
+  .ff-panel {
+    padding: 14px;
+  }
+
+  .ff-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg);
+    padding: 8px 0;
   }
 }
-
-/* Playability card */
-.ff-play{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.ff-play-title{
-  font-weight: 900;
-  font-size: 16px;
-}
-.ff-play-sub{
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 2px;
-}
-.ff-play-score{
-  min-width: 92px;
-  text-align:center;
-  padding: 12px 12px;
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  background: rgba(239,246,247,.95);
-  font-weight: 900;
-  font-size: 18px;
-}
-
-/* Footer */
-.ff-foot{
-  text-align:center;
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 10px;
-}
-
-/* Small screen tweaks */
-@media (max-width: 380px){
-  .ff-search-row{
-    grid-template-columns: 1fr;
-  }
-  .ff-btn-primary{
-    width: 100%;
-  }
-  .ff-btn-ghost{
-    width: 100%;
-    height: 46px;
-  }
-  .ff-tabs{
-    gap: 8px;
-  }
-}
-
-/* Reduce accidental overflow */
-img, svg, canvas{ max-width:100%; }
