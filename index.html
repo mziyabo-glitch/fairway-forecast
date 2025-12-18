@@ -25,6 +25,28 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="./styles.css" />
+
+  <!-- Tiny spacing fix for "Sunrise18:39" WITHOUT touching app.js -->
+  <style>
+    /* If app.js renders label/value using <strong> or similar, enforce spacing */
+    .ff-current-row strong,
+    .current-row strong,
+    .meta-row strong,
+    .ff-meta strong,
+    .ff-meta b,
+    .ff-meta .value { margin-left: 6px; }
+
+    /* If meta rows are flex, ensure gap */
+    .ff-current-row,
+    .current-row,
+    .meta-row,
+    .ff-meta { gap: 8px; }
+
+    /* Safe helper class for any key/value rows you might already have */
+    .ff-kv { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+    .ff-kv .k { opacity:.8; }
+    .ff-kv .v { font-weight:700; }
+  </style>
 </head>
 
 <body>
@@ -47,9 +69,7 @@
 
     <!-- ================= SEARCH ================= -->
     <section class="ff-panel ff-panel--search">
-      <label class="ff-label" for="searchInput">
-        Search location or golf course
-      </label>
+      <label class="ff-label" for="searchInput">Search location or golf course</label>
 
       <div class="ff-search-row">
         <input
@@ -64,9 +84,7 @@
 
         <datalist id="searchSuggestions"></datalist>
 
-        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">
-          Search
-        </button>
+        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">Search</button>
 
         <button
           id="btnGeo"
@@ -74,9 +92,7 @@
           type="button"
           title="Use my location"
           aria-label="Use my location"
-        >
-          ⌖
-        </button>
+        >⌖</button>
       </div>
 
       <div class="ff-units-row">
@@ -102,17 +118,15 @@
 
       <!-- 3rd tile: Play (verdict) -->
       <div id="playSlot">
-        <!-- IMPORTANT:
-             We provide multiple common IDs so your existing app.js can update at least one of them
-             without needing changes. -->
+        <!-- These IDs MUST exist for your current app.js (renderVerdictCard) -->
         <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
           <div class="ff-verdict-main">
             <div class="ff-verdict-badge" aria-hidden="true">
-              <span id="verdictIcon">⏳</span>
+              <span id="verdictIcon">—</span>
             </div>
 
             <div class="ff-verdict-text">
-              <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
+              <div id="verdictLabel" class="ff-verdict-label">—</div>
               <div id="verdictReason" class="ff-verdict-reason">—</div>
 
               <div class="ff-verdict-meta">
@@ -122,12 +136,6 @@
             </div>
           </div>
         </section>
-
-        <!-- Fallback targets (in case app.js expects these IDs) -->
-        <div id="playNoPlayCard" style="display:none"></div>
-        <div id="verdict" style="display:none"></div>
-        <div id="statusCard" style="display:none"></div>
-        <div id="playCard" style="display:none"></div>
       </div>
 
       <!-- 4th tile: Forecast tiles -->
@@ -152,18 +160,5 @@
   </main>
 
   <script src="./app.js"></script>
-
-  <!-- Tiny spacing fix for "Sunrise18:39" WITHOUT touching app.js -->
-  <style>
-    /* If your current tile uses label/value inline with no space,
-       force a space visually when text is concatenated in one element */
-    .ff-current-row, .current-row, .meta-row { gap: 8px; }
-    .ff-current-row strong, .current-row strong, .meta-row strong { margin-left: 6px; }
-
-    /* Generic: any "label + value" pattern in one line */
-    .ff-kv { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
-    .ff-kv .k { opacity:.8; }
-    .ff-kv .v { font-weight:700; }
-  </style>
 </body>
 </html>
