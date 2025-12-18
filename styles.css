@@ -424,4 +424,10 @@ body::before{
   mix-blend-mode: overlay;
   opacity:.35;
 }
+.ff-logo{
+  width:40px;height:40px;border-radius:12px;
+  background:rgba(255,255,255,.08);
+  padding:6px;
+}
+
 
