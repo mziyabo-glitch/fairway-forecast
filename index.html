@@ -47,7 +47,9 @@
 
     <!-- ================= SEARCH ================= -->
     <section class="ff-panel ff-panel--search">
-      <label class="ff-label" for="searchInput">Search location or golf course</label>
+      <label class="ff-label" for="searchInput">
+        Search location or golf course
+      </label>
 
       <div class="ff-search-row">
         <input
@@ -59,6 +61,7 @@
           inputmode="search"
           list="searchSuggestions"
         />
+
         <datalist id="searchSuggestions"></datalist>
 
         <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">
@@ -92,32 +95,40 @@
       <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
-    <!-- ================= PLAY / NO-PLAY (MOVED OUT OF RESULTS so JS can't wipe it) ================= -->
-    <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
-      <div class="ff-verdict-main">
-        <div class="ff-verdict-badge" aria-hidden="true">
-          <span id="verdictIcon">⏳</span>
-        </div>
-
-        <div class="ff-verdict-text">
-          <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
-          <div id="verdictReason" class="ff-verdict-reason">—</div>
-
-          <div class="ff-verdict-meta">
-            <span>Best tee time:</span>
-            <strong id="verdictBestTime">—</strong>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- ================= RESULTS (ORDER LOCKED) ================= -->
     <section id="results" class="ff-results" aria-live="polite">
-      <!-- 2nd tile: Location / favourites -->
+
+      <!-- 1) Location / favourites -->
       <div id="locationSlot"></div>
 
-      <!-- 3rd tile: Forecast tiles -->
+      <!-- 2) Play / No-play verdict (MUST live here, not after footer) -->
+      <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
+        <div class="ff-verdict-main">
+          <div class="ff-verdict-badge" aria-hidden="true">
+            <span id="verdictIcon">⏳</span>
+          </div>
+
+          <div class="ff-verdict-text">
+            <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
+            <div id="verdictReason" class="ff-verdict-reason">—</div>
+
+            <div class="ff-verdict-meta">
+              <span>Best tee time:</span>
+              <strong id="verdictBestTime">—</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Optional fallback targets (for older JS paths) -->
+      <div id="playNoPlayCard" style="display:none"></div>
+      <div id="verdict" style="display:none"></div>
+      <div id="statusCard" style="display:none"></div>
+      <div id="playCard" style="display:none"></div>
+
+      <!-- 3) Forecast tiles -->
       <div id="forecastSlot"></div>
+
     </section>
 
     <!-- ================= PLAYABILITY ================= -->
@@ -135,6 +146,7 @@
     <footer class="ff-foot">
       Weather data © OpenWeather · Course data © GolfCourseAPI
     </footer>
+
   </main>
 
   <script src="./app.js"></script>
