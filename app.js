@@ -1,13 +1,15 @@
 /* =====================================================
-   Fairway Forecast – app.js
+   Fairway Forecast – app.js (LATEST)
    Stable, crash-safe, mobile-first
    Search: city/course → pick result → current/hourly/daily
-   Weather: supports multiple response shapes + derives from list[]
+   Weather: supports worker schema + derives hourly/daily from list[]
    Extras:
    - Verdict card (PLAY / PLAYABLE / NO-PLAY) front-and-centre
-   - Best tee time with “no recommendation” when rain likely all day
+   - Best tee time (daylight only) + “no recommendation” when rain likely all day
    - Suggestions while typing (debounced + cached + 429-aware)
-   - Favourites (localStorage)
+   - Favourites (localStorage) + favourites strip
+   - Search results render under the search bar (#searchResults)
+   - Removes “— / --” placeholder tiles (hides missing-data tiles)
    ===================================================== */
 
 (() => {
@@ -32,6 +34,7 @@
   const searchInput = $("searchInput");
   const searchBtn = $("searchBtn");
   const resultsEl = $("results");
+  const searchResultsEl = $("searchResults"); // ✅ under search bar
   const playabilityScoreEl = $("playabilityScore");
 
   const tabCurrent = $("tabCurrent");
@@ -61,6 +64,10 @@
   let activeTab = "current";
   let initialized = false;
 
+  // suggestions cooldown for rate limits
+  let suggestCooldownUntil = 0;
+  let suggestTimer = null;
+
   /* ---------- LOCAL STORAGE (FAVOURITES) ---------- */
   const LS_FAVS = "ff_favourites_v1";
 
@@ -81,7 +88,6 @@
   }
 
   function favKey(course) {
-    // Prefer stable id if provided, else lat/lon rounded
     const id = course?.id ? String(course.id) : "";
     const lat = Number(course?.lat);
     const lon = Number(course?.lon);
@@ -98,9 +104,11 @@
 
   function toggleFavourite(course) {
     if (!course) return;
+
     const favs = loadFavs();
     const key = favKey(course);
     const idx = favs.findIndex((f) => f?.key === key);
+
     if (idx >= 0) {
       favs.splice(idx, 1);
     } else {
@@ -115,12 +123,14 @@
         lon: course.lon ?? null,
         addedAt: Date.now(),
       });
-      // Keep tidy
       if (favs.length > 24) favs.length = 24;
     }
+
     saveFavs(favs);
-    renderFavsStrip(); // refresh UI
-    renderVerdictCard(lastNorm); // keep star state consistent
+    renderFavsStrip();
+    renderVerdictCard(lastNorm);
+    // refresh tab content (so star button updates)
+    renderActiveTab();
   }
 
   /* ---------- HELPERS ---------- */
@@ -143,15 +153,25 @@
     if (next === "daily") tabDaily?.classList.add("active");
   }
 
+  // Main results only
   function showMessage(msg) {
     resultsEl.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
   }
 
   function showError(msg, extra = "") {
     const hint = extra ? `<div class="ff-sub muted" style="margin-top:8px">${esc(extra)}</div>` : "";
-    resultsEl.innerHTML = `<div class="ff-card"><div class="ff-big">⚠️</div><div>${esc(
-      msg
-    )}</div>${hint}</div>`;
+    resultsEl.innerHTML = `<div class="ff-card"><div class="ff-big">⚠️</div><div>${esc(msg)}</div>${hint}</div>`;
+  }
+
+  // Search results area (under search bar)
+  function showSearchMessage(msg) {
+    if (!searchResultsEl) return;
+    searchResultsEl.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
+  }
+
+  function clearSearchResults() {
+    if (!searchResultsEl) return;
+    searchResultsEl.innerHTML = "";
   }
 
   function fmtTime(tsSeconds) {
@@ -173,6 +193,11 @@
 
   function nowSec() {
     return Math.floor(Date.now() / 1000);
+  }
+
+  function iconUrl(code) {
+    if (!code) return "";
+    return `https://openweathermap.org/img/wn/${code}@2x.png`;
   }
 
   /* ---------- SIMPLE IN-MEMORY CACHE ---------- */
@@ -200,7 +225,6 @@
     const url = `${API_BASE}${path}`;
     const res = await fetch(url, { method: "GET" });
 
-    // Handle rate-limit gracefully
     if (res.status === 429) {
       const text = await res.text().catch(() => "");
       const err = new Error("HTTP 429 Too Many Requests");
@@ -221,7 +245,7 @@
 
   async function fetchCourses(query) {
     const q = (query || "").trim();
-    const cacheKey = `${units()}|${q.toLowerCase()}`;
+    const cacheKey = `${q.toLowerCase()}`;
     const cached = cacheGet(memCache.courses, cacheKey, COURSE_CACHE_TTL_MS);
     if (cached) return cached;
 
@@ -322,7 +346,7 @@
         weather: Array.isArray(h.weather) ? h.weather : [],
       }));
     } else if (Array.isArray(raw?.list) && raw.list.length) {
-      norm.hourly = raw.list.slice(0, 16).map((it) => ({
+      norm.hourly = raw.list.slice(0, 24).map((it) => ({
         dt: it.dt,
         temp: it?.main?.temp ?? null,
         pop: typeof it?.pop === "number" ? it.pop : null,
@@ -341,6 +365,7 @@
         icon: d?.weather?.[0]?.icon ?? d?.icon ?? null,
       }));
     } else if (Array.isArray(raw?.list) && raw.list.length) {
+      // derive 7-day-ish from 5-day list by grouping by day
       const byDay = new Map();
 
       for (const it of raw.list) {
@@ -405,14 +430,25 @@
     const temp = typeof c.temp === "number" ? c.temp : null;
     const pop = typeof c.pop === "number" ? c.pop : 0;
 
-    if (w > 10) score -= 3;
-    else if (w > 6) score -= 2;
-    else if (w > 4) score -= 1;
+    // wind
+    if (units() === "metric") {
+      if (w > 12) score -= 4;
+      else if (w > 9) score -= 3;
+      else if (w > 6) score -= 2;
+      else if (w > 4) score -= 1;
+    } else {
+      if (w > 27) score -= 4;
+      else if (w > 20) score -= 3;
+      else if (w > 14) score -= 2;
+      else if (w > 9) score -= 1;
+    }
 
+    // rain probability
     if (pop >= 0.7) score -= 3;
     else if (pop >= 0.4) score -= 2;
     else if (pop >= 0.2) score -= 1;
 
+    // temp comfort
     if (temp !== null) {
       if (units() === "metric") {
         if (temp < 4) score -= 2;
@@ -444,12 +480,13 @@
     const pops = candidates
       .map((h) => (typeof h.pop === "number" ? h.pop : null))
       .filter((x) => typeof x === "number");
+
     if (pops.length) {
       const minPop = Math.min(...pops);
       const avgPop = pops.reduce((a, b) => a + b, 0) / pops.length;
 
       // Strong guardrails (fixes “100% rain but still recommends 12:00”)
-      if (minPop >= 0.80 || avgPop >= 0.85) return null;
+      if (minPop >= 0.8 || avgPop >= 0.85) return null;
     }
 
     function slotScore(h) {
@@ -499,9 +536,7 @@
     const now = nowSec();
 
     // Daylight guard
-    if (!sunrise || !sunset) {
-      // still allow verdict, but lower confidence
-    } else if (now > sunset - 3600) {
+    if (sunrise && sunset && now > sunset - 3600) {
       return {
         status: "NO",
         label: "No-play recommended",
@@ -515,8 +550,7 @@
     // Scoring (0–100)
     let score = 100;
 
-    // Wind penalties (metric m/s or imperial mph: we still treat value as “wind speed”)
-    // If imperial, values are mph from OpenWeather. That’s fine; thresholds differ.
+    // Wind penalties
     if (units() === "metric") {
       if (wind > 12) score -= 45;
       else if (wind > 9) score -= 30;
@@ -530,7 +564,7 @@
     // Rain penalties (use current pop if present)
     const pop = popNow ?? (typeof best?.pop === "number" ? best.pop : 0.25);
     if (pop >= 0.85) score -= 50;
-    else if (pop >= 0.60) score -= 35;
+    else if (pop >= 0.6) score -= 35;
     else if (pop >= 0.35) score -= 20;
 
     // Temp comfort
@@ -555,7 +589,12 @@
     if (score >= 48) {
       return { status: "MAYBE", label: "Playable (tough)", reason: "Manageable, but expect challenges", best };
     }
-    return { status: "NO", label: "No-play recommended", reason: best ? "Poor overall conditions" : "Rain likely throughout daylight", best };
+    return {
+      status: "NO",
+      label: "No-play recommended",
+      reason: best ? "Poor overall conditions" : "Rain likely throughout daylight",
+      best,
+    };
   }
 
   function renderVerdictCard(norm) {
@@ -588,282 +627,20 @@
     }
   }
 
-  /* ---------- RENDER ---------- */
-  function renderHeaderCard() {
-    const name = selectedCourse?.name || "Selected location";
-    const line2 = [selectedCourse?.city, selectedCourse?.state, selectedCourse?.country].filter(Boolean).join(", ");
-    const fav = selectedCourse ? isFavourited(selectedCourse) : false;
-
-    // star button included inside the header card
-    const starBtn = selectedCourse
-      ? `<button type="button" class="ff-btn" id="favBtn" title="Favourite" style="width:44px;padding:0">${fav ? "★" : "☆"}</button>`
-      : "";
-
-    return `
-      <div class="ff-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-          <div>
-            <div class="ff-big" style="font-size:1.2rem; line-height:1.2">${esc(name)}</div>
-            ${line2 ? `<div class="ff-sub muted">${esc(line2)}</div>` : ""}
-          </div>
-          ${starBtn}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderFavsStrip() {
-    const favs = loadFavs();
-    const containerId = "ffFavsStrip";
-    let el = document.getElementById(containerId);
-
-    if (!el) {
-      el = document.createElement("div");
-      el.id = containerId;
-      el.style.display = "flex";
-      el.style.flexDirection = "column";
-      el.style.gap = "10px";
-      // Put it at top of results area
-      resultsEl.prepend(el);
-    }
-
-    if (!favs.length) {
-      el.innerHTML = "";
-      return;
-    }
-
-    const items = favs.slice(0, 8);
-    el.innerHTML = `
-      <div class="ff-card">
-        <div class="ff-sub muted">Favourites</div>
-        <div class="ff-results-list" style="margin-top:10px">
-          ${items
-            .map((f) => {
-              const line2 = [f.city, f.state, f.country].filter(Boolean).join(", ");
-              const lat = f.lat;
-              const lon = f.lon;
-              return `
-                <button type="button" class="ff-result ff-fav" data-name="${esc(f.name)}" data-city="${esc(
-                f.city
-              )}" data-state="${esc(f.state)}" data-country="${esc(f.country)}" data-lat="${esc(lat)}" data-lon="${esc(
-                lon
-              )}" data-id="${esc(f.id ?? "")}">
-                  <div class="ff-result-title">★ ${esc(f.name)}</div>
-                  ${line2 ? `<div class="ff-sub muted">${esc(line2)}</div>` : ""}
-                </button>
-              `;
-            })
-            .join("")}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderCurrent(norm) {
-    const c = norm?.current;
-    if (!c) {
-      showMessage("Current weather not available.");
-      renderVerdictCard(null);
-      return;
-    }
-
-    const icon = c?.weather?.[0]?.icon;
-    const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "";
-    const t = typeof c.temp === "number" ? Math.round(c.temp) : null;
-
-    const windVal = typeof c.wind_speed === "number" ? c.wind_speed.toFixed(1) : "--";
-    const gustVal = typeof c.wind_gust === "number" ? c.wind_gust.toFixed(1) : "--";
-    const popVal = typeof c.pop === "number" ? Math.round(c.pop * 100) : "--";
-
-    const sr = norm.sunrise ? fmtTime(norm.sunrise) : "--:--";
-    const ss = norm.sunset ? fmtTime(norm.sunset) : "--:--";
-
-    const best = bestTimeToday(norm);
-    const bestText = best
-      ? `${fmtTime(best.dt)} · ${Math.round(best.temp)}${tempUnit()} · ${Math.round(
-          (best.pop ?? 0) * 100
-        )}% rain · ${typeof best.wind_speed === "number" ? best.wind_speed.toFixed(1) : "--"} ${windUnit()}`
-      : "—";
-
-    // Build results (verdict is separate card in DOM)
-    resultsEl.innerHTML = `
-      ${renderHeaderCard()}
-
-      <div class="ff-card">
-        <div class="ff-row">
-          ${
-            icon
-              ? `<img class="ff-icon" src="https://openweathermap.org/img/wn/${esc(icon)}@2x.png" alt="" />`
-              : ""
-          }
-          <div>
-            <div class="ff-big">${t === null ? "--" : t}${tempUnit()}</div>
-            <div class="ff-sub">${esc(desc)}</div>
-          </div>
-        </div>
-
-        <div class="ff-metrics">
-          <div>Wind ${esc(windVal)} ${esc(windUnit())}</div>
-          <div>Gust ${esc(gustVal)} ${esc(windUnit())}</div>
-          <div>Rain chance ${esc(popVal)}%</div>
-          <div>—</div>
-        </div>
-
-        <div class="ff-metrics" style="margin-top:10px">
-          <div>Sunrise ${esc(sr)}</div>
-          <div>Sunset ${esc(ss)}</div>
-          <div>Best time ${esc(bestText)}</div>
-          <div>—</div>
-        </div>
-      </div>
-    `;
-
-    // Wire star button
-    const favBtn = document.getElementById("favBtn");
-    favBtn?.addEventListener("click", () => {
-      toggleFavourite(selectedCourse);
-      // update star immediately
-      favBtn.textContent = isFavourited(selectedCourse) ? "★" : "☆";
-    });
-
-    // Update playability
-    if (playabilityScoreEl) {
-      const p = calculatePlayability(norm);
-      playabilityScoreEl.textContent = `${p}/10`;
-    }
-
-    // Update Verdict card (front & centre)
-    renderVerdictCard(norm);
-
-    // Ensure favourites strip stays if present
-    renderFavsStrip();
-  }
-
-  function renderHourly(norm) {
-    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
-    if (hourly.length === 0) {
-      showMessage("Hourly data not available.");
-      renderVerdictCard(norm);
-      return;
-    }
-
-    const hours = hourly.slice(0, 8);
-    resultsEl.innerHTML = `
-      ${renderHeaderCard()}
-      <div class="ff-card">
-        <div class="ff-sub muted">Hourly · Next 24 hours (3-hour blocks)</div>
-        <div class="ff-hourly">
-          ${hours
-            .map((h) => {
-              const time = typeof h.dt === "number" ? fmtTime(h.dt) : "--:--";
-              const icon = h?.weather?.[0]?.icon;
-              const pop = typeof h.pop === "number" ? Math.round(h.pop * 100) : 0;
-              const wind = typeof h.wind_speed === "number" ? h.wind_speed.toFixed(1) : "--";
-              const temp = typeof h.temp === "number" ? Math.round(h.temp) : "--";
-              return `
-                <div class="ff-hour">
-                  <div class="ff-hour-time">${esc(time)}</div>
-                  ${
-                    icon
-                      ? `<img src="https://openweathermap.org/img/wn/${esc(icon)}@2x.png" alt="" />`
-                      : ""
-                  }
-                  <div class="ff-hour-temp">${esc(temp)}${esc(tempUnit())}</div>
-                  <div class="ff-hour-meta">${esc(pop)}% · ${esc(wind)} ${esc(windUnit())}</div>
-                </div>
-              `;
-            })
-            .join("")}
-        </div>
-      </div>
-    `;
-
-    const favBtn = document.getElementById("favBtn");
-    favBtn?.addEventListener("click", () => {
-      toggleFavourite(selectedCourse);
-      favBtn.textContent = isFavourited(selectedCourse) ? "★" : "☆";
-    });
-
-    renderVerdictCard(norm);
-    renderFavsStrip();
-  }
-
-  function renderDaily(norm) {
-    const daily = Array.isArray(norm?.daily) ? norm.daily : [];
-    if (daily.length === 0) {
-      showMessage("Daily forecast not available.");
-      renderVerdictCard(norm);
-      return;
-    }
-
-    const days = daily.slice(0, 7);
-    resultsEl.innerHTML = `
-      ${renderHeaderCard()}
-      <div class="ff-card">
-        <div class="ff-sub muted">Daily · Up to 7 days</div>
-        <div class="ff-daily">
-          ${days
-            .map((d) => {
-              const date = typeof d.dt === "number" ? fmtDay(d.dt) : "--";
-              const icon = d?.weather?.[0]?.icon || d?.icon;
-              const main = d?.weather?.[0]?.main || "";
-              const max = typeof d.max === "number" ? Math.round(d.max) : "--";
-              const min = typeof d.min === "number" ? Math.round(d.min) : "--";
-              const pop = typeof d.pop === "number" ? Math.round(d.pop * 100) : null;
-
-              return `
-                <div class="ff-day">
-                  <div>
-                    <div class="ff-day-date">${esc(date)}</div>
-                    <div class="ff-day-desc">${esc(main)}${pop === null ? "" : ` · ${esc(pop)}%`}</div>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:10px">
-                    ${
-                      icon
-                        ? `<img src="https://openweathermap.org/img/wn/${esc(icon)}@2x.png" alt="" />`
-                        : ""
-                    }
-                    <div class="ff-day-temp">${esc(max)}${esc(tempUnit())} ${esc(min)}${esc(tempUnit())}</div>
-                  </div>
-                </div>
-              `;
-            })
-            .join("")}
-        </div>
-      </div>
-    `;
-
-    const favBtn = document.getElementById("favBtn");
-    favBtn?.addEventListener("click", () => {
-      toggleFavourite(selectedCourse);
-      favBtn.textContent = isFavourited(selectedCourse) ? "★" : "☆";
-    });
-
-    renderVerdictCard(norm);
-    renderFavsStrip();
-  }
-
-  function renderActiveTab() {
-    if (!lastNorm) return;
-    if (activeTab === "current") renderCurrent(lastNorm);
-    else if (activeTab === "hourly") renderHourly(lastNorm);
-    else renderDaily(lastNorm);
-  }
-
-  /* ---------- SEARCH UI ---------- */
+  /* ---------- SEARCH RESULTS (under search bar) ---------- */
   function renderSearchResults(list) {
-    // keep favourites visible above
-    resultsEl.innerHTML = "";
-    renderFavsStrip();
+    if (!searchResultsEl) return;
 
     if (!Array.isArray(list) || list.length === 0) {
-      resultsEl.innerHTML += `<div class="ff-card muted">No courses found. Try a broader search (e.g. “Swindon” or “golf club swindon”).</div>`;
+      searchResultsEl.innerHTML = `
+        <div class="ff-card muted">No results. Try a broader search (e.g. “Swindon” or “golf club swindon”).</div>
+      `;
       return;
     }
 
     const items = list.slice(0, MAX_RESULTS);
 
-    resultsEl.innerHTML += `
+    searchResultsEl.innerHTML = `
       <div class="ff-card">
         <div class="ff-sub muted">Select a result</div>
         <div class="ff-results-list">
@@ -901,55 +678,29 @@
     `;
   }
 
-  async function runSearch() {
-    const q = (searchInput?.value || "").trim();
-    if (!q) {
-      showMessage("Type a town/city or a course name, then Search.");
-      return;
-    }
+  function bindSearchResultClicks() {
+    if (!searchResultsEl) return;
 
-    selectedCourse = null;
-    lastRawWeather = null;
-    lastNorm = null;
-    if (playabilityScoreEl) playabilityScoreEl.textContent = "--/10";
-    if (verdictLabel) verdictLabel.textContent = "—";
-    if (verdictReason) verdictReason.textContent = "—";
-    if (verdictBestTime) verdictBestTime.textContent = "—";
-    verdictCard?.classList.remove("ff-verdict--play", "ff-verdict--maybe", "ff-verdict--no");
+    searchResultsEl.addEventListener("click", (e) => {
+      const btn = e.target.closest(".ff-result");
+      if (!btn) return;
 
-    showMessage("Searching…");
-
-    try {
-      const courses = await fetchCourses(q);
-      renderSearchResults(courses);
-    } catch (err) {
-      console.error(err);
-
-      if (err?.status === 429) {
-        showError("Too many searches too quickly.", "Pause a second and try again.");
-        return;
-      }
-
-      const hint =
-        String(err?.message || "").includes("Failed to fetch")
-          ? "If you see a CORS error in DevTools, your Worker must add Access-Control-Allow-Origin for your GitHub Pages domain."
-          : "";
-
-      showError("Search failed.", hint);
-    }
+      const ds = btn.dataset || {};
+      loadCourseFromDataset(ds);
+    });
   }
 
-  async function loadCourseFromDataset(ds) {
-    const lat = parseFloat(ds.lat);
-    const lon = parseFloat(ds.lon);
+  function loadCourseFromDataset(ds) {
+    const lat = Number(ds.lat);
+    const lon = Number(ds.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      showError("This course is missing coordinates.", "Try a different result.");
+      showError("This result has no coordinates.", "Try another result.");
       return;
     }
 
     selectedCourse = {
-      id: ds.id || null,
-      name: ds.name || "Course",
+      id: ds.id ? String(ds.id) : null,
+      name: ds.name || "Selected location",
       city: ds.city || "",
       state: ds.state || "",
       country: ds.country || "",
@@ -957,183 +708,410 @@
       lon,
     };
 
-    if (searchInput) searchInput.value = selectedCourse.name;
+    clearSearchResults();
+    setActiveTab("current");
+    runWeatherForSelected();
+  }
+
+  /* ---------- FAVOURITES STRIP ---------- */
+  function renderFavsStrip() {
+    const favs = loadFavs();
+    if (!favs.length) return "";
+
+    return `
+      <div class="ff-card">
+        <div class="ff-sub muted" style="margin-bottom:10px">Favourites</div>
+        <div class="ff-results-list">
+          ${favs
+            .slice(0, 8)
+            .map((f) => {
+              const line2 = [f.city, f.state, f.country].filter(Boolean).join(", ");
+              const lat = f.lat ?? "";
+              const lon = f.lon ?? "";
+              return `
+                <button type="button" class="ff-result ff-fav" data-id="${esc(f.id ?? "")}"
+                  data-name="${esc(f.name ?? "")}"
+                  data-city="${esc(f.city ?? "")}"
+                  data-state="${esc(f.state ?? "")}"
+                  data-country="${esc(f.country ?? "")}"
+                  data-lat="${esc(lat)}"
+                  data-lon="${esc(lon)}">
+                  <div class="ff-result-title">★ ${esc(f.name ?? "")}</div>
+                  ${line2 ? `<div class="ff-sub muted">${esc(line2)}</div>` : ""}
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  function bindFavClicks() {
+    resultsEl.addEventListener("click", (e) => {
+      const favBtn = e.target.closest(".ff-fav");
+      if (!favBtn) return;
+      loadCourseFromDataset(favBtn.dataset);
+    });
+  }
+
+  /* ---------- RENDER: HEADER + CURRENT/HOURLY/DAILY ---------- */
+  function renderHeaderCard() {
+    const name = selectedCourse?.name || "Your location";
+    const line2 = [selectedCourse?.city, selectedCourse?.state, selectedCourse?.country].filter(Boolean).join(", ");
+    const fav = selectedCourse ? isFavourited(selectedCourse) : false;
+
+    const star = selectedCourse
+      ? `<button type="button" class="ff-btn" id="favBtn" title="Favourite" style="width:44px;padding:0;border-radius:16px">
+           ${fav ? "★" : "☆"}
+         </button>`
+      : "";
+
+    return `
+      <div class="ff-card">
+        <div class="ff-row" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="ff-big" style="font-size:1.25rem">${esc(name)}</div>
+            ${line2 ? `<div class="ff-sub muted">${esc(line2)}</div>` : ""}
+          </div>
+          ${star}
+        </div>
+      </div>
+    `;
+  }
+
+  function bindHeaderActions() {
+    const favBtn = $("favBtn");
+    if (favBtn && selectedCourse) {
+      favBtn.addEventListener("click", () => toggleFavourite(selectedCourse));
+    }
+  }
+
+  function renderCurrent(norm) {
+    const c = norm?.current;
+    if (!c) {
+      resultsEl.innerHTML = `${renderFavsStrip()}${renderHeaderCard()}
+        <div class="ff-card muted">Search for a town/city or course name, then pick a result.</div>`;
+      bindHeaderActions();
+      return;
+    }
+
+    const main = c.weather?.[0]?.main || "";
+    const desc = c.weather?.[0]?.description || main || "—";
+    const icon = c.weather?.[0]?.icon ? iconUrl(c.weather[0].icon) : "";
+
+    const temp = typeof c.temp === "number" ? `${Math.round(c.temp)}${tempUnit()}` : null;
+    const wind = typeof c.wind_speed === "number" ? `${c.wind_speed.toFixed(1)} ${windUnit()}` : null;
+    const gust = typeof c.wind_gust === "number" ? `${c.wind_gust.toFixed(1)} ${windUnit()}` : null;
+    const pop = typeof c.pop === "number" ? `${Math.round(c.pop * 100)}%` : null;
+
+    const sr = norm.sunrise ? fmtTime(norm.sunrise) : null;
+    const ss = norm.sunset ? fmtTime(norm.sunset) : null;
+
+    const best = bestTimeToday(norm);
+    const bestText = best
+      ? `${fmtTime(best.dt)} · ${
+          typeof best.temp === "number" ? `${Math.round(best.temp)}${tempUnit()}` : "--"
+        } · ${typeof best.pop === "number" ? `${Math.round(best.pop * 100)}% rain` : "--"} · ${
+          typeof best.wind_speed === "number" ? best.wind_speed.toFixed(1) : "--"
+        } ${windUnit()}`
+      : null;
+
+    // ✅ Hide missing-data tiles (removes dashes)
+    const tiles = [
+      wind ? `<div>Wind ${esc(wind)}</div>` : "",
+      gust ? `<div>Gust ${esc(gust)}</div>` : "",
+      pop ? `<div>Rain chance ${esc(pop)}</div>` : "",
+      sr ? `<div>Sunrise ${esc(sr)}</div>` : "",
+      ss ? `<div>Sunset ${esc(ss)}</div>` : "",
+      bestText ? `<div>Best time ${esc(bestText)}</div>` : "",
+    ].filter(Boolean);
+
+    const playScore = calculatePlayability(norm);
+    if (playabilityScoreEl) playabilityScoreEl.textContent = `${playScore}/10`;
+
+    resultsEl.innerHTML = `
+      ${renderFavsStrip()}
+      ${renderHeaderCard()}
+      <div class="ff-card">
+        <div class="ff-row" style="align-items:center">
+          ${icon ? `<img class="ff-icon" src="${esc(icon)}" alt="" />` : ""}
+          <div>
+            <div class="ff-big">${temp ?? "—"}</div>
+            <div class="ff-sub muted">${esc(desc)}</div>
+          </div>
+        </div>
+
+        ${tiles.length ? `<div class="ff-metrics" style="margin-top:12px">${tiles.join("")}</div>` : ""}
+      </div>
+    `;
+
+    bindHeaderActions();
+  }
+
+  function renderHourly(norm) {
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    if (!hourly.length) {
+      resultsEl.innerHTML = `${renderFavsStrip()}${renderHeaderCard()}<div class="ff-card muted">No hourly data.</div>`;
+      bindHeaderActions();
+      return;
+    }
+
+    resultsEl.innerHTML = `
+      ${renderFavsStrip()}
+      ${renderHeaderCard()}
+      <div class="ff-card">
+        <div class="ff-sub muted">Next hours</div>
+        <div class="ff-hourly">
+          ${hourly.slice(0, 16).map((h) => {
+            const t = typeof h.temp === "number" ? `${Math.round(h.temp)}${tempUnit()}` : "";
+            const p = typeof h.pop === "number" ? `${Math.round(h.pop * 100)}%` : "";
+            const w = typeof h.wind_speed === "number" ? `${h.wind_speed.toFixed(1)} ${windUnit()}` : "";
+            const ic = h.weather?.[0]?.icon ? iconUrl(h.weather[0].icon) : "";
+            const main = h.weather?.[0]?.main || "";
+            return `
+              <div class="ff-hour">
+                <div style="font-weight:800">${esc(fmtTime(h.dt))}</div>
+                ${ic ? `<img src="${esc(ic)}" alt="" />` : ""}
+                ${main ? `<div class="ff-sub muted">${esc(main)}</div>` : ""}
+                ${t ? `<div>${esc(t)}</div>` : ""}
+                ${p ? `<div class="ff-sub muted">Rain ${esc(p)}</div>` : ""}
+                ${w ? `<div class="ff-sub muted">Wind ${esc(w)}</div>` : ""}
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+    bindHeaderActions();
+  }
+
+  function renderDaily(norm) {
+    const daily = Array.isArray(norm?.daily) ? norm.daily : [];
+    if (!daily.length) {
+      resultsEl.innerHTML = `${renderFavsStrip()}${renderHeaderCard()}<div class="ff-card muted">No daily data.</div>`;
+      bindHeaderActions();
+      return;
+    }
+
+    resultsEl.innerHTML = `
+      ${renderFavsStrip()}
+      ${renderHeaderCard()}
+      <div class="ff-card">
+        <div class="ff-sub muted">Daily · Up to 7 days</div>
+        <div class="ff-daily">
+          ${daily.slice(0, 7).map((d) => {
+            const ic = d.icon ? iconUrl(d.icon) : (d.weather?.[0]?.icon ? iconUrl(d.weather[0].icon) : "");
+            const main = d.weather?.[0]?.main || "";
+            const pop = typeof d.pop === "number" ? `${Math.round(d.pop * 100)}%` : "";
+            const min = typeof d.min === "number" ? Math.round(d.min) : null;
+            const max = typeof d.max === "number" ? Math.round(d.max) : null;
+            const temp = (min !== null && max !== null) ? `${min}° / ${max}°` : (max !== null ? `${max}°` : "");
+            return `
+              <div class="ff-day">
+                ${ic ? `<img src="${esc(ic)}" alt="" />` : `<div style="width:42px;height:42px"></div>`}
+                <div>
+                  <div style="font-weight:800">${esc(fmtDay(d.dt))}</div>
+                  <div class="ff-sub muted">${esc(main || (pop ? `Rain ${pop}` : ""))}</div>
+                </div>
+                <div style="text-align:right">
+                  ${temp ? `<div class="ff-day-temp">${esc(temp)}</div>` : ""}
+                  ${pop ? `<div class="ff-sub muted">Rain ${esc(pop)}</div>` : ""}
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+    bindHeaderActions();
+  }
+
+  function renderActiveTab() {
+    if (!lastNorm) {
+      resultsEl.innerHTML = `${renderFavsStrip()}<div class="ff-card muted">Search for a town/city or course name, then pick a result.</div>`;
+      return;
+    }
+    if (activeTab === "hourly") renderHourly(lastNorm);
+    else if (activeTab === "daily") renderDaily(lastNorm);
+    else renderCurrent(lastNorm);
+  }
+
+  /* ---------- MAIN FLOW ---------- */
+  async function runSearch() {
+    const q = (searchInput?.value || "").trim();
+    clearSearchResults();
+
+    if (!q) {
+      showSearchMessage("Type a town/city or golf course name.");
+      return;
+    }
+
+    showSearchMessage("Searching…");
+
+    try {
+      const list = await fetchCourses(q);
+      renderSearchResults(list);
+    } catch (err) {
+      if (err?.status === 429) {
+        suggestCooldownUntil = Date.now() + SUGGEST_COOLDOWN_MS;
+        showSearchMessage("Too many requests. Please wait a moment and try again.");
+        return;
+      }
+      showSearchMessage("Search failed. Please try again.");
+      console.error(err);
+    }
+  }
+
+  async function runWeatherForSelected() {
+    if (!selectedCourse) {
+      showMessage("Pick a result first.");
+      return;
+    }
 
     showMessage("Loading weather…");
 
     try {
-      lastRawWeather = await fetchWeather(lat, lon);
-      lastNorm = normalizeWeather(lastRawWeather);
+      const raw = await fetchWeather(selectedCourse.lat, selectedCourse.lon);
+      lastRawWeather = raw;
+      lastNorm = normalizeWeather(raw);
 
-      setActiveTab("current");
+      renderVerdictCard(lastNorm);
       renderActiveTab();
     } catch (err) {
-      console.error(err);
-
       if (err?.status === 429) {
-        showError("Weather is being requested too quickly.", "Wait a moment and try again.");
+        showError("Too many requests. Try again in a moment.");
         return;
       }
-
-      const hint =
-        String(err?.message || "").includes("Failed to fetch")
-          ? "If you see a CORS error in DevTools, your Worker must add Access-Control-Allow-Origin for your GitHub Pages domain."
-          : "";
-
-      showError("Weather failed to load for this location.", hint);
+      showError("Weather failed to load.", "Try another result or try again.");
+      console.error(err);
     }
   }
 
-  /* ---------- SUGGESTIONS (DATALIST) ---------- */
-  let suggestTimer = null;
-  let lastSuggestAt = 0;
-  let lastSuggestQ = "";
-
-  function wireSuggestions() {
-    if (!suggestionsEl || !searchInput) return;
-
-    searchInput.addEventListener("input", () => {
-      const q = (searchInput.value || "").trim();
-      if (q.length < SUGGEST_MIN_CHARS) {
-        suggestionsEl.innerHTML = "";
-        return;
-      }
-
-      if (suggestTimer) window.clearTimeout(suggestTimer);
-
-      suggestTimer = window.setTimeout(async () => {
-        // simple cooldown to reduce 429
-        const now = Date.now();
-        if (now - lastSuggestAt < SUGGEST_COOLDOWN_MS && q.toLowerCase() !== lastSuggestQ.toLowerCase()) {
-          return;
-        }
-
-        lastSuggestAt = now;
-        lastSuggestQ = q;
-
-        try {
-          const courses = await fetchCourses(q);
-          const top = courses.slice(0, 8);
-          suggestionsEl.innerHTML = top
-            .map((c) => {
-              const name = c?.name || c?.club_name || c?.course_name || "";
-              return name ? `<option value="${esc(name)}"></option>` : "";
-            })
-            .join("");
-        } catch (err) {
-          // suggestions are non-critical; fail silently
-          if (err?.status === 429) {
-            // keep last suggestions; do nothing
-            return;
-          }
-        }
-      }, SUGGEST_DEBOUNCE_MS);
-    });
+  /* ---------- SUGGESTIONS (datalist) ---------- */
+  function updateDatalistFromCourses(list) {
+    if (!suggestionsEl) return;
+    const items = Array.isArray(list) ? list.slice(0, 10) : [];
+    suggestionsEl.innerHTML = items
+      .map((c) => {
+        const name = c?.name || c?.course_name || c?.club_name || "";
+        if (!name) return "";
+        return `<option value="${esc(name)}"></option>`;
+      })
+      .join("");
   }
 
-  /* ---------- GEOLOCATION (OPTIONAL) ---------- */
-  async function runGeolocation() {
+  function scheduleSuggestions() {
+    if (!searchInput) return;
+    const q = (searchInput.value || "").trim();
+    if (q.length < SUGGEST_MIN_CHARS) return;
+
+    if (Date.now() < suggestCooldownUntil) return;
+
+    if (suggestTimer) clearTimeout(suggestTimer);
+    suggestTimer = setTimeout(async () => {
+      try {
+        const list = await fetchCourses(q);
+        updateDatalistFromCourses(list);
+      } catch (err) {
+        if (err?.status === 429) {
+          suggestCooldownUntil = Date.now() + SUGGEST_COOLDOWN_MS;
+        }
+      }
+    }, SUGGEST_DEBOUNCE_MS);
+  }
+
+  /* ---------- GEOLOCATION ---------- */
+  function useGeolocation() {
     if (!navigator.geolocation) {
-      showError("Geolocation not supported.", "Use manual search instead.");
+      showSearchMessage("Geolocation not supported on this device.");
       return;
     }
 
-    showMessage("Getting your location…");
+    showSearchMessage("Getting your location…");
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const lat = pos?.coords?.latitude;
         const lon = pos?.coords?.longitude;
-
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-          showError("Could not read your location.", "Use manual search instead.");
+          showSearchMessage("Could not read location. Try again.");
           return;
         }
 
-        selectedCourse = { name: "Your location", city: "", state: "", country: "", lat, lon };
+        selectedCourse = {
+          id: null,
+          name: "Your location",
+          city: "",
+          state: "",
+          country: "",
+          lat,
+          lon,
+        };
 
-        try {
-          lastRawWeather = await fetchWeather(lat, lon);
-          lastNorm = normalizeWeather(lastRawWeather);
-          setActiveTab("current");
-          renderActiveTab();
-        } catch (err) {
-          console.error(err);
-          showError("Weather failed to load for your location.");
-        }
+        clearSearchResults();
+        setActiveTab("current");
+        await runWeatherForSelected();
       },
       () => {
-        showError("Location permission denied.", "Use manual search instead.");
+        showSearchMessage("Location permission denied.");
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 120000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   }
 
-  /* ---------- EVENTS (ATTACH ONCE) ---------- */
-  function init() {
-    if (initialized) return;
-    initialized = true;
-
+  /* ---------- EVENTS ---------- */
+  function bindEvents() {
     searchBtn?.addEventListener("click", runSearch);
 
     searchInput?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        runSearch();
-      }
+      if (e.key === "Enter") runSearch();
     });
 
-    // Results click (event delegation) – handles normal results + favourites
-    resultsEl.addEventListener("click", (e) => {
-      const btn = e.target?.closest?.(".ff-result");
-      if (!btn) return;
-      loadCourseFromDataset(btn.dataset);
+    searchInput?.addEventListener("input", () => {
+      scheduleSuggestions();
+      // Keep UI tidy: if user starts typing, clear old results
+      if ((searchInput.value || "").trim().length < 2) clearSearchResults();
     });
 
     tabCurrent?.addEventListener("click", () => {
-      if (!lastNorm) return;
       setActiveTab("current");
       renderActiveTab();
     });
-
     tabHourly?.addEventListener("click", () => {
-      if (!lastNorm) return;
       setActiveTab("hourly");
       renderActiveTab();
     });
-
     tabDaily?.addEventListener("click", () => {
-      if (!lastNorm) return;
       setActiveTab("daily");
       renderActiveTab();
     });
 
     unitsSelect?.addEventListener("change", async () => {
-      if (!selectedCourse?.lat || !selectedCourse?.lon) return;
-      showMessage("Updating units…");
-      try {
-        lastRawWeather = await fetchWeather(selectedCourse.lat, selectedCourse.lon);
-        lastNorm = normalizeWeather(lastRawWeather);
-        renderActiveTab();
-      } catch (err) {
-        console.error(err);
-        showError("Could not update units.");
+      // When units change, refetch weather for the selected course
+      if (selectedCourse) {
+        await runWeatherForSelected();
       }
     });
 
-    geoBtn?.addEventListener("click", runGeolocation);
+    geoBtn?.addEventListener("click", useGeolocation);
 
-    wireSuggestions();
+    bindSearchResultClicks();
+    bindFavClicks();
+  }
 
-    // On first load show favourites (if any) + tip
-    resultsEl.innerHTML = "";
-    renderFavsStrip();
-    resultsEl.innerHTML += `<div class="ff-card muted">Search for a town/city or course name, then pick a result. (Tip: try “golf club swindon”)</div>`;
+  function init() {
+    if (initialized) return;
+    initialized = true;
 
-    // Set verdict card to neutral
-    if (verdictLabel) verdictLabel.textContent = "—";
-    if (verdictReason) verdictReason.textContent = "—";
-    if (verdictBestTime) verdictBestTime.textContent = "—";
+    // Default tab
+    setActiveTab("current");
+
+    // Initial UI
+    resultsEl.innerHTML = `${renderFavsStrip()}<div class="ff-card muted">Search for a town/city or course name, then pick a result.</div>`;
+    clearSearchResults();
+
+    bindEvents();
   }
 
   init();
