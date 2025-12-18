@@ -47,7 +47,9 @@
 
     <!-- ================= SEARCH ================= -->
     <section class="ff-panel ff-panel--search">
-      <label class="ff-label" for="searchInput">Search location or golf course</label>
+      <label class="ff-label" for="searchInput">
+        Search location or golf course
+      </label>
 
       <div class="ff-search-row">
         <input
@@ -59,11 +61,14 @@
           inputmode="search"
           list="searchSuggestions"
         />
+
         <datalist id="searchSuggestions"></datalist>
 
-        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">Search</button>
+        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">
+          Search
+        </button>
 
-        <!-- Near me -->
+        <!-- Optional: Near me -->
         <button
           id="btnGeo"
           class="ff-btn ff-btn-ghost"
@@ -73,26 +78,6 @@
         >
           ⌖
         </button>
-
-        <!-- Favourites -->
-        <button
-          id="btnFavs"
-          class="ff-btn ff-btn-ghost"
-          type="button"
-          title="Favourites"
-          aria-label="Favourites"
-        >
-          ★
-        </button>
-      </div>
-
-      <!-- Favourites strip (hidden until JS populates) -->
-      <div id="favsStrip" class="ff-favs" hidden>
-        <div class="ff-favs-head">
-          <div class="ff-favs-title">Favourites</div>
-          <button id="btnFavsClose" class="ff-favs-close" type="button" aria-label="Close favourites">✕</button>
-        </div>
-        <div id="favsList" class="ff-favs-list"></div>
       </div>
 
       <div class="ff-units-row">
@@ -102,10 +87,23 @@
           <option value="imperial">°F / mph</option>
         </select>
       </div>
+
+      <!-- Tip removed to save space (keep markup commented if you want it back)
+      <p class="ff-tip">
+        Tip: towns for places · add “golf / club / gc” for course-first results
+      </p>
+      -->
     </section>
 
+    <!-- ================= RESULTS (MOVED UP: location tile now sits under search) ================= -->
+    <section id="results" class="ff-results" aria-live="polite"></section>
+
     <!-- ================= VERDICT (FRONT & CENTRE) ================= -->
-    <section id="verdictCard" class="ff-verdict ff-verdict--neutral" aria-live="polite">
+    <section
+      id="verdictCard"
+      class="ff-verdict ff-verdict--neutral"
+      aria-live="polite"
+    >
       <div class="ff-verdict-main">
         <span id="verdictIcon" class="ff-verdict-icon">—</span>
         <div>
@@ -115,28 +113,36 @@
       </div>
 
       <div class="ff-verdict-meta">
-        Best tee time: <strong id="verdictBestTime">—</strong>
+        Best tee time:
+        <strong id="verdictBestTime">—</strong>
       </div>
     </section>
 
     <!-- ================= TABS ================= -->
     <nav class="ff-tabs" aria-label="Forecast tabs">
-      <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
-      <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
-      <button id="tabDaily" class="ff-tab" type="button">Daily</button>
+      <button id="tabCurrent" class="ff-tab active" type="button">
+        Current
+      </button>
+      <button id="tabHourly" class="ff-tab" type="button">
+        Hourly
+      </button>
+      <button id="tabDaily" class="ff-tab" type="button">
+        Daily
+      </button>
     </nav>
-
-    <!-- ================= RESULTS ================= -->
-    <section id="results" class="ff-results" aria-live="polite"></section>
 
     <!-- ================= PLAYABILITY ================= -->
     <section class="ff-panel">
       <div class="ff-play">
         <div>
           <div class="ff-play-title">Playability</div>
-          <div class="ff-play-sub">Wind, rain probability &amp; temperature comfort</div>
+          <div class="ff-play-sub">
+            Wind, rain probability & temperature comfort
+          </div>
         </div>
-        <div id="playabilityScore" class="ff-play-score">--/10</div>
+        <div id="playabilityScore" class="ff-play-score">
+          --/10
+        </div>
       </div>
     </section>
 
@@ -146,6 +152,7 @@
     </footer>
   </main>
 
+  <!-- App -->
   <script src="./app.js"></script>
 </body>
 </html>
