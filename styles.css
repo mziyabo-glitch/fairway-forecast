@@ -1,46 +1,36 @@
-/* ===============================
-   Fairway Forecast – Clean UI
-   Cosmetic + layout fixes only
-   =============================== */
-
+/* ================= ROOT ================= */
 :root {
-  --bg: #0f2e33;
-  --panel: #173f45;
-  --panel-soft: #1e5057;
-  --accent: #2dd4bf;
-  --accent-soft: rgba(45, 212, 191, 0.15);
-  --text: #e5f6f7;
-  --muted: #a7cfd4;
-  --danger: #ef4444;
+  --bg: #0f2f33;
+  --panel: #173f44;
+  --panel-soft: #1c4a50;
+  --accent: #2fd1c6;
+  --text: #e6f3f4;
+  --muted: #a7cfd1;
+  --danger: #ff6b6b;
   --radius: 16px;
 }
 
-/* ---------- GLOBAL RESET ---------- */
-*,
-*::before,
-*::after {
+* {
   box-sizing: border-box;
 }
 
-html,
-body {
+html, body {
   margin: 0;
-  padding: 0;
-  background: linear-gradient(180deg, #0b252a, #10383e);
-  color: var(--text);
+  background: linear-gradient(180deg, #0c2528, #0f2f33);
   font-family: "Inter", system-ui, -apple-system, sans-serif;
+  color: var(--text);
 }
 
-/* ---------- APP WRAPPER ---------- */
+/* ================= WRAP ================= */
 .ff-wrap {
   max-width: 720px;
   margin: 0 auto;
-  padding: 16px 14px 32px;
+  padding: 16px;
 }
 
-/* ---------- HEADER ---------- */
+/* ================= HEADER ================= */
 .ff-header {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .ff-brand {
@@ -48,29 +38,27 @@ body {
   align-items: center;
   gap: 12px;
   background: var(--panel);
-  padding: 14px;
+  padding: 14px 16px;
   border-radius: var(--radius);
 }
 
 .ff-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #ffffff;
-  object-fit: contain;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
 }
 
 .ff-brand-text strong {
-  font-size: 1.05rem;
+  display: block;
+  font-size: 16px;
 }
 
 .ff-brand-text span {
-  display: block;
-  font-size: 0.85rem;
+  font-size: 13px;
   color: var(--muted);
 }
 
-/* ---------- PANELS ---------- */
+/* ================= PANELS ================= */
 .ff-panel {
   background: var(--panel);
   border-radius: var(--radius);
@@ -78,11 +66,14 @@ body {
   margin-bottom: 14px;
 }
 
-.ff-panel--search {
-  background: var(--panel-soft);
+/* ================= SEARCH ================= */
+.ff-label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: var(--muted);
 }
 
-/* ---------- SEARCH ---------- */
 .ff-search-row {
   display: flex;
   gap: 8px;
@@ -90,64 +81,73 @@ body {
 
 .ff-input {
   flex: 1;
+  background: var(--panel-soft);
+  border: none;
+  color: var(--text);
   padding: 12px 14px;
   border-radius: 12px;
-  border: none;
-  background: #0f2e33;
-  color: var(--text);
+  font-size: 15px;
+}
+
+.ff-input::placeholder {
+  color: var(--muted);
 }
 
 .ff-btn {
+  border: none;
   border-radius: 12px;
   padding: 12px 14px;
-  border: none;
-  background: #0f2e33;
-  color: var(--text);
+  font-weight: 600;
   cursor: pointer;
 }
 
 .ff-btn-primary {
-  background: linear-gradient(180deg, #2dd4bf, #14b8a6);
-  color: #053133;
-  font-weight: 600;
+  background: var(--accent);
+  color: #003a3f;
 }
 
 .ff-btn-ghost {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--panel-soft);
+  color: var(--text);
 }
 
-/* ---------- UNITS ---------- */
 .ff-units-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
   margin-top: 10px;
 }
 
 .ff-select {
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: #0f2e33;
+  background: var(--panel-soft);
   color: var(--text);
   border: none;
+  padding: 8px 10px;
+  border-radius: 10px;
 }
 
-/* ---------- VERDICT ---------- */
+.ff-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ================= VERDICT ================= */
 .ff-verdict {
-  background: linear-gradient(180deg, #123b41, #0f2e33);
+  background: linear-gradient(180deg, #1a4e53, #143f43);
   border-radius: var(--radius);
   padding: 16px;
-  margin: 16px 0;
+  margin-bottom: 14px;
 }
 
 .ff-verdict-main {
   display: flex;
-  align-items: center;
   gap: 12px;
+  align-items: center;
 }
 
 .ff-verdict-icon {
-  font-size: 1.4rem;
+  font-size: 20px;
 }
 
 .ff-verdict-label {
@@ -155,128 +155,130 @@ body {
 }
 
 .ff-verdict-reason {
-  font-size: 0.9rem;
+  font-size: 13px;
   color: var(--muted);
 }
 
 .ff-verdict-meta {
-  margin-top: 10px;
-  font-size: 0.9rem;
+  margin-top: 8px;
+  font-size: 14px;
 }
 
-/* ---------- TABS ---------- */
+/* ================= TABS ================= */
 .ff-tabs {
   display: flex;
   gap: 8px;
-  margin: 14px 0;
+  margin-bottom: 12px;
 }
 
 .ff-tab {
   flex: 1;
-  padding: 10px 0;
-  border-radius: 12px;
-  background: #0f2e33;
-  border: none;
+  background: var(--panel-soft);
   color: var(--text);
-  cursor: pointer;
-}
-
-.ff-tab.active {
-  background: linear-gradient(180deg, #2dd4bf, #14b8a6);
-  color: #053133;
+  border: none;
+  border-radius: 14px;
+  padding: 10px;
   font-weight: 600;
 }
 
-/* ---------- LOCATION HEADER ---------- */
-.ff-location {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--panel-soft);
-  border-radius: var(--radius);
-  padding: 14px;
-  margin-bottom: 14px;
+.ff-tab.active {
+  background: var(--accent);
+  color: #003a3f;
 }
 
-.ff-location h3 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.ff-location small {
+/* ================= RESULTS ================= */
+.ff-results {
   display: block;
+}
+
+/* ================= CURRENT ================= */
+.ff-current-header {
+  margin-bottom: 12px;
+}
+
+.ff-temp {
+  font-size: 42px;
+  font-weight: 800;
+}
+
+.ff-desc {
   color: var(--muted);
-}
-
-.ff-location .ff-btn {
-  padding: 10px;
-}
-
-/* ---------- CURRENT WEATHER ---------- */
-.ff-current {
-  background: var(--panel-soft);
-  border-radius: var(--radius);
-  padding: 16px;
-}
-
-.ff-current strong {
-  font-size: 1.4rem;
 }
 
 .ff-current-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  margin-top: 12px;
 }
 
 .ff-metric {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--panel-soft);
+  border-radius: 12px;
   padding: 10px;
-  border-radius: 10px;
-  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
 }
 
-/* ---------- HOURLY / DAILY TABLE ---------- */
+/* ================= TABLES ================= */
 .ff-table {
-  margin-top: 12px;
+  display: grid;
+  gap: 8px;
 }
 
-.ff-table-header,
 .ff-table-row {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr 1fr;
-  padding: 8px 0;
-  font-size: 0.9rem;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--panel-soft);
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 14px;
 }
 
-.ff-table-header {
-  color: var(--muted);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+.ff-table-head {
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
 }
 
-.ff-table-row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* ---------- PLAYABILITY ---------- */
+/* ================= PLAYABILITY ================= */
 .ff-play {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.ff-play-score {
-  background: var(--accent-soft);
-  padding: 8px 14px;
-  border-radius: 999px;
+.ff-play-title {
   font-weight: 700;
 }
 
-/* ---------- FOOTER ---------- */
+.ff-play-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ff-play-score {
+  background: var(--panel-soft);
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+}
+
+/* ================= FOOTER ================= */
 .ff-foot {
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--muted);
-  margin-top: 20px;
+  margin-top: 16px;
+}
+
+/* ================= MOBILE ================= */
+@media (max-width: 480px) {
+  .ff-current-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ff-table-row {
+    grid-template-columns: 1.2fr 1fr 1fr 1fr;
+    font-size: 13px;
+  }
 }
