@@ -448,3 +448,80 @@ pre,
     -webkit-overflow-scrolling: touch;
   }
 }
+/* =========================================================
+   Results layout fix (Hourly/Daily not stuck in tiny column)
+   Works for: <table>, <pre>, div-based rows
+   ========================================================= */
+
+#results,
+.ff-results {
+  width: 100%;
+  max-width: 100%;
+}
+
+#results > * {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* If your JS renders a table */
+#results table,
+.ff-results table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* keeps columns stable */
+}
+
+#results th,
+#results td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.95rem;
+}
+
+#results thead th {
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+/* If your JS renders mono text (common for “tables” like your screenshot) */
+#results pre,
+#results .ff-pre,
+#results .mono,
+#results .ff-mono {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-x: auto; /* IMPORTANT: prevents squashing */
+  -webkit-overflow-scrolling: touch;
+  white-space: pre; /* keep columns aligned */
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+/* If your JS renders rows in divs */
+#results .ff-hourly,
+#results .ff-daily,
+#results .ff-rows,
+#results .rows {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Mobile: allow sideways scroll for dense tables */
+@media (max-width: 520px) {
+  #results table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
