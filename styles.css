@@ -1,36 +1,33 @@
-/* =====================================================
-   Fairway Forecast – styles.css (Option A: off-white, premium, mobile-first)
-   - Clean “NHS-like” neutrals + teal accent
-   - Better spacing, card hierarchy, tap targets
-   - Fixes container sizing/overflows on mobile
-   - Supports new favourites strip (#favsStrip)
-   ===================================================== */
+/* =========================
+   Fairway Forecast – Option A (Premium Light)
+   Mobile-first, neat containers, tighter current tile,
+   bigger daily icons, hide daily Summary column.
+========================= */
 
 :root{
-  --bg: #f5f7f8;
-  --surface: #ffffff;
-  --surface-2: #f0f4f6;
-  --border: rgba(16, 24, 40, .10);
-  --shadow: 0 10px 28px rgba(16,24,40,.08);
+  --bg: #eef5f6;
+  --bg2:#e7f0f1;
+
+  --card: #ffffff;
+  --card2:#ffffff;
 
   --text: #0f172a;
-  --muted: #5b6776;
+  --muted:#64748b;
 
-  --brand: #0f6b73;
-  --brand-2: #0b5d65;
-  --brand-soft: rgba(15,107,115,.10);
+  --brand:#1F6F78;
+  --brand-2:#2b8c97;
 
-  --good: #16a34a;
-  --warn: #f59e0b;
-  --bad:  #ef4444;
+  --border: rgba(15,23,42,.08);
+  --shadow: 0 10px 30px rgba(15,23,42,.08);
 
-  --radius: 18px;
-  --radius-sm: 14px;
+  --radius-xl: 22px;
+  --radius-lg: 18px;
+  --radius-md: 14px;
 
   --pad: 14px;
   --gap: 12px;
 
-  --tap: 44px;
+  --focus: 0 0 0 3px rgba(31,111,120,.18);
 }
 
 *{ box-sizing:border-box; }
@@ -39,539 +36,485 @@ body{
   margin:0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color: var(--text);
-  background: radial-gradient(1200px 600px at 20% -10%, rgba(15,107,115,.14), transparent 60%),
-              radial-gradient(900px 500px at 110% 10%, rgba(15,107,115,.10), transparent 55%),
-              var(--bg);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background: radial-gradient(1200px 700px at 10% 0%, #f7fbfc 0%, var(--bg) 50%, var(--bg2) 100%);
 }
 
-img{ max-width:100%; display:block; }
-
-/* ---------- Layout ---------- */
+/* App wrap */
 .ff-wrap{
-  width:100%;
-  max-width: 560px;
+  max-width: 520px;
   margin: 0 auto;
-  padding: 14px 14px 28px;
+  padding: 14px 14px 26px;
 }
 
-/* ---------- Header / Brand ---------- */
+/* Header */
 .ff-header{
-  margin-top: 8px;
-  margin-bottom: 12px;
+  margin: 6px 0 12px;
 }
-
 .ff-brand{
   display:flex;
   align-items:center;
   gap: 12px;
-  padding: 14px 14px;
-  background: rgba(255,255,255,.72);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,.7);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
+  padding: 12px 14px;
   box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
 }
-
 .ff-logo{
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background: #fff;
+  border-radius: 14px;
+  background:#fff;
   border: 1px solid var(--border);
-  padding: 6px;
 }
-
 .ff-brand-text strong{
   display:block;
-  font-weight: 800;
   font-size: 18px;
   line-height: 1.1;
-  letter-spacing: -.2px;
 }
 .ff-brand-text span{
   display:block;
-  margin-top: 2px;
-  color: var(--muted);
   font-size: 13px;
+  color: var(--muted);
+  margin-top: 2px;
 }
 
-/* ---------- Panels / Cards ---------- */
+/* Panels / cards */
 .ff-panel{
-  background: rgba(255,255,255,.78);
-  backdrop-filter: blur(10px);
+  background: rgba(255,255,255,.8);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-xl);
   padding: var(--pad);
-  margin: 12px 0;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  margin-bottom: 12px;
 }
 
-.ff-panel--search{
-  padding-bottom: 12px;
-}
-
-/* ---------- Labels / Inputs ---------- */
+/* Search */
 .ff-label{
   display:block;
   font-size: 13px;
-  font-weight: 700;
   color: var(--muted);
   margin-bottom: 8px;
+  font-weight: 600;
 }
-
 .ff-search-row{
   display:grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: 1fr auto auto;
   gap: 10px;
-  align-items: center;
+  align-items:center;
 }
-
 .ff-input{
   width:100%;
-  height: var(--tap);
-  padding: 0 14px;
-  border-radius: 14px;
+  border-radius: 18px;
   border: 1px solid var(--border);
+  padding: 14px 14px;
   background: #fff;
-  color: var(--text);
-  font-size: 16px; /* avoids iOS zoom */
-  outline: none;
+  font-size: 16px;
+  outline:none;
 }
-.ff-input:focus{
-  border-color: rgba(15,107,115,.35);
-  box-shadow: 0 0 0 4px rgba(15,107,115,.12);
-}
+.ff-input:focus{ box-shadow: var(--focus); border-color: rgba(31,111,120,.35); }
 
 .ff-btn{
-  height: var(--tap);
-  min-width: var(--tap);
-  padding: 0 14px;
-  border-radius: 14px;
   border: 1px solid var(--border);
   background: #fff;
-  color: var(--text);
+  border-radius: 18px;
+  padding: 12px 14px;
   font-weight: 700;
-  cursor: pointer;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap: 8px;
-  -webkit-tap-highlight-color: transparent;
+  font-size: 15px;
+  cursor:pointer;
+  user-select:none;
 }
 .ff-btn:active{ transform: translateY(1px); }
 
 .ff-btn-primary{
-  background: linear-gradient(180deg, rgba(15,107,115,.95), rgba(11,93,101,.95));
-  border-color: rgba(0,0,0,.06);
-  color: #fff;
-  box-shadow: 0 10px 22px rgba(15,107,115,.22);
+  background: linear-gradient(180deg, var(--brand) 0%, #155a61 100%);
+  color:#fff;
+  border-color: rgba(31,111,120,.35);
+  padding-left: 18px;
+  padding-right: 18px;
+  min-width: 98px;
 }
-
 .ff-btn-ghost{
-  background: rgba(255,255,255,.85);
+  min-width: 52px;
+  height: 46px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 18px;
 }
 
+/* Units row */
 .ff-units-row{
-  margin-top: 12px;
+  margin-top: 10px;
   display:flex;
   align-items:center;
   justify-content: space-between;
   gap: 10px;
 }
-
 .ff-select{
-  height: 40px;
-  padding: 0 12px;
-  border-radius: 14px;
+  border-radius: 18px;
   border: 1px solid var(--border);
-  background: #fff;
-  color: var(--text);
-  font-weight: 700;
+  padding: 10px 12px;
+  background:#fff;
+  font-weight:700;
+  outline:none;
 }
+.ff-select:focus{ box-shadow: var(--focus); }
 
-/* Hide tip (you asked to remove space-wasting info) */
-.ff-tip{ display:none; }
-
-/* ---------- Verdict (Top priority info) ---------- */
+/* Verdict */
 .ff-verdict{
-  background: rgba(255,255,255,.86);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  background: rgba(255,255,255,.85);
   padding: 14px;
-  margin: 12px 0;
+  box-shadow: var(--shadow);
+  margin: 0 0 12px;
 }
-
 .ff-verdict-main{
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   gap: 12px;
 }
-
 .ff-verdict-icon{
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 14px;
   display:flex;
   align-items:center;
   justify-content:center;
-  background: var(--surface-2);
+  font-size: 20px;
   border: 1px solid var(--border);
-  font-size: 18px;
+  background:#fff;
 }
-
 .ff-verdict-label{
-  font-weight: 900;
-  font-size: 16px;
-  letter-spacing: -.2px;
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.2;
 }
 .ff-verdict-reason{
-  margin-top: 2px;
   color: var(--muted);
   font-size: 13px;
+  margin-top: 2px;
 }
-
 .ff-verdict-meta{
   margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(16,24,40,.12);
   color: var(--muted);
   font-size: 13px;
 }
 
-.ff-verdict--play{
-  border-color: rgba(22,163,74,.28);
-  background: linear-gradient(180deg, rgba(22,163,74,.10), rgba(255,255,255,.88));
-}
-.ff-verdict--play .ff-verdict-icon{ background: rgba(22,163,74,.12); border-color: rgba(22,163,74,.25); }
-
-.ff-verdict--maybe{
-  border-color: rgba(245,158,11,.28);
-  background: linear-gradient(180deg, rgba(245,158,11,.12), rgba(255,255,255,.88));
-}
-.ff-verdict--maybe .ff-verdict-icon{ background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.25); }
-
-.ff-verdict--no{
-  border-color: rgba(239,68,68,.28);
-  background: linear-gradient(180deg, rgba(239,68,68,.12), rgba(255,255,255,.88));
-}
-.ff-verdict--no .ff-verdict-icon{ background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.25); }
-
-/* ---------- Tabs ---------- */
+/* Tabs */
 .ff-tabs{
   display:grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
-  margin: 12px 0;
+  margin: 0 0 12px;
 }
-
 .ff-tab{
-  height: 44px;
-  border-radius: 16px;
+  border-radius: 18px;
   border: 1px solid var(--border);
-  background: rgba(255,255,255,.78);
-  color: var(--muted);
-  font-weight: 900;
-  letter-spacing: -.2px;
-  cursor: pointer;
+  padding: 12px 10px;
+  font-weight: 800;
+  background: rgba(255,255,255,.8);
+  color: var(--text);
+  cursor:pointer;
 }
-
 .ff-tab.active{
-  background: linear-gradient(180deg, rgba(15,107,115,.95), rgba(11,93,101,.95));
-  color: #fff;
-  border-color: rgba(0,0,0,.06);
-  box-shadow: 0 10px 22px rgba(15,107,115,.20);
+  background: linear-gradient(180deg, var(--brand) 0%, #155a61 100%);
+  color:#fff;
+  border-color: rgba(31,111,120,.35);
 }
 
-/* ---------- Results area ---------- */
+/* Results container */
 .ff-results{
-  margin: 10px 0 8px;
-}
-
-/* Generic cards the JS renders */
-.ff-card{
-  background: rgba(255,255,255,.86);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
-  margin: 10px 0;
-}
-
-.ff-card.muted{ color: var(--muted); }
-
-.ff-big{
-  font-size: 22px;
-  margin-bottom: 8px;
-}
-
-.ff-sub{ font-size: 13px; color: var(--muted); }
-
-/* ---------- Location header card (course + favourite) ---------- */
-.ff-location{
   display:flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
-.ff-location-title{
-  font-weight: 900;
-  font-size: 16px;
-  letter-spacing: -.2px;
+/* ---------------------------
+   CURRENT TILE – make it tight, centered, premium
+   This targets common markup patterns your JS renders:
+   - a "location/title" area
+   - a "current weather" card with icon/temp/desc + stat rows
+--------------------------- */
+
+.ff-results .ff-panel,
+.ff-results .ff-card,
+.ff-results .card,
+.ff-results .panel{
+  /* in case JS uses different wrapper names */
+  background: rgba(255,255,255,.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow);
 }
-.ff-location-sub{
-  margin-top: 3px;
+
+/* Location header card: align star + text nicely */
+.ff-results .ff-location,
+.ff-results .location,
+.ff-results .location-card{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items:center;
+}
+.ff-results .ff-location h3,
+.ff-results .location h3,
+.ff-results .location-card h3{
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+}
+.ff-results .ff-location .sub,
+.ff-results .location .sub,
+.ff-results .location-card .sub{
+  margin-top: 4px;
   color: var(--muted);
   font-size: 13px;
 }
 
-.ff-fav-btn{
+/* Star button sizing */
+.ff-results .fav-btn,
+.ff-results .star-btn,
+.ff-results button[aria-label*="favorite"],
+.ff-results button[aria-label*="Favourite"],
+.ff-results button[title*="Favourite"],
+.ff-results button[title*="favorite"]{
+  width: 44px;
   height: 44px;
-  min-width: 44px;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: rgba(255,255,255,.9);
+  background:#fff;
   display:flex;
   align-items:center;
   justify-content:center;
   font-size: 18px;
 }
 
-/* ---------- “Important info at top” blocks ---------- */
-.ff-kpi{
-  display:grid;
-  gap: 10px;
+/* Current weather main card: tighten + center */
+.ff-results .ff-current,
+.ff-results .current,
+.ff-results .current-card{
+  padding: 14px !important;
 }
 
-.ff-kpi-row{
+/* If the current card uses a top "hero" row */
+.ff-results .ff-current .hero,
+.ff-results .current .hero,
+.ff-results .current-card .hero{
   display:grid;
   grid-template-columns: 1fr;
   gap: 10px;
-}
-
-.ff-kpi-main{
-  display:flex;
   align-items:center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-items:center;
+  text-align:center;
 }
 
-.ff-temp{
+/* Temperature + description */
+.ff-results .ff-current .temp,
+.ff-results .current .temp,
+.ff-results .current-card .temp{
   font-size: 34px;
   font-weight: 900;
-  letter-spacing: -.6px;
+  line-height: 1;
+  margin: 6px 0 0;
 }
-.ff-desc{
+.ff-results .ff-current .desc,
+.ff-results .current .desc,
+.ff-results .current-card .desc{
   color: var(--muted);
   font-weight: 700;
-  margin-top: 2px;
-}
-
-.ff-icon{
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-}
-.ff-icon img{
-  width: 54px;
-  height: 54px;
-  object-fit: contain;
-}
-
-/* Small stat pills (rain/wind/sunrise etc) */
-.ff-pills{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.ff-pill{
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.72);
-  border-radius: 16px;
-  padding: 10px 12px;
-}
-
-.ff-pill .k{
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 800;
-}
-.ff-pill .v{
-  margin-top: 2px;
-  font-weight: 900;
+  margin-top: 4px;
   font-size: 14px;
 }
 
-/* ---------- Tables (Hourly/Daily) ---------- */
-.ff-table{
-  width:100%;
+/* Weather icon: keep it centered and not huge */
+.ff-results img.weather-icon,
+.ff-results img.icon,
+.ff-results .ff-weather-icon img,
+.ff-results .current img{
+  width: 74px;
+  height: 74px;
+  object-fit: contain;
+  display:block;
+  margin: 6px auto 0;
+}
+
+/* Stats grid (wind/gust/rain/sunrise/sunset etc) */
+.ff-results .ff-current .stats,
+.ff-results .current .stats,
+.ff-results .current-card .stats,
+.ff-results .stats-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* Each stat chip */
+.ff-results .stat,
+.ff-results .stats-grid > div,
+.ff-results .ff-stat{
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.9);
+  border-radius: 16px;
+  padding: 10px 10px;
+  min-height: 44px;
+  display:flex;
+  flex-direction: column;
+  justify-content:center;
+  gap: 2px;
+}
+.ff-results .stat .k,
+.ff-results .ff-stat .k{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.ff-results .stat .v,
+.ff-results .ff-stat .v{
+  font-size: 14px;
+  font-weight: 900;
+}
+
+/* Favourites chip row */
+.ff-results .favourites,
+.ff-results .favorites,
+.ff-results .ff-favs{
+  display:flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.ff-results .favourites::-webkit-scrollbar,
+.ff-results .favorites::-webkit-scrollbar{ height: 6px; }
+.ff-results .favourites::-webkit-scrollbar-thumb,
+.ff-results .favorites::-webkit-scrollbar-thumb{
+  background: rgba(15,23,42,.12);
+  border-radius: 999px;
+}
+.ff-results .fav-chip,
+.ff-results .favourites button,
+.ff-results .favorites button{
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.95);
+  border-radius: 16px;
+  padding: 10px 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ---------------------------
+   HOURLY + DAILY tables (contained)
+--------------------------- */
+table{
+  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   overflow:hidden;
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
-  background: rgba(255,255,255,.86);
-  box-shadow: var(--shadow);
+  background: rgba(255,255,255,.9);
 }
-
-.ff-table th, .ff-table td{
-  padding: 12px 12px;
+thead th{
   text-align:left;
   font-size: 13px;
-}
-.ff-table th{
   color: var(--muted);
   font-weight: 900;
-  background: rgba(15,107,115,.06);
-  border-bottom: 1px solid rgba(16,24,40,.08);
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(239,246,247,.9);
 }
-.ff-table tr:not(:last-child) td{
-  border-bottom: 1px solid rgba(16,24,40,.06);
-}
-.ff-table td{
+tbody td{
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(15,23,42,.05);
   font-weight: 700;
 }
-.ff-table .iconcell{
-  width: 42px;
-}
-.ff-table .iconcell img{
-  width: 22px;
-  height: 22px;
-  vertical-align: middle;
+tbody tr:last-child td{ border-bottom:none; }
+
+/* Make icons in tables larger + crisp */
+table img{
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
-/* ---------- Playability card ---------- */
+/* DAILY: increase weather icons more, hide "Summary" column */
+.ff-results .daily table img,
+table.daily img{
+  width: 34px;
+  height: 34px;
+}
+
+/* Hide Summary column (4th column) on Daily table */
+.ff-results .daily table thead th:nth-child(4),
+.ff-results .daily table tbody td:nth-child(4){
+  display:none;
+}
+
+/* Also hide on small screens even if markup differs */
+@media (max-width: 520px){
+  .ff-results table thead th:nth-child(4),
+  .ff-results table tbody td:nth-child(4){
+    display:none;
+  }
+}
+
+/* Playability card */
 .ff-play{
   display:flex;
   align-items:center;
   justify-content: space-between;
   gap: 12px;
 }
-
 .ff-play-title{
   font-weight: 900;
-  font-size: 15px;
+  font-size: 16px;
 }
 .ff-play-sub{
-  margin-top: 2px;
-  font-size: 12px;
   color: var(--muted);
-  font-weight: 700;
+  font-size: 13px;
+  margin-top: 2px;
 }
 .ff-play-score{
-  height: 44px;
-  min-width: 78px;
-  border-radius: 16px;
-  border: 1px solid rgba(15,107,115,.22);
-  background: rgba(15,107,115,.10);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight: 900;
-}
-
-/* ---------- Favourites strip (new) ---------- */
-.ff-favs{
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: rgba(255,255,255,.78);
-  padding: 12px;
-}
-
-.ff-favs-head{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-.ff-favs-title{
-  font-weight: 900;
-  color: var(--text);
-}
-.ff-favs-close{
-  height: 36px;
-  width: 36px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #fff;
-  font-weight: 900;
-  cursor:pointer;
-}
-
-.ff-favs-list{
-  display:flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  -webkit-overflow-scrolling: touch;
-}
-.ff-favs-list::-webkit-scrollbar{ height: 8px; }
-.ff-favs-list::-webkit-scrollbar-thumb{ background: rgba(16,24,40,.12); border-radius: 99px; }
-
-.ff-fav-chip{
-  flex: 0 0 auto;
-  max-width: 240px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: #fff;
-  padding: 10px 12px;
-  box-shadow: 0 10px 22px rgba(16,24,40,.06);
-  cursor:pointer;
-}
-.ff-fav-chip .t{
-  font-weight: 900;
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ff-fav-chip .s{
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ---------- Footer ---------- */
-.ff-foot{
-  margin-top: 14px;
-  color: var(--muted);
-  font-size: 12px;
+  min-width: 92px;
   text-align:center;
+  padding: 12px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(239,246,247,.95);
+  font-weight: 900;
+  font-size: 18px;
 }
 
-/* ---------- Mobile tweaks ---------- */
-@media (max-width: 420px){
-  .ff-wrap{ padding: 12px 12px 26px; }
+/* Footer */
+.ff-foot{
+  text-align:center;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 10px;
+}
 
+/* Small screen tweaks */
+@media (max-width: 380px){
   .ff-search-row{
-    grid-template-columns: 1fr auto auto;
-    grid-auto-rows: auto;
+    grid-template-columns: 1fr;
   }
-
-  /* On small screens, keep only Search + Geo in row;
-     Favourites stays but squeezes nicely */
-  #btnFavs{ display:none; } /* keep footprint tiny; favs still accessible via star in location card */
-  .ff-pills{ grid-template-columns: 1fr; }
-  .ff-temp{ font-size: 32px; }
+  .ff-btn-primary{
+    width: 100%;
+  }
+  .ff-btn-ghost{
+    width: 100%;
+    height: 46px;
+  }
+  .ff-tabs{
+    gap: 8px;
+  }
 }
 
-/* ---------- Accessibility ---------- */
-@media (prefers-reduced-motion: reduce){
-  *{ scroll-behavior:auto !important; transition:none !important; }
-}
-```0
+/* Reduce accidental overflow */
+img, svg, canvas{ max-width:100%; }
