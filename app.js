@@ -1,10 +1,10 @@
 /* =====================================================
-   Fairway Forecast – app.js (FULL)
-   - Fixes "stuck on loading"
-   - Fixes missing weather icons (uses OpenWeather icon CDN)
-   - Renders Current / Hourly / Daily cleanly
-   - Safe against missing DOM + weird API shapes
-   - Works with your current index.html IDs
+   Fairway Forecast – app.js (FULL, hardened)
+   Fixes:
+   - Search stuck on "Loading..."
+   - Search results not clickable / not rendering
+   - Weather icons not showing (uses OpenWeather icon CDN)
+   - Safe DOM checks + crash-safe rendering
    ===================================================== */
 
 (() => {
@@ -14,12 +14,8 @@
   const API_BASE = "https://fairway-forecast-api.mziyabo.workers.dev";
   const MAX_RESULTS = 12;
 
-  const SUGGEST_MIN_CHARS = 3;
-  const SUGGEST_DEBOUNCE_MS = 450;
-  const SUGGEST_COOLDOWN_MS = 1400;
-
-  const COURSE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 mins
-  const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000; // 3 mins
+  const COURSE_CACHE_TTL_MS = 10 * 60 * 1000;
+  const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
 
   /* ---------- DOM ---------- */
   const $ = (id) => document.getElementById(id);
@@ -35,7 +31,7 @@
 
   const geoBtn = $("btnGeo") || $("geoBtn");
   const unitsSelect = $("unitsSelect") || $("units");
-  const suggestionsEl = $("searchSuggestions");
+  const suggestionsEl = $("searchSuggestions"); // optional datalist
 
   const verdictCard = $("verdictCard");
   const verdictIcon = $("verdictIcon");
@@ -44,18 +40,96 @@
   const verdictBestTime = $("verdictBestTime");
 
   if (!resultsEl) {
-    console.warn("Missing #results – app halted safely.");
+    console.warn("Missing #results. App halted safely.");
     return;
   }
 
   /* ---------- STATE ---------- */
-  let selectedCourse = null; // { name, city, state, country, lat, lon, id }
-  let lastRawWeather = null;
+  let selectedCourse = null;
   let lastNorm = null;
   let activeTab = "current";
 
-  let suggestTimer = null;
-  let suggestBlockedUntil = 0;
+  /* ---------- SAFE HTML ---------- */
+  const esc = (s) =>
+    String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+
+  const units = () => (unitsSelect?.value === "imperial" ? "imperial" : "metric");
+  const tempUnit = () => (units() === "imperial" ? "°F" : "°C");
+  const windUnit = () => (units() === "imperial" ? "mph" : "m/s");
+
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function pct(pop) {
+    return typeof pop === "number" ? `${Math.round(pop * 100)}%` : "";
+  }
+
+  function fmtTime(tsSeconds) {
+    if (!tsSeconds) return "";
+    return new Date(tsSeconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function fmtDay(tsSeconds) {
+    if (!tsSeconds) return "";
+    return new Date(tsSeconds * 1000).toLocaleDateString([], {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  }
+
+  function nowSec() {
+    return Math.floor(Date.now() / 1000);
+  }
+
+  function setActiveTab(next) {
+    activeTab = next;
+    [tabCurrent, tabHourly, tabDaily].forEach((b) => b?.classList.remove("active"));
+    if (next === "current") tabCurrent?.classList.add("active");
+    if (next === "hourly") tabHourly?.classList.add("active");
+    if (next === "daily") tabDaily?.classList.add("active");
+    renderAll();
+  }
+
+  function setBtnLoading(isLoading, label = "Search") {
+    if (!searchBtn) return;
+    searchBtn.dataset._label ??= searchBtn.textContent || label;
+    searchBtn.disabled = !!isLoading;
+    searchBtn.textContent = isLoading ? "Loading…" : searchBtn.dataset._label;
+  }
+
+  function showMessage(msg) {
+    resultsEl.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
+  }
+
+  function showError(msg, extra = "") {
+    const hint = extra ? `<div class="ff-sub muted" style="margin-top:8px">${esc(extra)}</div>` : "";
+    resultsEl.innerHTML = `<div class="ff-card">
+      <div class="ff-big">⚠️</div>
+      <div>${esc(msg)}</div>${hint}
+    </div>`;
+  }
+
+  /* ---------- ICONS (OpenWeather CDN) ---------- */
+  function owIconUrl(iconCode, size = 2) {
+    if (!iconCode) return "";
+    const s = size === 4 ? "@4x" : "@2x";
+    return `https://openweathermap.org/img/wn/${iconCode}${s}.png`;
+  }
+
+  function iconHtml(weatherArr, size = 2) {
+    const icon = Array.isArray(weatherArr) ? weatherArr?.[0]?.icon : null;
+    const main = Array.isArray(weatherArr) ? weatherArr?.[0]?.main : "";
+    const desc = Array.isArray(weatherArr) ? weatherArr?.[0]?.description : "";
+    const url = owIconUrl(icon, size);
+    if (!url) return "";
+    return `<img class="ff-wicon" src="${esc(url)}" alt="${esc(desc || main || "Weather")}" loading="lazy" />`;
+  }
 
   /* ---------- LOCAL STORAGE (FAVOURITES) ---------- */
   const LS_FAVS = "ff_favourites_v1";
@@ -115,94 +189,10 @@
     }
 
     saveFavs(favs);
-    renderAll(); // refresh header star + fav strip
-  }
-
-  /* ---------- HELPERS ---------- */
-  const esc = (s) =>
-    String(s ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
-
-  const units = () => (unitsSelect?.value === "imperial" ? "imperial" : "metric");
-  const windUnit = () => (units() === "imperial" ? "mph" : "m/s");
-  const tempUnit = () => (units() === "imperial" ? "°F" : "°C");
-
-  function clamp(n, min, max) {
-    return Math.max(min, Math.min(max, n));
-  }
-
-  function nowSec() {
-    return Math.floor(Date.now() / 1000);
-  }
-
-  function fmtTime(tsSeconds) {
-    if (!tsSeconds) return "";
-    return new Date(tsSeconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
-  function fmtDay(tsSeconds) {
-    return new Date(tsSeconds * 1000).toLocaleDateString([], {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  }
-
-  function pct(pop) {
-    if (typeof pop !== "number") return "";
-    return `${Math.round(pop * 100)}%`;
-  }
-
-  function setBtnLoading(isLoading) {
-    if (!searchBtn) return;
-    searchBtn.disabled = !!isLoading;
-    searchBtn.dataset._label ??= searchBtn.textContent || "Search";
-    searchBtn.textContent = isLoading ? "Loading…" : searchBtn.dataset._label;
-  }
-
-  function showMessage(msg) {
-    resultsEl.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
-  }
-
-  function showError(msg, extra = "") {
-    const hint = extra ? `<div class="ff-sub muted" style="margin-top:8px">${esc(extra)}</div>` : "";
-    resultsEl.innerHTML = `<div class="ff-card">
-      <div class="ff-big">⚠️</div>
-      <div>${esc(msg)}</div>
-      ${hint}
-    </div>`;
-  }
-
-  function setActiveTab(next) {
-    activeTab = next;
-    [tabCurrent, tabHourly, tabDaily].forEach((b) => b?.classList.remove("active"));
-    if (next === "current") tabCurrent?.classList.add("active");
-    if (next === "hourly") tabHourly?.classList.add("active");
-    if (next === "daily") tabDaily?.classList.add("active");
     renderAll();
   }
 
-  function owIconUrl(iconCode, size = 2) {
-    // OpenWeather icons
-    // https://openweathermap.org/weather-conditions
-    if (!iconCode) return "";
-    const s = size === 4 ? "@4x" : "@2x";
-    return `https://openweathermap.org/img/wn/${iconCode}${s}.png`;
-  }
-
-  function iconHtmlFromWeatherArr(weatherArr, size = 2) {
-    const icon = Array.isArray(weatherArr) ? weatherArr?.[0]?.icon : null;
-    const main = Array.isArray(weatherArr) ? weatherArr?.[0]?.main : "";
-    const desc = Array.isArray(weatherArr) ? weatherArr?.[0]?.description : "";
-    const url = owIconUrl(icon, size);
-    if (!url) return "";
-    return `<img class="ff-wicon" src="${esc(url)}" alt="${esc(desc || main || "Weather")}" loading="lazy" />`;
-  }
-
-  /* ---------- SIMPLE IN-MEMORY CACHE ---------- */
+  /* ---------- IN-MEMORY CACHE ---------- */
   const memCache = {
     courses: new Map(),
     weather: new Map(),
@@ -225,33 +215,41 @@
   /* ---------- API ---------- */
   async function apiGet(path) {
     const url = `${API_BASE}${path}`;
-    const res = await fetch(url, { method: "GET" });
 
-    if (res.status === 429) {
-      const err = new Error("HTTP 429 Too Many Requests");
-      err.status = 429;
-      throw err;
+    // hard timeout so it NEVER hangs forever
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
+
+    try {
+      const res = await fetch(url, { method: "GET", signal: ctrl.signal });
+
+      if (res.status === 429) {
+        const err = new Error("HTTP 429 Too Many Requests");
+        err.status = 429;
+        throw err;
+      }
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        const err = new Error(`HTTP ${res.status} ${res.statusText} ${text}`.trim());
+        err.status = res.status;
+        throw err;
+      }
+
+      return await res.json();
+    } finally {
+      clearTimeout(t);
     }
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      const err = new Error(`HTTP ${res.status} ${res.statusText} ${text}`.trim());
-      err.status = res.status;
-      throw err;
-    }
-
-    return res.json();
   }
 
   async function fetchCourses(query) {
     const q = (query || "").trim();
-    const cacheKey = `${q.toLowerCase()}`;
+    const cacheKey = q.toLowerCase();
     const cached = cacheGet(memCache.courses, cacheKey, COURSE_CACHE_TTL_MS);
     if (cached) return cached;
 
     const enc = encodeURIComponent(q);
     const data = await apiGet(`/courses?search=${enc}`);
-
     const list = Array.isArray(data?.courses) ? data.courses : [];
     cacheSet(memCache.courses, cacheKey, list);
     return list;
@@ -268,56 +266,28 @@
     return data;
   }
 
-  /* ---------- NORMALIZE WEATHER SHAPES ---------- */
+  /* ---------- NORMALIZE WEATHER ---------- */
   function normalizeWeather(raw) {
     const norm = { current: null, hourly: [], daily: [], sunrise: null, sunset: null };
     if (!raw || typeof raw !== "object") return norm;
 
-    norm.sunrise =
-      raw?.current?.sunrise ??
-      raw?.city?.sunrise ??
-      raw?.weather?.sys?.sunrise ??
-      raw?.current?.sys?.sunrise ??
-      null;
+    norm.sunrise = raw?.current?.sunrise ?? raw?.city?.sunrise ?? null;
+    norm.sunset = raw?.current?.sunset ?? raw?.city?.sunset ?? null;
 
-    norm.sunset =
-      raw?.current?.sunset ??
-      raw?.city?.sunset ??
-      raw?.weather?.sys?.sunset ??
-      raw?.current?.sys?.sunset ??
-      null;
-
-    // current (worker provides current snapshot from forecast first item)
-    if (raw?.current && typeof raw.current === "object") {
+    // current
+    if (raw?.current) {
       const c = raw.current;
-
-      const temp =
-        (typeof c.temp === "number" ? c.temp : null) ??
-        (typeof c?.main?.temp === "number" ? c.main.temp : null) ??
-        null;
-
-      const weatherArr = Array.isArray(c.weather) ? c.weather : [];
-
       norm.current = {
         dt: c.dt ?? null,
-        temp,
+        temp: typeof c.temp === "number" ? c.temp : null,
         feels_like: typeof c.feels_like === "number" ? c.feels_like : null,
         humidity: typeof c.humidity === "number" ? c.humidity : null,
-        wind_speed:
-          (typeof c?.wind?.speed === "number" ? c.wind.speed : null) ??
-          (typeof c?.wind_speed === "number" ? c.wind_speed : null) ??
-          null,
-        wind_gust:
-          (typeof c?.wind?.gust === "number" ? c.wind.gust : null) ??
-          (typeof c?.wind_gust === "number" ? c.wind_gust : null) ??
-          null,
+        wind_speed: typeof c?.wind?.speed === "number" ? c.wind.speed : null,
+        wind_gust: typeof c?.wind?.gust === "number" ? c.wind.gust : null,
         pop: typeof c.pop === "number" ? c.pop : null,
-        weather: weatherArr,
+        weather: Array.isArray(c.weather) ? c.weather : [],
       };
-    }
-
-    // fallback current from list
-    if (!norm.current && Array.isArray(raw?.list) && raw.list.length) {
+    } else if (Array.isArray(raw?.list) && raw.list.length) {
       const first = raw.list[0];
       norm.current = {
         dt: first.dt ?? null,
@@ -329,18 +299,12 @@
         pop: typeof first?.pop === "number" ? first.pop : null,
         weather: Array.isArray(first?.weather) ? first.weather : [],
       };
+      norm.sunrise = norm.sunrise ?? raw?.city?.sunrise ?? null;
+      norm.sunset = norm.sunset ?? raw?.city?.sunset ?? null;
     }
 
-    // hourly from list (forecast 3-hour steps)
-    if (Array.isArray(raw?.hourly) && raw.hourly.length) {
-      norm.hourly = raw.hourly.map((h) => ({
-        dt: h.dt,
-        temp: h.temp ?? h?.main?.temp ?? null,
-        pop: typeof h.pop === "number" ? h.pop : null,
-        wind_speed: h.wind_speed ?? h?.wind?.speed ?? null,
-        weather: Array.isArray(h.weather) ? h.weather : [],
-      }));
-    } else if (Array.isArray(raw?.list) && raw.list.length) {
+    // hourly from forecast list
+    if (Array.isArray(raw?.list) && raw.list.length) {
       norm.hourly = raw.list.slice(0, 16).map((it) => ({
         dt: it.dt,
         temp: it?.main?.temp ?? null,
@@ -350,53 +314,40 @@
       }));
     }
 
-    // daily derived from list grouped by day (up to 7)
-    if (Array.isArray(raw?.daily) && raw.daily.length) {
-      norm.daily = raw.daily.map((d) => ({
-        dt: d.dt,
-        min: d?.temp?.min ?? d?.min ?? null,
-        max: d?.temp?.max ?? d?.max ?? null,
-        pop: typeof d.pop === "number" ? d.pop : null,
-        weather: Array.isArray(d.weather) ? d.weather : [],
-      }));
-    } else if (Array.isArray(raw?.list) && raw.list.length) {
+    // daily derived from list grouped by day, pick icon nearest noon
+    if (Array.isArray(raw?.list) && raw.list.length) {
       const byDay = new Map();
 
       for (const it of raw.list) {
         const dt = it.dt;
         if (!dt) continue;
 
-        const key = new Date(dt * 1000).toLocaleDateString();
+        const dateKey = new Date(dt * 1000).toLocaleDateString();
         const tMin = it?.main?.temp_min;
         const tMax = it?.main?.temp_max;
         const pop = typeof it?.pop === "number" ? it.pop : null;
 
-        if (!byDay.has(key)) {
-          byDay.set(key, {
+        const hour = new Date(dt * 1000).getHours();
+        const distToNoon = Math.abs(hour - 12);
+
+        if (!byDay.has(dateKey)) {
+          byDay.set(dateKey, {
             dt,
             min: typeof tMin === "number" ? tMin : null,
             max: typeof tMax === "number" ? tMax : null,
             popMax: typeof pop === "number" ? pop : null,
-            middayIcon: it?.weather?.[0]?.icon ?? null,
-            middayMain: it?.weather?.[0]?.main ?? "",
-            middayDesc: it?.weather?.[0]?.description ?? "",
-            bestHourDist: 99,
+            bestNoonDist: distToNoon,
+            bestWeather: Array.isArray(it?.weather) ? it.weather : [],
           });
         } else {
-          const d = byDay.get(key);
-
+          const d = byDay.get(dateKey);
           if (typeof tMin === "number") d.min = d.min === null ? tMin : Math.min(d.min, tMin);
           if (typeof tMax === "number") d.max = d.max === null ? tMax : Math.max(d.max, tMax);
           if (typeof pop === "number") d.popMax = d.popMax === null ? pop : Math.max(d.popMax, pop);
 
-          // pick icon closest to 12:00 for summary
-          const hour = new Date(dt * 1000).getHours();
-          const dist = Math.abs(hour - 12);
-          if (dist < d.bestHourDist) {
-            d.bestHourDist = dist;
-            d.middayIcon = it?.weather?.[0]?.icon ?? d.middayIcon;
-            d.middayMain = it?.weather?.[0]?.main ?? d.middayMain;
-            d.middayDesc = it?.weather?.[0]?.description ?? d.middayDesc;
+          if (distToNoon < d.bestNoonDist) {
+            d.bestNoonDist = distToNoon;
+            d.bestWeather = Array.isArray(it?.weather) ? it.weather : d.bestWeather;
           }
         }
       }
@@ -409,24 +360,21 @@
           min: d.min,
           max: d.max,
           pop: d.popMax,
-          weather: d.middayMain
-            ? [{ main: d.middayMain, description: d.middayDesc, icon: d.middayIcon }]
-            : [],
+          weather: Array.isArray(d.bestWeather) ? d.bestWeather : [],
         }));
     }
 
     return norm;
   }
 
-  /* ---------- PLAYABILITY ---------- */
+  /* ---------- PLAYABILITY + VERDICT ---------- */
   function calculatePlayability(norm) {
     const c = norm?.current;
     if (!c) return "--";
 
     let score = 10;
-
     const w = typeof c.wind_speed === "number" ? c.wind_speed : 0;
-    const temp = typeof c.temp === "number" ? c.temp : null;
+    const t = typeof c.temp === "number" ? c.temp : null;
     const pop = typeof c.pop === "number" ? c.pop : 0;
 
     if (w > 10) score -= 3;
@@ -437,22 +385,21 @@
     else if (pop >= 0.4) score -= 2;
     else if (pop >= 0.2) score -= 1;
 
-    if (temp !== null) {
+    if (t !== null) {
       if (units() === "metric") {
-        if (temp < 4) score -= 2;
-        else if (temp < 8) score -= 1;
-        if (temp > 30) score -= 2;
+        if (t < 4) score -= 2;
+        else if (t < 8) score -= 1;
+        if (t > 30) score -= 2;
       } else {
-        if (temp < 40) score -= 2;
-        else if (temp < 46) score -= 1;
-        if (temp > 86) score -= 2;
+        if (t < 40) score -= 2;
+        else if (t < 46) score -= 1;
+        if (t > 86) score -= 2;
       }
     }
 
     return clamp(Math.round(score), 0, 10);
   }
 
-  /* ---------- BEST TEE TIME (DAYLIGHT ONLY + RAIN GUARD) ---------- */
   function bestTimeToday(norm) {
     const sunrise = norm?.sunrise;
     const sunset = norm?.sunset;
@@ -464,9 +411,7 @@
     const candidates = hourly.filter((h) => typeof h.dt === "number" && h.dt >= start && h.dt <= end);
     if (candidates.length === 0) return null;
 
-    const pops = candidates
-      .map((h) => (typeof h.pop === "number" ? h.pop : null))
-      .filter((x) => typeof x === "number");
+    const pops = candidates.map((h) => (typeof h.pop === "number" ? h.pop : null)).filter((x) => typeof x === "number");
     if (pops.length) {
       const minPop = Math.min(...pops);
       const avgPop = pops.reduce((a, b) => a + b, 0) / pops.length;
@@ -480,7 +425,6 @@
 
       const target = units() === "imperial" ? 65 : 18;
       const tempPenalty = temp === null ? 2 : Math.abs(temp - target) / 6;
-
       return pop * 12 + wind * 0.9 + tempPenalty;
     }
 
@@ -494,30 +438,25 @@
         best = c;
       }
     }
-
     return best;
   }
 
-  /* ---------- VERDICT ---------- */
   function calculateVerdict(norm) {
-    if (!norm?.current) {
-      return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null };
-    }
-
-    const c = norm.current;
-    const wind = typeof c.wind_speed === "number" ? c.wind_speed : 0;
-    const popNow = typeof c.pop === "number" ? c.pop : null;
-    const temp = typeof c.temp === "number" ? c.temp : null;
+    if (!norm?.current) return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null };
 
     const sunrise = norm.sunrise;
     const sunset = norm.sunset;
     const now = nowSec();
-
     if (sunrise && sunset && now > sunset - 3600) {
       return { status: "NO", label: "No-play recommended", reason: "Limited daylight remaining", best: null };
     }
 
     const best = bestTimeToday(norm);
+    const c = norm.current;
+
+    const wind = typeof c.wind_speed === "number" ? c.wind_speed : 0;
+    const popNow = typeof c.pop === "number" ? c.pop : null;
+    const temp = typeof c.temp === "number" ? c.temp : null;
 
     let score = 100;
 
@@ -558,7 +497,7 @@
   function renderVerdictCard(norm) {
     if (!verdictCard || !verdictLabel || !verdictReason || !verdictIcon || !verdictBestTime) return;
 
-    const v = calculateVerdict(norm);
+    const v = norm ? calculateVerdict(norm) : { status: "NEUTRAL", label: "—", reason: "—", best: null };
 
     verdictCard.classList.remove("ff-verdict--play", "ff-verdict--maybe", "ff-verdict--no", "ff-verdict--neutral");
 
@@ -578,71 +517,61 @@
 
     verdictLabel.textContent = v.label || "—";
     verdictReason.textContent = v.reason || "—";
-
-    if (v.best && typeof v.best.dt === "number") {
-      const t = typeof v.best.temp === "number" ? `${Math.round(v.best.temp)}${tempUnit()}` : "";
-      verdictBestTime.textContent = `${fmtTime(v.best.dt)}${t ? ` (${t})` : ""}`;
-    } else {
-      verdictBestTime.textContent = "—";
-    }
+    verdictBestTime.textContent =
+      v.best && typeof v.best.dt === "number" ? fmtTime(v.best.dt) : "—";
   }
 
-  /* ---------- RENDER BLOCKS ---------- */
-  function renderTopRow() {
-    // Location header + favourites strip in one area
+  function renderPlayability(norm) {
+    if (!playabilityScoreEl) return;
+    const p = norm ? calculatePlayability(norm) : "--";
+    playabilityScoreEl.textContent = `${p}/10`;
+  }
+
+  /* ---------- RENDER ---------- */
+  function renderHeaderBlock() {
     const favs = loadFavs();
+    const starOn = selectedCourse ? isFavourited(selectedCourse) : false;
+
+    const name = selectedCourse?.name ? esc(selectedCourse.name) : "Your location";
+    const line2 = [selectedCourse?.city, selectedCourse?.state, selectedCourse?.country].filter(Boolean).join(", ");
+
     const favStrip =
       favs.length === 0
         ? ""
         : `<div class="ff-favs">
             <div class="ff-favs-title">Favourites</div>
             <div class="ff-favs-list">
-              ${favs
-                .slice(0, 12)
-                .map((f) => {
-                  const title = [f.name, f.city, f.state, f.country].filter(Boolean).join(", ");
-                  return `<button type="button" class="ff-fav-pill" data-ll="${esc(
-                    `${f.lat},${f.lon}`
-                  )}" title="${esc(title)}">★ ${esc(f.name || "Favourite")}</button>`;
-                })
-                .join("")}
+              ${favs.slice(0, 12).map((f) => {
+                const ll = `${f.lat},${f.lon}`;
+                const title = [f.name, f.city, f.state, f.country].filter(Boolean).join(", ");
+                return `<button type="button" class="ff-fav-pill" data-ll="${esc(ll)}" title="${esc(title)}">★ ${esc(f.name || "Favourite")}</button>`;
+              }).join("")}
             </div>
           </div>`;
 
-    const selName = selectedCourse?.name ? esc(selectedCourse.name) : "Your location";
-    const selLine2 = [selectedCourse?.city, selectedCourse?.state, selectedCourse?.country].filter(Boolean).join(", ");
-    const selLine2Html = selLine2 ? `<div class="ff-sub">${esc(selLine2)}</div>` : "";
-    const starOn = selectedCourse ? isFavourited(selectedCourse) : false;
-
-    const header = `<div class="ff-card ff-course-header">
-        <div class="ff-course-header-main">
-          <div>
-            <div class="ff-course-title">${selName}</div>
-            ${selLine2Html}
-          </div>
-          ${
-            selectedCourse
-              ? `<button type="button" class="ff-btn ff-btn-ghost ff-star" id="favBtn" title="Favourite">
-                  ${starOn ? "★" : "☆"}
-                </button>`
-              : ""
-          }
+    return `<div class="ff-card ff-course-header">
+      <div class="ff-course-header-main">
+        <div>
+          <div class="ff-course-title">${name}</div>
+          ${line2 ? `<div class="ff-sub">${esc(line2)}</div>` : ""}
         </div>
-        ${favStrip}
-      </div>`;
-
-    return header;
+        ${
+          selectedCourse
+            ? `<button type="button" class="ff-btn ff-btn-ghost ff-star" id="favBtn" title="Favourite">${starOn ? "★" : "☆"}</button>`
+            : ""
+        }
+      </div>
+      ${favStrip}
+    </div>`;
   }
 
   function renderCurrent(norm) {
-    if (!norm?.current) {
-      return `<div class="ff-card muted">No current weather available.</div>`;
-    }
+    const c = norm?.current;
+    if (!c) return `<div class="ff-card muted">No current weather available.</div>`;
 
-    const c = norm.current;
-    const temp = typeof c.temp === "number" ? `${Math.round(c.temp)}${tempUnit()}` : "";
-    const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "";
-    const icon = iconHtmlFromWeatherArr(c.weather, 2);
+    const t = typeof c.temp === "number" ? `${Math.round(c.temp)}${tempUnit()}` : "—";
+    const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "—";
+    const ico = iconHtml(c.weather, 2);
 
     const wind = typeof c.wind_speed === "number" ? `${c.wind_speed.toFixed(1)} ${windUnit()}` : "";
     const gust = typeof c.wind_gust === "number" ? `${c.wind_gust.toFixed(1)} ${windUnit()}` : "";
@@ -654,67 +583,53 @@
     const best = bestTimeToday(norm);
     const bestText = best?.dt ? fmtTime(best.dt) : "";
 
-    // Only render rows that have values (removes ugly dashes)
-    const rows = [
+    const stats = [
       wind ? `<div class="ff-stat"><span>Wind</span><strong>${esc(wind)}</strong></div>` : "",
       gust ? `<div class="ff-stat"><span>Gust</span><strong>${esc(gust)}</strong></div>` : "",
       rain ? `<div class="ff-stat"><span>Rain chance</span><strong>${esc(rain)}</strong></div>` : "",
       sunrise ? `<div class="ff-stat"><span>Sunrise</span><strong>${esc(sunrise)}</strong></div>` : "",
       sunset ? `<div class="ff-stat"><span>Sunset</span><strong>${esc(sunset)}</strong></div>` : "",
       bestText ? `<div class="ff-stat"><span>Best time</span><strong>${esc(bestText)}</strong></div>` : "",
-    ]
-      .filter(Boolean)
-      .join("");
+    ].filter(Boolean).join("");
 
     return `<div class="ff-card ff-current">
-        <div class="ff-current-top">
-          <div class="ff-current-left">
-            <div class="ff-current-temp">${esc(temp || "—")}</div>
-            <div class="ff-current-desc">${esc(desc || "—")}</div>
-          </div>
-          <div class="ff-current-icon">${icon || ""}</div>
+      <div class="ff-current-top">
+        <div class="ff-current-left">
+          <div class="ff-current-temp">${esc(t)}</div>
+          <div class="ff-current-desc">${esc(desc)}</div>
         </div>
-        <div class="ff-stats-grid">
-          ${rows || `<div class="muted">No additional details.</div>`}
-        </div>
-      </div>`;
+        <div class="ff-current-icon">${ico || ""}</div>
+      </div>
+      <div class="ff-stats-grid">${stats || `<div class="muted">No extra details.</div>`}</div>
+    </div>`;
   }
 
   function renderHourly(norm) {
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     if (!hourly.length) return `<div class="ff-card muted">No hourly data available.</div>`;
 
-    const rows = hourly
-      .slice(0, 16)
-      .map((h) => {
-        const time = h?.dt ? fmtTime(h.dt) : "";
-        const t = typeof h.temp === "number" ? `${Math.round(h.temp)}${tempUnit()}` : "";
-        const rain = typeof h.pop === "number" ? pct(h.pop) : "";
-        const wind = typeof h.wind_speed === "number" ? `${h.wind_speed.toFixed(1)} ${windUnit()}` : "";
-        const icon = iconHtmlFromWeatherArr(h.weather, 2);
+    const rows = hourly.slice(0, 16).map((h) => {
+      const time = h?.dt ? fmtTime(h.dt) : "";
+      const t = typeof h.temp === "number" ? `${Math.round(h.temp)}${tempUnit()}` : "";
+      const rain = typeof h.pop === "number" ? pct(h.pop) : "";
+      const wind = typeof h.wind_speed === "number" ? `${h.wind_speed.toFixed(1)} ${windUnit()}` : "";
+      const ico = iconHtml(h.weather, 2);
 
-        return `<tr>
-          <td class="ff-td-time">${esc(time)}</td>
-          <td>${icon || ""}</td>
-          <td>${esc(t)}</td>
-          <td>${esc(rain)}</td>
-          <td>${esc(wind)}</td>
-        </tr>`;
-      })
-      .join("");
+      return `<tr>
+        <td class="ff-td-time">${esc(time)}</td>
+        <td class="ff-td-icon">${ico || ""}</td>
+        <td>${esc(t)}</td>
+        <td>${esc(rain)}</td>
+        <td>${esc(wind)}</td>
+      </tr>`;
+    }).join("");
 
     return `<div class="ff-card">
       <div class="ff-card-title">Hourly</div>
       <div class="ff-table-wrap">
         <table class="ff-table">
           <thead>
-            <tr>
-              <th>Time</th>
-              <th></th>
-              <th>Temp</th>
-              <th>Rain</th>
-              <th>Wind</th>
-            </tr>
+            <tr><th>Time</th><th></th><th>Temp</th><th>Rain</th><th>Wind</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -726,39 +641,30 @@
     const daily = Array.isArray(norm?.daily) ? norm.daily : [];
     if (!daily.length) return `<div class="ff-card muted">No daily data available.</div>`;
 
-    const rows = daily
-      .slice(0, 7)
-      .map((d) => {
-        const day = d?.dt ? fmtDay(d.dt) : "";
-        const hi = typeof d.max === "number" ? Math.round(d.max) : null;
-        const lo = typeof d.min === "number" ? Math.round(d.min) : null;
-        const hiLo = hi !== null && lo !== null ? `${hi}${tempUnit()} / ${lo}${tempUnit()}` : "";
-        const rain = typeof d.pop === "number" ? pct(d.pop) : "";
-        const summary = d?.weather?.[0]?.main || d?.weather?.[0]?.description || "";
-        const icon = iconHtmlFromWeatherArr(d.weather, 2);
+    const rows = daily.slice(0, 7).map((d) => {
+      const day = d?.dt ? fmtDay(d.dt) : "";
+      const hi = typeof d.max === "number" ? Math.round(d.max) : null;
+      const lo = typeof d.min === "number" ? Math.round(d.min) : null;
+      const hiLo = hi !== null && lo !== null ? `${hi}${tempUnit()} / ${lo}${tempUnit()}` : "";
+      const rain = typeof d.pop === "number" ? pct(d.pop) : "";
+      const summary = d?.weather?.[0]?.main || d?.weather?.[0]?.description || "";
+      const ico = iconHtml(d.weather, 2);
 
-        return `<tr>
-          <td class="ff-td-day">${esc(day)}</td>
-          <td>${icon || ""}</td>
-          <td>${esc(hiLo)}</td>
-          <td>${esc(rain)}</td>
-          <td>${esc(summary)}</td>
-        </tr>`;
-      })
-      .join("");
+      return `<tr>
+        <td class="ff-td-day">${esc(day)}</td>
+        <td class="ff-td-icon">${ico || ""}</td>
+        <td>${esc(hiLo)}</td>
+        <td>${esc(rain)}</td>
+        <td>${esc(summary)}</td>
+      </tr>`;
+    }).join("");
 
     return `<div class="ff-card">
       <div class="ff-card-title">Daily · up to 7 days</div>
       <div class="ff-table-wrap">
         <table class="ff-table">
           <thead>
-            <tr>
-              <th>Day</th>
-              <th></th>
-              <th>High/Low</th>
-              <th>Rain</th>
-              <th>Summary</th>
-            </tr>
+            <tr><th>Day</th><th></th><th>High/Low</th><th>Rain</th><th>Summary</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -766,15 +672,26 @@
     </div>`;
   }
 
-  function renderPlayability(norm) {
-    if (!playabilityScoreEl) return;
-    const p = calculatePlayability(norm);
-    playabilityScoreEl.textContent = `${p}/10`;
+  function wireHeaderButtons() {
+    const favBtn = $("favBtn");
+    favBtn?.addEventListener("click", () => toggleFavourite(selectedCourse));
+
+    resultsEl.querySelectorAll("[data-ll]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const ll = btn.getAttribute("data-ll") || "";
+        const [latStr, lonStr] = ll.split(",");
+        const lat = Number(latStr);
+        const lon = Number(lonStr);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+        selectedCourse = { id: null, name: btn.textContent.replace(/^★\s*/, ""), city: "", state: "", country: "", lat, lon };
+        loadWeatherForSelected();
+      });
+    });
   }
 
   function renderAll() {
-    // Compose results area: header + active tab content
-    const top = renderTopRow();
+    const header = renderHeaderBlock();
 
     let body = "";
     if (!lastNorm) {
@@ -787,44 +704,29 @@
       body = renderDaily(lastNorm);
     }
 
-    resultsEl.innerHTML = `${top}${body}`;
-
-    // Wire buttons inside results
-    const favBtn = $("favBtn");
-    favBtn?.addEventListener("click", () => toggleFavourite(selectedCourse));
-
-    // Fav pills click -> load that favourite
-    resultsEl.querySelectorAll("[data-ll]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const ll = btn.getAttribute("data-ll") || "";
-        const [latStr, lonStr] = ll.split(",");
-        const lat = Number(latStr);
-        const lon = Number(lonStr);
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-
-        selectedCourse = { name: btn.textContent.replace(/^★\s*/, ""), lat, lon, city: "", state: "", country: "", id: null };
-        loadWeatherForSelected();
-      });
-    });
+    resultsEl.innerHTML = `${header}${body}`;
+    wireHeaderButtons();
   }
 
-  /* ---------- SEARCH + SELECT ---------- */
-  function normalizeCourse(c) {
-    // Your worker returns: { id, name, city, state, country, lat, lon, ... }
+  /* ---------- SEARCH ---------- */
+  function normalizeCourse(raw) {
     return {
-      id: c?.id ?? null,
-      name: c?.name || c?.course_name || c?.club_name || "Course",
-      city: c?.city || "",
-      state: c?.state || "",
-      country: c?.country || "",
-      lat: typeof c?.lat === "number" ? c.lat : typeof c?.latitude === "number" ? c.latitude : null,
-      lon: typeof c?.lon === "number" ? c.lon : typeof c?.longitude === "number" ? c.longitude : null,
+      id: raw?.id ?? null,
+      name: raw?.name || raw?.course_name || raw?.club_name || "Course",
+      city: raw?.city || "",
+      state: raw?.state || "",
+      country: raw?.country || "",
+      lat: typeof raw?.lat === "number" ? raw.lat : null,
+      lon: typeof raw?.lon === "number" ? raw.lon : null,
     };
   }
 
-  function renderCourseResults(list) {
+  function renderSearchResults(list) {
+    const header = renderHeaderBlock();
+
     if (!Array.isArray(list) || list.length === 0) {
-      resultsEl.innerHTML = `${renderTopRow()}<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
+      resultsEl.innerHTML = `${header}<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
+      wireHeaderButtons();
       return;
     }
 
@@ -838,19 +740,19 @@
           <div class="ff-result-sub">${esc(line2)}</div>
         </div>
       </button>`;
-    });
+    }).join("");
 
-    resultsEl.innerHTML = `${renderTopRow()}
+    resultsEl.innerHTML = `${header}
       <div class="ff-card">
         <div class="ff-card-title">Select a result</div>
-        <div class="ff-result-list">${items.join("")}</div>
+        <div class="ff-result-list">${items}</div>
       </div>`;
 
+    // IMPORTANT: bind clicks AFTER inserting the DOM
     resultsEl.querySelectorAll(".ff-result[data-i]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const i = Number(btn.getAttribute("data-i"));
-        const raw = list[i];
-        const c = normalizeCourse(raw);
+        const c = normalizeCourse(list[i]);
         if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) {
           showError("That result is missing coordinates.", "Try another result.");
           return;
@@ -859,6 +761,8 @@
         loadWeatherForSelected();
       });
     });
+
+    wireHeaderButtons();
   }
 
   async function doSearch() {
@@ -873,10 +777,21 @@
 
     try {
       const list = await fetchCourses(q);
-      renderCourseResults(list);
+      renderSearchResults(list);
+
+      // optional suggestions list
+      if (suggestionsEl) {
+        suggestionsEl.innerHTML = list.slice(0, 12).map((raw) => {
+          const c = normalizeCourse(raw);
+          const line2 = [c.city, c.state, c.country].filter(Boolean).join(", ");
+          return `<option value="${esc(line2 ? `${c.name} — ${line2}` : c.name)}"></option>`;
+        }).join("");
+      }
     } catch (err) {
-      const status = err?.status;
-      if (status === 429) {
+      console.error("Search error:", err);
+      if (err?.name === "AbortError") {
+        showError("Search timed out.", "Try again (your API may be slow right now).");
+      } else if (err?.status === 429) {
         showError("Rate limited (too many requests).", "Wait ~30 seconds and try again.");
       } else {
         showError("Search failed.", err?.message || "Unknown error");
@@ -886,27 +801,27 @@
     }
   }
 
+  /* ---------- WEATHER LOAD ---------- */
   async function loadWeatherForSelected() {
     if (!selectedCourse || !Number.isFinite(Number(selectedCourse.lat)) || !Number.isFinite(Number(selectedCourse.lon))) {
       showMessage("Select a location first.");
       return;
     }
 
-    setBtnLoading(false);
     showMessage("Loading forecast…");
 
     try {
       const raw = await fetchWeather(selectedCourse.lat, selectedCourse.lon);
-      lastRawWeather = raw;
       lastNorm = normalizeWeather(raw);
 
-      // update verdict + playability + main render
       renderVerdictCard(lastNorm);
       renderPlayability(lastNorm);
       renderAll();
     } catch (err) {
-      const status = err?.status;
-      if (status === 429) {
+      console.error("Weather error:", err);
+      if (err?.name === "AbortError") {
+        showError("Weather request timed out.", "Try again.");
+      } else if (err?.status === 429) {
         showError("Weather provider rate limited.", "Wait a moment and try again.");
       } else {
         showError("Weather fetch failed.", err?.message || "Unknown error");
@@ -914,42 +829,8 @@
     }
   }
 
-  /* ---------- SUGGESTIONS ---------- */
-  function fillSuggestions(list) {
-    if (!suggestionsEl) return;
-    const opts = (list || []).slice(0, 12).map((raw) => {
-      const c = normalizeCourse(raw);
-      const line2 = [c.city, c.state, c.country].filter(Boolean).join(", ");
-      const label = line2 ? `${c.name} — ${line2}` : c.name;
-      return `<option value="${esc(label)}"></option>`;
-    });
-    suggestionsEl.innerHTML = opts.join("");
-  }
-
-  function handleSuggest() {
-    if (!searchInput) return;
-
-    const q = (searchInput.value || "").trim();
-    if (q.length < SUGGEST_MIN_CHARS) {
-      if (suggestionsEl) suggestionsEl.innerHTML = "";
-      return;
-    }
-
-    if (Date.now() < suggestBlockedUntil) return;
-
-    clearTimeout(suggestTimer);
-    suggestTimer = setTimeout(async () => {
-      try {
-        const list = await fetchCourses(q);
-        fillSuggestions(list);
-      } catch (err) {
-        if (err?.status === 429) suggestBlockedUntil = Date.now() + SUGGEST_COOLDOWN_MS;
-      }
-    }, SUGGEST_DEBOUNCE_MS);
-  }
-
   /* ---------- GEOLOCATION ---------- */
-  async function useMyLocation() {
+  function useMyLocation() {
     if (!navigator.geolocation) {
       showError("Geolocation not supported on this device.");
       return;
@@ -959,23 +840,14 @@
     showMessage("Getting your location…");
 
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         try {
           const lat = pos?.coords?.latitude;
           const lon = pos?.coords?.longitude;
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error("Invalid coordinates");
 
-          selectedCourse = {
-            id: null,
-            name: "Your location",
-            city: "",
-            state: "",
-            country: "",
-            lat,
-            lon,
-          };
-
-          await loadWeatherForSelected();
+          selectedCourse = { id: null, name: "Your location", city: "", state: "", country: "", lat, lon };
+          loadWeatherForSelected();
         } catch (e) {
           showError("Could not use your location.", e?.message || "Unknown error");
         } finally {
@@ -1004,17 +876,14 @@
     }
   });
 
-  searchInput?.addEventListener("input", handleSuggest);
-
   geoBtn?.addEventListener("click", useMyLocation);
 
-  unitsSelect?.addEventListener("change", async () => {
-    // re-fetch weather for selected (units change affects temps/wind)
+  unitsSelect?.addEventListener("change", () => {
     if (!selectedCourse) return;
-    await loadWeatherForSelected();
+    loadWeatherForSelected();
   });
 
-  /* ---------- INITIAL ---------- */
+  /* ---------- INIT ---------- */
   renderVerdictCard(null);
   renderPlayability(null);
   renderAll();
