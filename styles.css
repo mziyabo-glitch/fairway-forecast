@@ -54,6 +54,48 @@ body{
   margin: 0 auto;
   padding: 14px 12px 22px;
 }
+/* ✅ Logo: prevent “black box” + keep it crisp */
+.ff-logo{
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  display:block;
+  object-fit:contain;
+  background:transparent;     /* important: no dark backing */
+  padding:0;                  /* remove extra boxy padding */
+}
+
+/* ✅ Brand row spacing (if needed) */
+.ff-brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+/* ✅ Keep verdict clearly separated AND above results */
+.ff-tabs{
+  margin-bottom: 10px;
+}
+
+.ff-verdict{
+  margin: 12px 0 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+/* Optional divider line under tabs for clarity */
+.ff-tabs::after{
+  content:"";
+  display:block;
+  height:1px;
+  margin-top:10px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255,255,255,0.15),
+    transparent
+  );
+}
 
 /* Header */
 .ff-hero{
@@ -449,6 +491,7 @@ body::before{
   display: flex;
   flex-direction: column;
 }
+
 
 
 
