@@ -1118,10 +1118,22 @@
     }
     
     // Best time: Show tomorrow's best time if nighttime
+    // Safety check: ensure tee time never exceeds sunset
+    const sunset = norm?.sunset;
     if (isNighttime && tomorrowData?.best && typeof tomorrowData.best.dt === "number") {
-      verdictBestTime.textContent = fmtTime(tomorrowData.best.dt);
+      const bestDt = tomorrowData.best.dt;
+      if (!sunset || bestDt < sunset) {
+        verdictBestTime.textContent = fmtTime(bestDt);
+      } else {
+        verdictBestTime.textContent = "—";
+      }
     } else {
-      verdictBestTime.textContent = v.best && typeof v.best.dt === "number" ? fmtTime(v.best.dt) : "—";
+      const bestDt = v.best && typeof v.best.dt === "number" ? v.best.dt : null;
+      if (bestDt && (!sunset || bestDt < sunset)) {
+        verdictBestTime.textContent = fmtTime(bestDt);
+      } else {
+        verdictBestTime.textContent = "—";
+      }
     }
 
     // Quick stats: Show tomorrow's stats when nighttime
@@ -1507,7 +1519,9 @@
     }
 
     const best = isNighttime ? null : bestTimeToday(norm);
-    const bestText = best?.dt ? fmtTime(best.dt) : "";
+    // Safety check: ensure displayed tee time never exceeds sunset
+    const sunset = norm?.sunset;
+    const bestText = best?.dt && (!sunset || best.dt < sunset) ? fmtTime(best.dt) : "";
 
     const stats = [
       timeDisplay ? `<div class="ff-stat"><span>Time</span><strong>${esc(timeDisplay)}</strong></div>` : "",
