@@ -136,9 +136,23 @@
     return typeof pop === "number" ? `${Math.round(pop * 100)}%` : "";
   }
 
-  function fmtTime(tsSeconds) {
+  function fmtTime(tsSeconds, showGMT = false) {
     if (!tsSeconds) return "";
-    return new Date(tsSeconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const date = new Date(tsSeconds * 1000);
+    const localTime = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    if (showGMT) {
+      const gmtTime = date.toUTCString().match(/\d{2}:\d{2}/)?.[0] || "";
+      return `${localTime} (GMT ${gmtTime})`;
+    }
+    return localTime;
+  }
+  
+  function getLocalAndGMTTime(tsSeconds) {
+    if (!tsSeconds) return { local: "", gmt: "" };
+    const date = new Date(tsSeconds * 1000);
+    const local = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const gmt = date.toUTCString().match(/\d{2}:\d{2}/)?.[0] || "";
+    return { local, gmt };
   }
 
   function fmtDay(tsSeconds) {
@@ -840,7 +854,7 @@
 
   function calculateVerdictForDay(norm, dayDt, dayData) {
     if (!norm || !dayDt || !dayData) {
-      return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null };
+      return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null, isNighttime: false };
     }
 
     const best = bestTimeForDay(norm, dayDt);
@@ -901,13 +915,26 @@
   }
 
   function calculateVerdict(norm) {
-    if (!norm?.current) return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null };
+    if (!norm?.current) return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null, isNighttime: false };
 
     const sunrise = norm.sunrise;
     const sunset = norm.sunset;
     const now = nowSec();
+    const isNighttime = sunrise && sunset && now > sunset;
+    
+    if (isNighttime) {
+      // Return tomorrow's verdict instead
+      const daily = Array.isArray(norm?.daily) ? norm.daily : [];
+      const tomorrow = daily.length > 0 ? daily[0] : null;
+      if (tomorrow) {
+        const tomorrowVerdict = calculateVerdictForDay(norm, tomorrow.dt, tomorrow);
+        return { ...tomorrowVerdict, isNighttime: true, isTomorrow: true };
+      }
+      return { status: "NO", label: "Nighttime", reason: "It's nighttime — showing tomorrow's forecast", best: null, isNighttime: true, isTomorrow: false };
+    }
+    
     if (sunrise && sunset && now > sunset - 3600) {
-      return { status: "NO", label: "No-play recommended", reason: "Limited daylight remaining", best: null };
+      return { status: "NO", label: "No-play recommended", reason: "Limited daylight remaining", best: null, isNighttime: false };
     }
 
     const best = bestTimeToday(norm);
@@ -956,8 +983,10 @@
   function renderVerdictCard(norm) {
     if (!verdictCard || !verdictLabel || !verdictReason || !verdictIcon || !verdictBestTime) return;
 
-    const v = norm ? calculateVerdict(norm) : { status: "NEUTRAL", label: "—", reason: "—", best: null };
+    const v = norm ? calculateVerdict(norm) : { status: "NEUTRAL", label: "—", reason: "—", best: null, isNighttime: false };
     const c = norm?.current;
+    const isNighttime = v.isNighttime || false;
+    const isTomorrow = v.isTomorrow || false;
 
     verdictCard.classList.remove("ff-verdict--play", "ff-verdict--maybe", "ff-verdict--no", "ff-verdict--neutral");
 
@@ -975,7 +1004,8 @@
       verdictIcon.textContent = "—";
     }
 
-    verdictLabel.innerHTML = `${v.label || "—"} <span class="ff-info-icon" title="Click for more info">ℹ️</span>`;
+    const labelText = isNighttime && isTomorrow ? `${v.label || "—"} (Tomorrow)` : v.label || "—";
+    verdictLabel.innerHTML = `${labelText} <span class="ff-info-icon" title="Click for more info">ℹ️</span>`;
     verdictReason.textContent = v.reason || "—";
     verdictBestTime.textContent =
       v.best && typeof v.best.dt === "number" ? fmtTime(v.best.dt) : "—";
@@ -1235,13 +1265,47 @@
   }
 
   function renderCurrent(norm) {
-    const c = norm?.current;
+    if (!norm) return `<div class="ff-card muted">No current weather available.</div>`;
+    
+    // Check if it's nighttime and show tomorrow's forecast
+    const sunrise = norm.sunrise;
+    const sunset = norm.sunset;
+    const now = nowSec();
+    const isNighttime = sunrise && sunset && now > sunset;
+    
+    let c = norm.current;
+    let isTomorrow = false;
+    let tomorrowLabel = "";
+    
+    if (isNighttime) {
+      const daily = Array.isArray(norm?.daily) ? norm.daily : [];
+      const tomorrow = daily.length > 0 ? daily[0] : null;
+      if (tomorrow) {
+        // Use tomorrow's data for display
+        c = {
+          dt: tomorrow.dt,
+          temp: tomorrow.max,
+          feels_like: tomorrow.max,
+          weather: tomorrow.weather || [],
+          pop: tomorrow.pop || 0,
+          wind_speed: null, // Daily doesn't have wind, will show from hourly
+          wind_deg: null,
+        };
+        isTomorrow = true;
+        tomorrowLabel = " (Tomorrow)";
+      }
+    }
+    
     if (!c) return `<div class="ff-card muted">No current weather available.</div>`;
 
     const t = typeof c.temp === "number" ? `${roundNum(c.temp)}${tempUnit()}` : "—";
     const feelsLike = typeof c.feels_like === "number" ? `${roundNum(c.feels_like)}${tempUnit()}` : null;
     const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "—";
     const ico = iconHtml(c.weather, 2);
+    
+    // Get current time display (GMT and local)
+    const currentTime = getLocalAndGMTTime(c.dt || now);
+    const timeDisplay = currentTime.local && currentTime.gmt ? `${currentTime.local} / GMT ${currentTime.gmt}` : "";
 
     const windSpeed = typeof c.wind_speed === "number" ? c.wind_speed : null;
     const windSpeedRounded = windSpeed ? roundNum(windSpeed, 1) : null;
@@ -1263,26 +1327,42 @@
     const rainMm = typeof c.rain_mm === "number" && c.rain_mm > 0 ? `${roundNum(c.rain_mm, 1)} mm` : "";
     const rain = [rainProb, rainMm].filter(Boolean).join(" · ");
 
-    const sunrise = norm.sunrise ? fmtTime(norm.sunrise) : "";
-    const sunset = norm.sunset ? fmtTime(norm.sunset) : "";
+    // Get sunrise/sunset times (for tomorrow if nighttime)
+    let sunriseTime = "";
+    let sunsetTime = "";
+    if (isNighttime && isTomorrow) {
+      // Use tomorrow's sunrise/sunset - estimate or use next day's data
+      const daily = Array.isArray(norm?.daily) ? norm.daily : [];
+      const tomorrow = daily.length > 0 ? daily[0] : null;
+      // Note: Daily data might not have sunrise/sunset, so we'll show current day's for reference
+      sunriseTime = norm.sunrise ? fmtTime(norm.sunrise) : "";
+      sunsetTime = norm.sunset ? fmtTime(norm.sunset) : "";
+    } else {
+      sunriseTime = norm.sunrise ? fmtTime(norm.sunrise) : "";
+      sunsetTime = norm.sunset ? fmtTime(norm.sunset) : "";
+    }
 
-    const best = bestTimeToday(norm);
+    const best = isNighttime ? null : bestTimeToday(norm);
     const bestText = best?.dt ? fmtTime(best.dt) : "";
 
     const stats = [
+      timeDisplay ? `<div class="ff-stat"><span>Time</span><strong>${esc(timeDisplay)}</strong></div>` : "",
       windDisplay || (wind ? `<div class="ff-stat"><span>Wind</span><strong>${esc(wind)}</strong></div>` : ""),
       gust ? `<div class="ff-stat"><span>Gust</span><strong>${esc(gust)}</strong></div>` : "",
       humidity ? `<div class="ff-stat"><span>Humidity</span><strong>${esc(humidity)}</strong></div>` : "",
       rain ? `<div class="ff-stat"><span>Rain</span><strong>${esc(rain)}</strong></div>` : "",
-      sunrise ? `<div class="ff-stat"><span>Sunrise</span><strong>${esc(sunrise)}</strong></div>` : "",
-      sunset ? `<div class="ff-stat"><span>Sunset</span><strong>${esc(sunset)}</strong></div>` : "",
+      sunriseTime ? `<div class="ff-stat"><span>Sunrise</span><strong>${esc(sunriseTime)}</strong></div>` : "",
+      sunsetTime ? `<div class="ff-stat"><span>Sunset</span><strong>${esc(sunsetTime)}</strong></div>` : "",
       bestText ? `<div class="ff-stat"><span>Best time</span><strong>${esc(bestText)}</strong></div>` : "",
     ].filter(Boolean).join("");
 
+    const nighttimeBadge = isNighttime ? `<div class="ff-nighttime-badge">🌙 Nighttime — Showing tomorrow's forecast</div>` : "";
+
     return `<div class="ff-card ff-current">
+      ${nighttimeBadge}
       <div class="ff-current-top">
         <div class="ff-current-left">
-          <div class="ff-current-temp">${esc(t)}${feelsLike ? `<span class="ff-feels-like">Feels like ${esc(feelsLike)}</span>` : ""}</div>
+          <div class="ff-current-temp">${esc(t)}${feelsLike ? `<span class="ff-feels-like">Feels like ${esc(feelsLike)}</span>` : ""}${isTomorrow ? `<span class="ff-tomorrow-label">${esc(tomorrowLabel)}</span>` : ""}</div>
           <div class="ff-current-desc">${esc(desc)}</div>
         </div>
         <div class="ff-current-icon">${ico || ""}</div>
