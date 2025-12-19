@@ -975,9 +975,9 @@
 
     score = clamp(Math.round(score), 0, 100);
 
-    if (score >= 72) return { status: "PLAY", label: "Play", reason: "Good overall conditions", best };
-    if (score >= 48) return { status: "MAYBE", label: "Playable (tough)", reason: "Manageable, but expect challenges", best };
-    return { status: "NO", label: "No-play recommended", reason: best ? "Poor overall conditions" : "Rain likely throughout daylight", best };
+    if (score >= 72) return { status: "PLAY", label: "Play", reason: "Good overall conditions", best, isNighttime: false };
+    if (score >= 48) return { status: "MAYBE", label: "Playable (tough)", reason: "Manageable, but expect challenges", best, isNighttime: false };
+    return { status: "NO", label: "No-play recommended", reason: best ? "Poor overall conditions" : "Rain likely throughout daylight", best, isNighttime: false };
   }
 
   function renderVerdictCard(norm) {
