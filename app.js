@@ -2036,7 +2036,10 @@
 
   function clearSearchResults() {
     if (searchResultsSlot) {
+      console.log("[Search] Clearing search results");
       searchResultsSlot.innerHTML = "";
+      // Make sure it's visible
+      searchResultsSlot.style.display = "";
     }
   }
 
@@ -2067,6 +2070,12 @@
     }
     
     console.log(`[Search] ✅ Rendering ${list.length} result(s) to`, resultsHost.id || "host element");
+    
+    // Ensure searchResultsSlot is visible
+    if (searchResultsSlot) {
+      searchResultsSlot.style.display = "";
+      console.log("[Search] searchResultsSlot display:", window.getComputedStyle(searchResultsSlot).display);
+    }
 
     if (!Array.isArray(list) || list.length === 0) {
       if (resultsHost) resultsHost.innerHTML = `<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
