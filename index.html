@@ -51,9 +51,18 @@
             class="ff-logo"
           />
           <div class="ff-brand-text">
-            <strong>Fairway Forecast</strong>
+            <div class="ff-brand-title-row">
+              <strong>Fairway Forecast</strong>
+              <span class="ff-beta-pill">Beta</span>
+            </div>
             <span>Know before you tee</span>
           </div>
+        </div>
+        <div class="ff-hero-line">
+          Golf-first weather: best tee-off windows, wind impact, rain timing.
+        </div>
+        <div class="ff-powered-by">
+          Powered by OpenWeather
         </div>
       </header>
 
@@ -128,6 +137,22 @@
         <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
         <button id="tabDaily" class="ff-tab" type="button">Daily</button>
       </nav>
+      
+      <!-- ================= COURSE DIRECTION SELECTOR ================= -->
+      <section id="courseDirectionSection" class="ff-course-direction" style="display:none;">
+        <label class="ff-label" for="courseDirectionSelect">Course direction</label>
+        <select id="courseDirectionSelect" class="ff-select">
+          <option value="">Not set</option>
+          <option value="N">N (North)</option>
+          <option value="NE">NE (Northeast)</option>
+          <option value="E">E (East)</option>
+          <option value="SE">SE (Southeast)</option>
+          <option value="S">S (South)</option>
+          <option value="SW">SW (Southwest)</option>
+          <option value="W">W (West)</option>
+          <option value="NW">NW (Northwest)</option>
+        </select>
+      </section>
 
       <!-- ================= DECISION ================= -->
       <section aria-label="Play decision">
@@ -166,6 +191,12 @@
         </div>
       </section>
 
+      <!-- ================= ROUND-BASED PLAYABILITY ================= -->
+      <section id="roundPlayabilitySection" style="display:none;">
+        <div class="ff-section-label">Round Windows</div>
+        <div id="roundPlayabilityCard" class="ff-card"></div>
+      </section>
+
       <!-- ================= PLAYABILITY ================= -->
       <section class="ff-panel">
         <div class="ff-play">
@@ -178,6 +209,9 @@
           <div id="playabilityScore" class="ff-play-score">--/10</div>
         </div>
       </section>
+      
+      <!-- ================= LAST UPDATED ================= -->
+      <div id="lastUpdated" class="ff-last-updated"></div>
     </section>
 
     <!-- ================= FOOTER ================= -->

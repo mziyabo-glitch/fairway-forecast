@@ -62,6 +62,8 @@
   let lastNorm = null;
   let activeTab = "current";
   let nearbyCourses = [];
+  let courseDirection = ""; // N, NE, E, SE, S, SW, W, NW or ""
+  let lastWeatherUpdate = null;
 
   /* ---------- SAFE HTML ---------- */
   const esc = (s) =>
@@ -74,6 +76,41 @@
   const units = () => (unitsSelect?.value === "imperial" ? "imperial" : "metric");
   const tempUnit = () => (units() === "imperial" ? "°F" : "°C");
   const windUnit = () => (units() === "imperial" ? "mph" : "m/s");
+  
+  // Round numbers for display
+  function roundNum(n, decimals = 0) {
+    if (typeof n !== "number" || !Number.isFinite(n)) return null;
+    return decimals === 0 ? Math.round(n) : Number(n.toFixed(decimals));
+  }
+  
+  // Convert wind speed to mph for golf impact calculations
+  function windSpeedMph(windSpeed) {
+    if (typeof windSpeed !== "number" || !Number.isFinite(windSpeed)) return null;
+    return units() === "imperial" ? windSpeed : windSpeed * 2.237; // m/s to mph
+  }
+  
+  // Calculate wind impact relative to course direction
+  function calculateWindImpact(windDeg, courseDir) {
+    if (!windDeg || !courseDir) return null;
+    
+    const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    const windDir = windDirection(windDeg);
+    if (!windDir) return null;
+    
+    const windIdx = dirs.indexOf(windDir);
+    const courseIdx = dirs.indexOf(courseDir);
+    
+    if (windIdx === -1 || courseIdx === -1) return null;
+    
+    // Calculate angle difference (0-180 degrees)
+    let diff = Math.abs(windIdx - courseIdx);
+    if (diff > 8) diff = 16 - diff;
+    
+    // 0-2: Into wind, 3-5: Cross wind, 6-8: Helping wind
+    if (diff <= 2) return "Into";
+    if (diff <= 5) return "Cross";
+    return "Helping";
+  }
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
@@ -120,10 +157,18 @@
   function setActiveTab(next) {
     activeTab = next;
     [tabCurrent, tabHourly, tabDaily].forEach((b) => b?.classList.remove("active"));
-    if (next === "current") tabCurrent?.classList.add("active");
-    if (next === "hourly") tabHourly?.classList.add("active");
-    if (next === "daily") tabDaily?.classList.add("active");
+    if (next === "current" && tabCurrent) tabCurrent.classList.add("active");
+    if (next === "hourly" && tabHourly) tabHourly.classList.add("active");
+    if (next === "daily" && tabDaily) tabDaily.classList.add("active");
     renderAll();
+    
+    // Smooth scroll to forecast section
+    const forecastSection = $("results") || forecastSlot;
+    if (forecastSection) {
+      setTimeout(() => {
+        forecastSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
   }
 
   function setBtnLoading(isLoading, label = "Search") {
@@ -1094,27 +1139,128 @@
     </div>`;
   }
 
+  function renderRoundPlayability(norm) {
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    if (hourly.length === 0) return "";
+    
+    const windows = [
+      { name: "Morning", start: 6, end: 11 },
+      { name: "Midday", start: 11, end: 15 },
+      { name: "Late", start: 15, end: 19 }
+    ];
+    
+    const windowsData = windows.map(win => {
+      const windowHours = hourly.filter(h => {
+        if (!h?.dt) return false;
+        const hour = new Date(h.dt * 1000).getHours();
+        return hour >= win.start && hour < win.end;
+      });
+      
+      if (windowHours.length === 0) return null;
+      
+      const temps = windowHours.map(h => h.temp).filter(t => typeof t === "number");
+      const winds = windowHours.map(h => windSpeedMph(h.wind_speed)).filter(w => w !== null);
+      const pops = windowHours.map(h => typeof h.pop === "number" ? h.pop : 0);
+      const rainMms = windowHours.map(h => typeof h.rain_mm === "number" ? h.rain_mm : 0);
+      
+      const avgTemp = temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : null;
+      const maxWind = winds.length > 0 ? Math.max(...winds) : null;
+      const maxPop = pops.length > 0 ? Math.max(...pops) : null;
+      const totalRain = rainMms.reduce((a, b) => a + b, 0);
+      
+      // Determine status
+      let status = "Playable ✅";
+      let statusClass = "ff-round-playable";
+      const reasons = [];
+      
+      if (maxWind !== null) {
+        if (maxWind > 22) {
+          status = "Poor ❌";
+          statusClass = "ff-round-poor";
+          reasons.push(`Wind ${roundNum(maxWind)} mph`);
+        } else if (maxWind > 15) {
+          status = "Marginal ⚠️";
+          statusClass = "ff-round-marginal";
+          reasons.push(`Wind ${roundNum(maxWind)} mph`);
+        }
+      }
+      
+      if (maxPop !== null) {
+        if (maxPop >= 0.7 || totalRain > 5) {
+          status = "Poor ❌";
+          statusClass = "ff-round-poor";
+          reasons.push(`Rain risk ${Math.round(maxPop * 100)}%`);
+        } else if (maxPop >= 0.4 || totalRain > 2) {
+          if (status === "Playable ✅") {
+            status = "Marginal ⚠️";
+            statusClass = "ff-round-marginal";
+          }
+          reasons.push(`Rain risk ${Math.round(maxPop * 100)}%`);
+        }
+      }
+      
+      const reasonText = reasons.length > 0 ? reasons.join(" • ") : "Good conditions";
+      
+      return {
+        name: win.name,
+        timeRange: `${win.start.toString().padStart(2, '0')}:00–${win.end.toString().padStart(2, '0')}:00`,
+        status,
+        statusClass,
+        reasonText,
+        avgTemp: avgTemp ? roundNum(avgTemp) : null,
+        maxWind: maxWind ? roundNum(maxWind) : null,
+        maxPop: maxPop ? Math.round(maxPop * 100) : null
+      };
+    }).filter(w => w !== null);
+    
+    if (windowsData.length === 0) return "";
+    
+    const windowsHtml = windowsData.map(w => `
+      <div class="ff-round-window ${w.statusClass}">
+        <div class="ff-round-window-header">
+          <div class="ff-round-window-name">${esc(w.name)}</div>
+          <div class="ff-round-window-time">${esc(w.timeRange)}</div>
+        </div>
+        <div class="ff-round-window-status">${esc(w.status)}</div>
+        <div class="ff-round-window-reason">${esc(w.reasonText)}</div>
+        <div class="ff-round-window-details">
+          ${w.avgTemp !== null ? `<span>${w.avgTemp}${tempUnit()}</span>` : ""}
+          ${w.maxWind !== null ? `<span>Wind ${w.maxWind} mph</span>` : ""}
+          ${w.maxPop !== null ? `<span>Rain ${w.maxPop}%</span>` : ""}
+        </div>
+      </div>
+    `).join("");
+    
+    return `<div class="ff-round-playability-grid">${windowsHtml}</div>`;
+  }
+
   function renderCurrent(norm) {
     const c = norm?.current;
     if (!c) return `<div class="ff-card muted">No current weather available.</div>`;
 
-    const t = typeof c.temp === "number" ? `${Math.round(c.temp)}${tempUnit()}` : "—";
-    const feelsLike = typeof c.feels_like === "number" ? `${Math.round(c.feels_like)}${tempUnit()}` : null;
+    const t = typeof c.temp === "number" ? `${roundNum(c.temp)}${tempUnit()}` : "—";
+    const feelsLike = typeof c.feels_like === "number" ? `${roundNum(c.feels_like)}${tempUnit()}` : null;
     const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "—";
     const ico = iconHtml(c.weather, 2);
 
     const windSpeed = typeof c.wind_speed === "number" ? c.wind_speed : null;
-    const wind = windSpeed ? `${windSpeed.toFixed(1)} ${windUnit()}` : "";
+    const windSpeedRounded = windSpeed ? roundNum(windSpeed, 1) : null;
+    const wind = windSpeedRounded !== null ? `${windSpeedRounded} ${windUnit()}` : "";
     const windDir = c.wind_deg;
     const windDirText = windDir ? windDirection(windDir) : "";
     const windCompass = windDir && windSpeed ? windCompassHtml(windDir, windSpeed) : "";
-    const windDisplay = wind ? `<div class="ff-wind-display">${windCompass}<div class="ff-wind-text"><strong>${esc(wind)}</strong>${windDirText ? `<span class="ff-wind-dir"> from ${esc(windDirText)}</span>` : ""}</div></div>` : "";
+    
+    // Calculate wind impact if course direction is set
+    const windImpact = courseDirection && windDir ? calculateWindImpact(windDir, courseDirection) : null;
+    const impactTag = windImpact ? `<span class="ff-wind-impact ff-wind-impact--${windImpact.toLowerCase()}">${esc(windImpact)}</span>` : "";
+    
+    const windDisplay = wind ? `<div class="ff-wind-display">${windCompass}<div class="ff-wind-text"><strong>${esc(wind)}</strong>${windDirText ? `<span class="ff-wind-dir"> from ${esc(windDirText)}</span>` : ""}${impactTag}</div></div>` : "";
 
-    const gust = typeof c.wind_gust === "number" ? `${c.wind_gust.toFixed(1)} ${windUnit()}` : "";
-    const humidity = typeof c.humidity === "number" ? `${c.humidity}%` : "";
+    const gust = typeof c.wind_gust === "number" ? `${roundNum(c.wind_gust, 1)} ${windUnit()}` : "";
+    const humidity = typeof c.humidity === "number" ? `${Math.round(c.humidity)}%` : "";
     const popValue = typeof c.pop === "number" ? c.pop : 0;
     const rainProb = pct(popValue);
-    const rainMm = `${(typeof c.rain_mm === "number" ? c.rain_mm : 0).toFixed(2)} mm`;
+    const rainMm = typeof c.rain_mm === "number" && c.rain_mm > 0 ? `${roundNum(c.rain_mm, 1)} mm` : "";
     const rain = [rainProb, rainMm].filter(Boolean).join(" · ");
 
     const sunrise = norm.sunrise ? fmtTime(norm.sunrise) : "";
@@ -1163,7 +1309,12 @@
       const rainProb = pct(popValue);
       const rainMm = `${(typeof h.rain_mm === "number" ? h.rain_mm : 0).toFixed(2)} mm`;
       const rain = [rainProb, rainMm].filter(Boolean).join(" · ");
-      const wind = typeof h.wind_speed === "number" ? `${h.wind_speed.toFixed(1)} ${windUnit()}` : "";
+      const windSpeedRounded = typeof h.wind_speed === "number" ? roundNum(h.wind_speed, 1) : null;
+      const wind = windSpeedRounded !== null ? `${windSpeedRounded} ${windUnit()}` : "";
+      const windDir = h.wind_deg;
+      const windDirText = windDir ? windDirection(windDir) : "";
+      const windImpact = courseDirection && windDir ? calculateWindImpact(windDir, courseDirection) : null;
+      const impactTag = windImpact ? `<span class="ff-wind-impact-small ff-wind-impact--${windImpact.toLowerCase()}">${esc(windImpact)}</span>` : "";
       const ico = iconHtml(h.weather, 1);
       const isBest = h?.dt === bestDt;
 
@@ -1172,7 +1323,7 @@
         <div class="ff-hourly-icon">${ico || ""}</div>
         <div class="ff-hourly-temp">${esc(t)}</div>
         <div class="ff-hourly-rain">${esc(rainProb || "0%")}</div>
-        <div class="ff-hourly-wind">${esc(wind || "—")}</div>
+        <div class="ff-hourly-wind">${wind ? `${esc(wind)}${windDirText ? ` ${esc(windDirText)}` : ""}` : "—"}${impactTag}</div>
       </div>`;
     }).join("");
 
@@ -1197,8 +1348,11 @@
   function renderDaily(norm) {
     const daily = Array.isArray(norm?.daily) ? norm.daily : [];
     if (!daily.length) return `<div class="ff-card muted">No daily data available.</div>`;
+    
+    // Show up to 7 days if data exists
+    const daysToShow = Math.min(daily.length, 7);
 
-    const rows = daily.slice(0, 7).map((d, idx) => {
+    const rows = daily.slice(0, daysToShow).map((d, idx) => {
       const day = d?.dt ? fmtDay(d.dt) : "";
       const hi = typeof d.max === "number" ? Math.round(d.max) : null;
       const lo = typeof d.min === "number" ? Math.round(d.min) : null;
@@ -1218,7 +1372,7 @@
     }).join("");
 
     return `<div class="ff-card">
-      <div class="ff-card-title">Daily · up to 7 days</div>
+      <div class="ff-card-title">Daily${daysToShow === 7 ? " · up to 7 days" : ` · ${daysToShow} day${daysToShow !== 1 ? "s" : ""}`}</div>
       <div class="ff-table-wrap">
         <table class="ff-table">
           <thead>
@@ -1447,6 +1601,36 @@
       body = renderHourly(lastNorm);
     } else {
       body = renderDaily(lastNorm);
+    }
+    
+    // Render round-based playability
+    const roundPlayabilityHtml = lastNorm ? renderRoundPlayability(lastNorm) : "";
+    const roundPlayabilityCard = $("roundPlayabilityCard");
+    const roundPlayabilitySection = $("roundPlayabilitySection");
+    if (roundPlayabilityCard && roundPlayabilityHtml) {
+      roundPlayabilityCard.innerHTML = roundPlayabilityHtml;
+      if (roundPlayabilitySection) roundPlayabilitySection.style.display = "block";
+    } else if (roundPlayabilitySection) {
+      roundPlayabilitySection.style.display = "none";
+    }
+    
+    // Show/hide course direction selector
+    const courseDirectionSection = $("courseDirectionSection");
+    if (courseDirectionSection && selectedCourse) {
+      courseDirectionSection.style.display = "block";
+    } else if (courseDirectionSection) {
+      courseDirectionSection.style.display = "none";
+    }
+    
+    // Update last updated timestamp
+    const lastUpdatedEl = $("lastUpdated");
+    if (lastUpdatedEl && lastWeatherUpdate) {
+      const updateTime = new Date(lastWeatherUpdate);
+      const localTime = updateTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      lastUpdatedEl.textContent = `Last updated: ${localTime}`;
+      lastUpdatedEl.style.display = "block";
+    } else if (lastUpdatedEl) {
+      lastUpdatedEl.style.display = "none";
     }
     
     // Add nearby courses section if we have a selected course
@@ -1719,6 +1903,7 @@
     try {
       const raw = await fetchWeather(selectedCourse.lat, selectedCourse.lon);
       lastNorm = normalizeWeather(raw);
+      lastWeatherUpdate = Date.now(); // Track when weather was last updated
 
       renderVerdictCard(lastNorm);
       renderPlayability(lastNorm);
@@ -1819,6 +2004,13 @@
   unitsSelect?.addEventListener("change", () => {
     if (!selectedCourse) return;
     loadWeatherForSelected();
+  });
+  
+  // Course direction selector
+  const courseDirectionSelect = $("courseDirectionSelect");
+  courseDirectionSelect?.addEventListener("change", (e) => {
+    courseDirection = e.target.value || "";
+    renderAll(); // Re-render to update wind impact tags
   });
 
   verdictCard?.addEventListener("click", () => {

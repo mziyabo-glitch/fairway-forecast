@@ -101,6 +101,36 @@ button, input, select{ font: inherit; }
   margin-top:3px;
   display:block;
 }
+.ff-brand-title-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.ff-beta-pill{
+  display:inline-block;
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  padding:2px 6px;
+  border-radius:8px;
+  background:var(--brand-soft);
+  color:var(--brand-2);
+  border:1px solid rgba(15,118,110,.2);
+}
+.ff-hero-line{
+  font-size:13px;
+  color:var(--muted);
+  margin-top:10px;
+  line-height:1.4;
+  font-weight:500;
+}
+.ff-powered-by{
+  font-size:11px;
+  color:var(--muted);
+  margin-top:6px;
+  opacity:0.7;
+}
 
 /* ---------- Panels / Cards ---------- */
 .ff-panel,
@@ -341,8 +371,8 @@ button, input, select{ font: inherit; }
   }
   
   .ff-action-btn{
-    width:40px;
-    height:40px;
+    width:44px;
+    height:44px;
     font-size:18px;
   }
   
@@ -358,6 +388,35 @@ button, input, select{ font: inherit; }
     font-size:12px;
     padding:4px 8px;
   }
+  
+  .ff-hero-line{
+    font-size:12px;
+  }
+  
+  .ff-round-playability-grid{
+    gap:8px;
+  }
+  
+  .ff-round-window{
+    padding:10px;
+  }
+  
+  /* Ensure all interactive elements meet 44px minimum */
+  .ff-btn,
+  .ff-tab,
+  .ff-action-btn,
+  .ff-fav-pill{
+    min-height:44px;
+    min-width:44px;
+  }
+  
+  /* Improve text readability */
+  .ff-hint,
+  .ff-sub,
+  .ff-muted{
+    font-size:12px;
+    line-height:1.5;
+  }
 }
 
 /* ---------- Search ---------- */
@@ -371,7 +430,8 @@ button, input, select{ font: inherit; }
 /* --- Search results slot: sits under search bar --- */
 .ff-search-results{
   display:none;              /* hidden until it has content */
-  margin-top: -6px;          /* visually tucks under search card */
+  margin-top: 8px;          /* spacing from search card */
+  margin-bottom: 8px;
 }
 
 .ff-search-results:has(*){
@@ -474,6 +534,18 @@ button, input, select{ font: inherit; }
   #searchBtn{ grid-area: search; width:100%; }
 }
 
+/* ---------- Course Direction Selector ---------- */
+.ff-course-direction{
+  margin-top:-8px;
+  margin-bottom:8px;
+}
+.ff-course-direction .ff-label{
+  margin-bottom:8px;
+}
+.ff-course-direction .ff-select{
+  width:100%;
+}
+
 /* ---------- Tabs (sticky segmented control) ---------- */
 .ff-tabs{
   display:grid;
@@ -495,14 +567,22 @@ button, input, select{ font: inherit; }
   border:1px solid var(--line);
   background:var(--surface);
   min-height:46px;
+  min-width:44px;
   font-weight:900;
   font-size:15px;
+  cursor:pointer;
+  transition:all 0.2s ease;
 }
 
 .ff-tab.active{
   background:linear-gradient(180deg,var(--brand),var(--brand-2));
   color:#fff;
   border-color:rgba(31,111,92,.45);
+  box-shadow:0 2px 8px rgba(15,118,110,.2);
+}
+.ff-tab:not(.active):hover{
+  background:var(--surface-2);
+  border-color:rgba(15,118,110,.2);
 }
 
 /* ---------- Verdict (Play / No-Play) ---------- */
@@ -1044,6 +1124,107 @@ button, input, select{ font: inherit; }
 }
 .ff-mini-bar:hover{
   opacity:0.8;
+}
+
+/* ---------- Round-Based Playability Windows ---------- */
+.ff-round-playability-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+.ff-round-window{
+  padding:12px;
+  border-radius:16px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+}
+.ff-round-window-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+}
+.ff-round-window-name{
+  font-weight:800;
+  font-size:15px;
+}
+.ff-round-window-time{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:600;
+}
+.ff-round-window-status{
+  font-weight:900;
+  font-size:16px;
+  margin-bottom:4px;
+}
+.ff-round-window-reason{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.ff-round-window-details{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  font-size:12px;
+  color:var(--muted);
+}
+.ff-round-window-details span{
+  font-weight:600;
+}
+.ff-round-playable{
+  background:rgba(31,111,92,.1);
+  border-color:rgba(31,111,92,.3);
+}
+.ff-round-marginal{
+  background:rgba(245,158,11,.12);
+  border-color:rgba(245,158,11,.25);
+}
+.ff-round-poor{
+  background:rgba(192,54,44,.1);
+  border-color:rgba(192,54,44,.25);
+}
+
+/* ---------- Wind Impact Tags ---------- */
+.ff-wind-impact{
+  display:inline-block;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  padding:2px 6px;
+  border-radius:6px;
+  margin-left:6px;
+}
+.ff-wind-impact-small{
+  display:block;
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  margin-top:2px;
+}
+.ff-wind-impact--into{
+  background:rgba(192,54,44,.15);
+  color:#C0362C;
+}
+.ff-wind-impact--cross{
+  background:rgba(245,158,11,.15);
+  color:#A16207;
+}
+.ff-wind-impact--helping{
+  background:rgba(31,111,92,.15);
+  color:#0F766E;
+}
+
+/* ---------- Last Updated ---------- */
+.ff-last-updated{
+  font-size:11px;
+  color:var(--muted);
+  text-align:center;
+  padding:8px 0;
+  opacity:0.7;
 }
 
 /* ---------- Footer ---------- */
