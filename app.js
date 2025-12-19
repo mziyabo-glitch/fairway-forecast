@@ -950,7 +950,7 @@
         const tomorrowVerdict = calculateVerdictForDay(norm, tomorrow.dt, tomorrow);
         return { ...tomorrowVerdict, isNighttime: true, isTomorrow: true };
       }
-      return { status: "NO", label: "Nighttime", reason: "It's nighttime — showing tomorrow's forecast", best: null, isNighttime: true, isTomorrow: false };
+      return { status: "NO", label: "Nighttime", reason: "Nighttime at course", best: null, isNighttime: true, isTomorrow: false };
     }
     
     if (sunrise && sunset && now > sunset - 3600) {
@@ -1007,10 +1007,48 @@
     const c = norm?.current;
     const isNighttime = v.isNighttime || false;
     const isTomorrow = v.isTomorrow || false;
+    
+    // Get tomorrow's data if nighttime
+    let tomorrowData = null;
+    if (isNighttime) {
+      const daily = Array.isArray(norm?.daily) ? norm.daily : [];
+      const tomorrow = daily.length > 0 ? daily[0] : null;
+      if (tomorrow) {
+        const tomorrowBest = bestTimeForDay(norm, tomorrow.dt);
+        const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+        const dayStart = new Date(tomorrow.dt * 1000);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayStartSec = Math.floor(dayStart.getTime() / 1000);
+        const dayEndSec = dayStartSec + 86400;
+        const dayHourly = hourly.filter((h) => {
+          const hDt = h?.dt;
+          return typeof hDt === "number" && hDt >= dayStartSec && hDt < dayEndSec;
+        });
+        
+        const temps = dayHourly.map(h => typeof h.temp === "number" ? h.temp : null).filter(t => t !== null);
+        const winds = dayHourly.map(h => typeof h.wind_speed === "number" ? h.wind_speed : null).filter(w => w !== null);
+        const pops = dayHourly.map(h => typeof h.pop === "number" ? h.pop : 0);
+        
+        const avgTemp = temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : (typeof tomorrow.max === "number" ? tomorrow.max : null);
+        const maxWind = winds.length > 0 ? Math.max(...winds) : null;
+        const maxPop = pops.length > 0 ? Math.max(...pops) : (typeof tomorrow.pop === "number" ? tomorrow.pop : 0);
+        
+        tomorrowData = {
+          temp: avgTemp,
+          wind: maxWind,
+          pop: maxPop,
+          best: tomorrowBest,
+          weather: tomorrow.weather || []
+        };
+      }
+    }
 
-    verdictCard.classList.remove("ff-verdict--play", "ff-verdict--maybe", "ff-verdict--no", "ff-verdict--neutral");
+    verdictCard.classList.remove("ff-verdict--play", "ff-verdict--maybe", "ff-verdict--no", "ff-verdict--neutral", "ff-verdict--nighttime");
 
-    if (v.status === "PLAY") {
+    if (isNighttime) {
+      verdictCard.classList.add("ff-verdict--nighttime");
+      verdictIcon.textContent = "🌙";
+    } else if (v.status === "PLAY") {
       verdictCard.classList.add("ff-verdict--play");
       verdictIcon.textContent = "✅";
     } else if (v.status === "MAYBE") {
@@ -1024,38 +1062,94 @@
       verdictIcon.textContent = "—";
     }
 
-    const labelText = isNighttime && isTomorrow ? `${v.label || "—"} (Tomorrow)` : v.label || "—";
+    // Label: Show "Nighttime" clearly when it's nighttime
+    let labelText = "";
+    if (isNighttime) {
+      labelText = "Nighttime";
+    } else {
+      labelText = v.label || "—";
+    }
+    
     verdictLabel.innerHTML = `${labelText} <span class="ff-info-icon" title="Click for more info">ℹ️</span>`;
-    verdictReason.textContent = v.reason || "—";
-    verdictBestTime.textContent =
-      v.best && typeof v.best.dt === "number" ? fmtTime(v.best.dt) : "—";
+    
+    // Reason: Show tomorrow's forecast info when nighttime
+    if (isNighttime && tomorrowData) {
+      const tomorrowParts = [];
+      if (tomorrowData.temp !== null) {
+        tomorrowParts.push(`${roundNum(tomorrowData.temp)}${tempUnit()}`);
+      }
+      if (tomorrowData.wind !== null) {
+        const windMph = windSpeedMph(tomorrowData.wind);
+        tomorrowParts.push(`Wind ${roundNum(windMph)} mph`);
+      }
+      if (tomorrowData.pop !== null) {
+        tomorrowParts.push(`Rain ${Math.round(tomorrowData.pop * 100)}%`);
+      }
+      const tomorrowSummary = tomorrowParts.length > 0 ? tomorrowParts.join(" • ") : "Forecast available";
+      verdictReason.textContent = `Tomorrow: ${tomorrowSummary}`;
+    } else {
+      verdictReason.textContent = v.reason || "—";
+    }
+    
+    // Best time: Show tomorrow's best time if nighttime
+    if (isNighttime && tomorrowData?.best && typeof tomorrowData.best.dt === "number") {
+      verdictBestTime.textContent = fmtTime(tomorrowData.best.dt);
+    } else {
+      verdictBestTime.textContent = v.best && typeof v.best.dt === "number" ? fmtTime(v.best.dt) : "—";
+    }
 
-    // Quick stats
-    if (verdictQuickStats && c) {
-      const wind = typeof c.wind_speed === "number" ? c.wind_speed : 0;
-      const pop = typeof c.pop === "number" ? c.pop : 0;
-      const temp = typeof c.temp === "number" ? c.temp : null;
+    // Quick stats: Show tomorrow's stats when nighttime
+    if (verdictQuickStats) {
+      if (isNighttime && tomorrowData) {
+        const windMph = tomorrowData.wind !== null ? windSpeedMph(tomorrowData.wind) : null;
+        const windText = windMph !== null ? `${roundNum(windMph)} mph` : "—";
+        const rainText = tomorrowData.pop !== null ? `${Math.round(tomorrowData.pop * 100)}%` : "—";
+        const tempText = tomorrowData.temp !== null ? `${roundNum(tomorrowData.temp)}${tempUnit()}` : "—";
 
-      const windText = wind > 0 ? `${wind.toFixed(1)} ${windUnit()}` : "Calm";
-      const rainText = `${Math.round(pop * 100)}%`;
-      const tempText = temp !== null ? `${Math.round(temp)}${tempUnit()}` : "—";
+        verdictQuickStats.innerHTML = `
+          <div class="ff-quick-stat">
+            <span class="ff-quick-label">Tomorrow</span>
+            <strong style="font-size:12px;color:var(--muted);">Forecast</strong>
+          </div>
+          <div class="ff-quick-stat">
+            <span class="ff-quick-label">Temp</span>
+            <strong>${esc(tempText)}</strong>
+          </div>
+          <div class="ff-quick-stat">
+            <span class="ff-quick-label">Wind</span>
+            <strong>${esc(windText)}</strong>
+          </div>
+          <div class="ff-quick-stat">
+            <span class="ff-quick-label">Rain</span>
+            <strong>${esc(rainText)}</strong>
+          </div>
+        `;
+      } else if (c) {
+        const wind = typeof c.wind_speed === "number" ? c.wind_speed : 0;
+        const pop = typeof c.pop === "number" ? c.pop : 0;
+        const temp = typeof c.temp === "number" ? c.temp : null;
 
-      verdictQuickStats.innerHTML = `
-        <div class="ff-quick-stat">
-          <span class="ff-quick-label">Wind</span>
-          <strong>${esc(windText)}</strong>
-        </div>
-        <div class="ff-quick-stat">
-          <span class="ff-quick-label">Rain</span>
-          <strong>${esc(rainText)}</strong>
-        </div>
-        <div class="ff-quick-stat">
-          <span class="ff-quick-label">Temp</span>
-          <strong>${esc(tempText)}</strong>
-        </div>
-      `;
-    } else if (verdictQuickStats) {
-      verdictQuickStats.innerHTML = "";
+        const windText = wind > 0 ? `${roundNum(wind, 1)} ${windUnit()}` : "Calm";
+        const rainText = `${Math.round(pop * 100)}%`;
+        const tempText = temp !== null ? `${roundNum(temp)}${tempUnit()}` : "—";
+
+        verdictQuickStats.innerHTML = `
+          <div class="ff-quick-stat">
+            <span class="ff-quick-label">Wind</span>
+            <strong>${esc(windText)}</strong>
+          </div>
+          <div class="ff-quick-stat">
+            <span class="ff-quick-label">Rain</span>
+            <strong>${esc(rainText)}</strong>
+          </div>
+          <div class="ff-quick-stat">
+            <span class="ff-quick-label">Temp</span>
+            <strong>${esc(tempText)}</strong>
+          </div>
+        `;
+      } else {
+        verdictQuickStats.innerHTML = "";
+      }
     }
   }
 
