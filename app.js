@@ -2044,7 +2044,15 @@
       locationSlot.innerHTML = header;
     }
 
-    const host = searchResultsSlot || forecastSlot || resultsEl;
+    // Always use searchResultsSlot if it exists, otherwise fallback
+    const resultsHost = searchResultsSlot || forecastSlot || resultsEl;
+    
+    if (!resultsHost) {
+      console.error("[Search] No host element found for search results");
+      return;
+    }
+    
+    console.log(`[Search] Rendering ${list.length} result(s) to`, resultsHost.id || "host element");
 
     if (!Array.isArray(list) || list.length === 0) {
       if (host) host.innerHTML = `<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
@@ -2077,28 +2085,36 @@
       </button>`;
     }).join("");
 
-    if (host) {
-      host.innerHTML = `<div class="ff-card">
-        <div class="ff-card-title">Select a result</div>
-        <div class="ff-result-list">${items}</div>
-      </div>`;
-    }
+    const resultsHtml = `<div class="ff-card">
+      <div class="ff-card-title">Select a result</div>
+      <div class="ff-result-list">${items}</div>
+    </div>`;
+
+    resultsHost.innerHTML = resultsHtml;
 
     // IMPORTANT: bind clicks AFTER inserting the DOM
-    host
-      ?.querySelectorAll(".ff-result[data-i]")
-      .forEach((btn) => {
+    const resultButtons = resultsHost.querySelectorAll(".ff-result[data-i]");
+    console.log(`[Search] Found ${resultButtons.length} result buttons to bind`);
+    
+    resultButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         const i = Number(btn.getAttribute("data-i"));
+        if (!Number.isFinite(i) || i < 0 || i >= list.length) {
+          console.error("[Search] Invalid result index:", i);
+          showError("Invalid selection.", "Please try again.");
+          return;
+        }
         const c = normalizeCourse(list[i]);
+        console.log(`[Search] Selected course: ${c.name} at ${c.lat}, ${c.lon}`);
         if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) {
           showError("That result is missing coordinates.", "Try another result.");
           return;
         }
         selectedCourse = c;
+        clearSearchResults();
         loadWeatherForSelected();
       });
-      });
+    });
 
     wireHeaderButtons();
 
