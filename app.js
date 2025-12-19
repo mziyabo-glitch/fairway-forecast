@@ -402,6 +402,10 @@
         const text = await res.text().catch(() => "");
         const err = new Error(`HTTP ${res.status} ${res.statusText} ${text}`.trim());
         err.status = res.status;
+        console.error(`[API] Request failed: ${url}`, err);
+        if (res.status === 429) {
+          console.warn(`[API] Rate limit hit - status 429`);
+        }
         throw err;
       }
 
@@ -518,17 +522,27 @@
     let list = [];
     let source = "unknown";
     try {
-      console.log(`🌐 [GolfAPI] Calling primary API...`);
+      console.log(`🌐 [GolfAPI] Calling primary API: /courses?search=${enc}`);
       const data = await apiGet(`/courses?search=${enc}`);
+      console.log(`📦 [GolfAPI] Response received:`, data);
       list = Array.isArray(data?.courses) ? data.courses : [];
       source = "GolfAPI";
       if (list.length > 0) {
         console.log(`✅ [GolfAPI] Found ${list.length} course(s)`);
       } else {
-        console.log(`⚠️ [GolfAPI] No results found`);
+        console.log(`⚠️ [GolfAPI] No results found (data:`, data, `)`);
       }
     } catch (err) {
-      console.warn("⚠️ [GolfAPI] Primary API failed, will try Supabase fallback", err);
+      console.error("❌ [GolfAPI] Primary API failed:", err);
+      console.error("   Error details:", {
+        message: err?.message,
+        status: err?.status,
+        name: err?.name,
+        stack: err?.stack
+      });
+      if (err?.status === 429) {
+        console.warn("   ⚠️ Rate limit detected (429)");
+      }
       list = [];
       source = "GolfAPI (failed)";
     }
@@ -1998,6 +2012,8 @@
   }
 
   function renderSearchResults(list) {
+    console.log(`[Search] renderSearchResults called with`, list?.length || 0, "items");
+    
     const header = renderHeaderBlock();
 
     if (locationSlot) {
@@ -2008,11 +2024,14 @@
     const resultsHost = searchResultsSlot || forecastSlot || resultsEl;
     
     if (!resultsHost) {
-      console.error("[Search] No host element found for search results");
+      console.error("[Search] ❌ No host element found for search results");
+      console.error("   searchResultsSlot:", searchResultsSlot);
+      console.error("   forecastSlot:", forecastSlot);
+      console.error("   resultsEl:", resultsEl);
       return;
     }
     
-    console.log(`[Search] Rendering ${list.length} result(s) to`, resultsHost.id || "host element");
+    console.log(`[Search] ✅ Rendering ${list.length} result(s) to`, resultsHost.id || "host element");
 
     if (!Array.isArray(list) || list.length === 0) {
       if (resultsHost) resultsHost.innerHTML = `<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
@@ -2133,19 +2152,31 @@
         }
       }
 
+      console.log(`[Search] Rendering ${list.length} result(s)`);
       renderSearchResults(list);
     } catch (err) {
-      console.error("Search error:", err);
-      const errorMsg = err?.name === "AbortError" 
-        ? "Search timed out." 
-        : err?.status === 429 
-        ? "Rate limited (too many requests)." 
-        : "Search failed.";
-      const errorHint = err?.name === "AbortError"
-        ? "Try again (your API may be slow right now)."
-        : err?.status === 429
-        ? "Wait ~30 seconds and try again."
-        : err?.message || "Unknown error";
+      console.error("❌ [Search] Error in doSearch:", err);
+      console.error("   Error details:", {
+        message: err?.message,
+        status: err?.status,
+        name: err?.name,
+        stack: err?.stack
+      });
+      
+      let errorMsg = "Search failed.";
+      let errorHint = err?.message || "Unknown error";
+      
+      if (err?.name === "AbortError") {
+        errorMsg = "Search timed out.";
+        errorHint = "Try again (your API may be slow right now).";
+      } else if (err?.status === 429) {
+        errorMsg = "Rate limited (too many requests).";
+        errorHint = "Wait ~30 seconds and try again. The API has rate limits.";
+      } else if (err?.status) {
+        errorMsg = `Search failed (HTTP ${err.status}).`;
+        errorHint = err?.message || "Check your API configuration.";
+      }
+      
       showError(errorMsg, errorHint);
     } finally {
       setBtnLoading(false);
