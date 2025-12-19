@@ -1,13 +1,13 @@
 /* =========================================================
-   Fairway Forecast — MOBILE-FIRST PREMIUM (Option B base)
+   Fairway Forecast — MOBILE-FIRST PREMIUM (Option B)
    CSS ONLY — no app.js changes
    ========================================================= */
 
 /* ---------- Base / Reset ---------- */
 :root{
-  --bg: #EEF2F0;               /* porcelain grey */
-  --surface: #F9FBFA;          /* card surface */
-  --surface-2: #F1F5F3;        /* inset / icon pads */
+  --bg: #EEF2F0;
+  --surface: #F9FBFA;
+  --surface-2: #F1F5F3;
 
   --text: #0E1C1A;
   --muted: #5F6F6B;
@@ -109,11 +109,13 @@ button, input, select{ font: inherit; }
   display:block;
 }
 
+/* IMPORTANT: contain the geo button + prevent overflow */
 .ff-search-row{
   display:grid;
   grid-template-columns: 1fr auto auto;
   gap:10px;
   align-items:center;
+  width: 100%;
 }
 
 .ff-input{
@@ -122,7 +124,8 @@ button, input, select{ font: inherit; }
   border:1px solid var(--line);
   font-size:16px;
   background:#fff;
-  min-width: 0; /* critical on mobile */
+  min-width: 0;
+  width: 100%;
 }
 
 .ff-input:focus{
@@ -140,6 +143,7 @@ button, input, select{ font: inherit; }
   min-height:46px;
   padding:12px 14px;
   cursor:pointer;
+  max-width: 100%;
 }
 
 .ff-btn-primary{
@@ -150,6 +154,7 @@ button, input, select{ font: inherit; }
 
 .ff-btn-ghost{
   width:46px;
+  min-width:46px;
   padding:0;
   display:grid;
   place-items:center;
@@ -172,13 +177,26 @@ button, input, select{ font: inherit; }
   min-height:44px;
 }
 
+/* Mobile: force geo button INSIDE the card by stacking row */
+@media (max-width: 520px){
+  .ff-search-row{
+    grid-template-columns: 1fr 46px;
+    grid-template-areas:
+      "input geo"
+      "search search";
+  }
+  #searchInput{ grid-area: input; }
+  #btnGeo{ grid-area: geo; }
+  #searchBtn{ grid-area: search; width:100%; }
+}
+
 /* ---------- Tabs (sticky segmented control) ---------- */
 .ff-tabs{
   display:grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap:10px;
   position: sticky;
-  top: 8px; /* keeps tabs reachable */
+  top: 8px;
   z-index: 20;
   padding: 8px;
   margin: 0 -2px;
@@ -223,7 +241,7 @@ button, input, select{ font: inherit; }
   place-items:center;
   font-weight:900;
   font-size:18px;
-  flex: 0 0 auto;
+  flex:0 0 auto;
 }
 .ff-verdict-text{ flex:1; min-width:0; }
 .ff-verdict-label{
@@ -244,7 +262,6 @@ button, input, select{ font: inherit; }
   color:var(--muted);
 }
 
-/* Verdict states (app.js uses these) */
 .ff-verdict--play{
   background:linear-gradient(180deg,rgba(31,111,92,.16),#fff);
   border-color:rgba(31,111,92,.35);
@@ -266,11 +283,10 @@ button, input, select{ font: inherit; }
 }
 #results > *{ padding:14px; }
 
-/* Tighten headings on mobile */
 #results h2, #results h3{
-  margin: 0 0 6px 0;
-  font-size: 18px;
-  letter-spacing: .1px;
+  margin:0 0 6px 0;
+  font-size:18px;
+  letter-spacing:.1px;
 }
 #results p{
   margin:0;
@@ -291,16 +307,10 @@ button, input, select{ font: inherit; }
   display:flex;
   flex-wrap:wrap;
   gap:8px;
-  overflow: hidden; /* stop ugly scroll */
+  overflow:hidden;
 }
 
-#results .favourites button,
-#results .favorites button,
-#results button{
-  max-width: 100%;
-}
-
-/* ---------- Current weather: make it compact + centred ---------- */
+/* ---------- Current weather icon ---------- */
 #results img[src*="openweathermap"]{
   width: 76px;
   height: 76px;
@@ -308,19 +318,42 @@ button, input, select{ font: inherit; }
   filter: drop-shadow(0 6px 10px rgba(8,20,18,.18));
 }
 
-/* Improve “Sunrise08:12” / “Rain chance0%” WITHOUT JS
-   If app.js renders label and value as separate nodes, this gives space.
-*/
-#results strong{
-  margin-left: 6px;
+/* =========================================================
+   FIX: “Rain chance0% / Sunrise08:10” spacing
+   Works when markup is: TextNode + <strong>Value</strong>
+   ========================================================= */
+#results .ff-kvline{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: baseline;
 }
 
-/* If app.js uses a simple list of lines, make them readable */
-#results{
-  line-height: 1.25;
+/* Convert any line that contains a <strong> into a 2-col row */
+#results div:has(> strong),
+#results p:has(> strong),
+#results li:has(> strong){
+  display:grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 10px;
+  align-items: baseline;
 }
 
-/* ---------- Tables: mobile safe ---------- */
+/* Make the label part look consistent (the text node becomes first “cell”) */
+#results div:has(> strong) strong,
+#results p:has(> strong) strong,
+#results li:has(> strong) strong{
+  margin-left: 0 !important;
+  justify-self: end;
+  font-weight: 900;
+}
+
+/* If browser doesn’t support :has(), keep a safe fallback */
+@supports not(selector(:has(*))){
+  #results strong{ margin-left: 8px; }
+}
+
+/* ---------- Tables ---------- */
 #results table{
   width:100%;
   border-collapse:separate;
@@ -330,41 +363,37 @@ button, input, select{ font: inherit; }
   border:1px solid var(--line);
   background:#fff;
 }
-
 #results thead th{
-  background: #EEF4F2;
-  color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 900;
-  padding: 10px 10px;
-  border-bottom: 1px solid var(--line);
-  white-space: nowrap;
+  background:#EEF4F2;
+  color:var(--muted);
+  font-size:12.5px;
+  font-weight:900;
+  padding:10px 10px;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
 }
-
 #results tbody td{
-  padding: 10px 10px;
-  border-bottom: 1px solid rgba(14,28,26,.06);
-  font-weight: 800;
-  vertical-align: middle;
+  padding:10px 10px;
+  border-bottom:1px solid rgba(14,28,26,.06);
+  font-weight:800;
+  vertical-align:middle;
 }
-
 #results tbody tr:last-child td{ border-bottom:0; }
-
 #results td img{
-  width: 26px;
-  height: 26px;
-  vertical-align: middle;
+  width:26px;
+  height:26px;
+  vertical-align:middle;
 }
 
-/* Daily: hide last column on phones (usually Summary) */
-@media (max-width: 520px){
+/* Daily: hide last column (usually Summary) */
+@media (max-width:520px){
   #results table thead th:last-child,
   #results table tbody td:last-child{
     display:none;
   }
 }
 
-/* ---------- Playability footer card ---------- */
+/* ---------- Playability footer ---------- */
 .ff-play{
   display:flex;
   justify-content:space-between;
@@ -382,7 +411,7 @@ button, input, select{ font: inherit; }
   margin-top:2px;
 }
 .ff-play-score{
-  min-width: 86px;
+  min-width:86px;
   text-align:center;
   font-weight:900;
   font-size:18px;
@@ -400,21 +429,8 @@ button, input, select{ font: inherit; }
   padding:6px 0;
 }
 
-/* ---------- Small phones: stack Search nicely ---------- */
-@media (max-width: 420px){
-  .ff-search-row{
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      "input geo"
-      "search search";
-  }
-  #searchInput{ grid-area: input; }
-  #btnGeo{ grid-area: geo; }
-  #searchBtn{ grid-area: search; width:100%; }
-}
-
-/* ---------- Ultra small: tighten padding ---------- */
-@media (max-width: 360px){
+/* ---------- Ultra small: tighten ---------- */
+@media (max-width:360px){
   .ff-wrap{ padding-left:12px; padding-right:12px; }
   .ff-panel, #results > *{ padding:12px; }
   .ff-tab{ min-height:44px; font-size:14px; }
