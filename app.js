@@ -39,7 +39,6 @@
 
   const geoBtn = $("btnGeo") || $("geoBtn");
   const unitsSelect = $("unitsSelect") || $("units");
-  const suggestionsEl = $("searchSuggestions"); // optional datalist
 
   const verdictCard = $("verdictCard");
   const verdictIcon = $("verdictIcon");
@@ -1064,15 +1063,6 @@
       }
 
       renderSearchResults(list);
-
-      // optional suggestions list
-      if (suggestionsEl) {
-        suggestionsEl.innerHTML = list.slice(0, 12).map((raw) => {
-          const c = normalizeCourse(raw);
-          const line2 = [c.city, c.state, c.country].filter(Boolean).join(", ");
-          return `<option value="${esc(line2 ? `${c.name} — ${line2}` : c.name)}"></option>`;
-        }).join("");
-      }
     } catch (err) {
       console.error("Search error:", err);
       if (err?.name === "AbortError") {
@@ -1173,17 +1163,6 @@
         const list = await fetchCourses(q);
         // reuse existing renderer so keyboard + button behave the same
         renderSearchResults(list);
-
-        if (suggestionsEl) {
-          suggestionsEl.innerHTML = list
-            .slice(0, 12)
-            .map((raw) => {
-              const c = normalizeCourse(raw);
-              const line2 = [c.city, c.state, c.country].filter(Boolean).join(", ");
-              return `<option value="${esc(line2 ? `${c.name} — ${line2}` : c.name)}"></option>`;
-            })
-            .join("");
-        }
       } catch (err) {
         console.error("Typeahead error:", err);
       }
@@ -1191,18 +1170,6 @@
   }
 
   searchInput?.addEventListener("input", handleTypeahead);
-
-  // Fix: Handle datalist selection (when user clicks a suggestion)
-  searchInput?.addEventListener("change", () => {
-    // Small delay to ensure value is set from datalist
-    setTimeout(() => {
-      const q = (searchInput?.value || "").trim();
-      if (q && q.length >= 2) {
-        console.log("🔍 [Datalist] Selection detected, triggering search...");
-        doSearch();
-      }
-    }, 100);
-  });
 
   searchInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
