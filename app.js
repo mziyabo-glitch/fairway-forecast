@@ -147,11 +147,23 @@
     return localTime;
   }
   
-  function getLocalAndGMTTime(tsSeconds) {
+  function getLocalAndGMTTime(tsSeconds, timezoneOffset = null) {
     if (!tsSeconds) return { local: "", gmt: "" };
     const date = new Date(tsSeconds * 1000);
-    const local = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    
+    // GMT time
     const gmt = date.toUTCString().match(/\d{2}:\d{2}/)?.[0] || "";
+    
+    // Local time at course location (if timezone offset available)
+    let local = "";
+    if (timezoneOffset !== null && typeof timezoneOffset === "number") {
+      const courseDate = new Date((tsSeconds + timezoneOffset) * 1000);
+      local = courseDate.toUTCString().match(/\d{2}:\d{2}/)?.[0] || "";
+    } else {
+      // Fallback to browser local time
+      local = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+    
     return { local, gmt };
   }
 
@@ -599,11 +611,13 @@
 
   /* ---------- NORMALIZE WEATHER ---------- */
   function normalizeWeather(raw) {
-    const norm = { current: null, hourly: [], daily: [], sunrise: null, sunset: null };
+    const norm = { current: null, hourly: [], daily: [], sunrise: null, sunset: null, timezone: null, timezoneOffset: null };
     if (!raw || typeof raw !== "object") return norm;
 
     norm.sunrise = raw?.current?.sunrise ?? raw?.city?.sunrise ?? null;
     norm.sunset = raw?.current?.sunset ?? raw?.city?.sunset ?? null;
+    norm.timezone = raw?.city?.timezone ?? null;
+    norm.timezoneOffset = typeof raw?.city?.timezone === "number" ? raw.city.timezone : null;
 
     // current
     if (raw?.current) {
@@ -1173,6 +1187,12 @@
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     if (hourly.length === 0) return "";
     
+    // Check if it's nighttime - if so, show tomorrow's windows
+    const sunrise = norm?.sunrise;
+    const sunset = norm?.sunset;
+    const now = nowSec();
+    const isNighttime = sunrise && sunset && now > sunset;
+    
     const windows = [
       { name: "Morning", start: 6, end: 11 },
       { name: "Midday", start: 11, end: 15 },
@@ -1182,7 +1202,23 @@
     const windowsData = windows.map(win => {
       const windowHours = hourly.filter(h => {
         if (!h?.dt) return false;
-        const hour = new Date(h.dt * 1000).getHours();
+        const hourDate = new Date(h.dt * 1000);
+        const hour = hourDate.getHours();
+        const dayStart = new Date(now * 1000);
+        dayStart.setHours(0, 0, 0, 0);
+        const hDayStart = new Date(hourDate);
+        hDayStart.setHours(0, 0, 0, 0);
+        
+        // If nighttime, filter for tomorrow's hours
+        if (isNighttime) {
+          const tomorrowStart = new Date(dayStart);
+          tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+          if (hDayStart.getTime() !== tomorrowStart.getTime()) return false;
+        } else {
+          // Normal daytime - use today's hours
+          if (hDayStart.getTime() !== dayStart.getTime()) return false;
+        }
+        
         return hour >= win.start && hour < win.end;
       });
       
@@ -1245,10 +1281,12 @@
     
     if (windowsData.length === 0) return "";
     
+    const tomorrowLabel = isNighttime ? " (Tomorrow)" : "";
+    
     const windowsHtml = windowsData.map(w => `
       <div class="ff-round-window ${w.statusClass}">
         <div class="ff-round-window-header">
-          <div class="ff-round-window-name">${esc(w.name)}</div>
+          <div class="ff-round-window-name">${esc(w.name)}${tomorrowLabel ? `<span class="ff-tomorrow-label-small">${esc(tomorrowLabel)}</span>` : ""}</div>
           <div class="ff-round-window-time">${esc(w.timeRange)}</div>
         </div>
         <div class="ff-round-window-status">${esc(w.status)}</div>
@@ -1303,9 +1341,9 @@
     const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "—";
     const ico = iconHtml(c.weather, 2);
     
-    // Get current time display (GMT and local)
-    const currentTime = getLocalAndGMTTime(c.dt || now);
-    const timeDisplay = currentTime.local && currentTime.gmt ? `${currentTime.local} / GMT ${currentTime.gmt}` : "";
+    // Get current time display (GMT and local at course)
+    const currentTime = getLocalAndGMTTime(c.dt || now, norm.timezoneOffset);
+    const timeDisplay = currentTime.local && currentTime.gmt ? `Local ${currentTime.local} / GMT ${currentTime.gmt}` : "";
 
     const windSpeed = typeof c.wind_speed === "number" ? c.wind_speed : null;
     const windSpeedRounded = windSpeed ? roundNum(windSpeed, 1) : null;

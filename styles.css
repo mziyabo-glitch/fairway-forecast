@@ -933,6 +933,12 @@ button, input, select{ font: inherit; }
   color:var(--brand-2);
   margin-left:6px;
 }
+.ff-tomorrow-label-small{
+  font-size:11px;
+  font-weight:700;
+  color:var(--brand-2);
+  margin-left:4px;
+}
 .ff-nighttime-badge{
   background:rgba(7,21,18,.08);
   border-radius:12px;
