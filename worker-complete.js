@@ -121,15 +121,52 @@ async function handleCourses(request, env, corsHeaders, ctx) {
   const normalized = courses.map((c) => {
     const loc = c.location || {};
     return {
+      // Basic identification
       id: c.id,
       name: c.course_name || c.club_name || `Course ${c.id}`,
       club_name: c.club_name || "",
       course_name: c.course_name || "",
+      
+      // Location
       city: loc.city || "",
       state: loc.state || "",
       country: loc.country || "",
       lat: typeof loc.latitude === "number" ? loc.latitude : null,
       lon: typeof loc.longitude === "number" ? loc.longitude : null,
+      address: loc.address || "",
+      postal_code: loc.postal_code || "",
+      
+      // Contact information
+      phone: loc.phone || c.phone || "",
+      website: loc.website || c.website || "",
+      email: loc.email || c.email || "",
+      
+      // Course details
+      par: typeof c.par === "number" ? c.par : null,
+      yardage: typeof c.yardage === "number" ? c.yardage : null,
+      rating: typeof c.rating === "number" ? c.rating : null,
+      slope: typeof c.slope === "number" ? c.slope : null,
+      holes: typeof c.holes === "number" ? c.holes : null,
+      type: c.type || "",
+      description: c.description || "",
+      style: c.style || "",
+      designer: c.designer || c.architect || "",
+      year_opened: typeof c.year_opened === "number" ? c.year_opened : (typeof c.established === "number" ? c.established : null),
+      
+      // Media
+      images: Array.isArray(c.images) ? c.images : [],
+      logo: c.logo || "",
+      
+      // Amenities & features
+      amenities: Array.isArray(c.amenities) ? c.amenities : [],
+      facilities: c.facilities || "",
+      
+      // Additional info
+      green_fees: c.green_fees || null,
+      booking_url: c.booking_url || "",
+      reviews: c.reviews || null,
+      review_rating: typeof c.rating === "number" ? c.rating : null,
+      review_count: typeof c.review_count === "number" ? c.review_count : null,
     };
   });
 

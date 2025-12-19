@@ -124,6 +124,35 @@ button, input, select{ font: inherit; }
 .ff-course-header .ff-sub{
   color: #3E5A53;
 }
+.ff-course-details{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:4px;
+  font-weight:600;
+}
+.ff-result-details{
+  font-size:11px;
+  color:var(--muted);
+  margin-top:4px;
+  font-weight:600;
+}
+.ff-course-detail-row{
+  margin-bottom:10px;
+  line-height:1.5;
+}
+.ff-course-detail-row strong{
+  font-weight:700;
+  color:var(--text);
+  margin-right:6px;
+}
+.ff-course-detail-row a{
+  color:var(--brand);
+  text-decoration:none;
+  font-weight:600;
+}
+.ff-course-detail-row a:hover{
+  text-decoration:underline;
+}
 
 /* ---------- Search ---------- */
 .ff-label{

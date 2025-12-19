@@ -888,13 +888,17 @@
   }
 
   /* ---------- EXPLAINER MODAL ---------- */
-  function openInfoModal(title, body) {
+  function openInfoModal(title, body, isHtml = false) {
     if (!infoModal || !infoModalTitle || !infoModalBody) {
       console.warn("Modal elements not found");
       return;
     }
     infoModalTitle.textContent = title;
-    infoModalBody.textContent = body;
+    if (isHtml) {
+      infoModalBody.innerHTML = body;
+    } else {
+      infoModalBody.textContent = body;
+    }
     infoModal.removeAttribute("hidden");
     infoModal.style.display = "flex"; // Ensure it shows
     console.log("📋 [Modal] Opened:", title);
@@ -914,6 +918,23 @@
 
     const name = selectedCourse?.name ? esc(selectedCourse.name) : "Your location";
     const line2 = [selectedCourse?.city, selectedCourse?.state, selectedCourse?.country].filter(Boolean).join(", ");
+    
+    // Build course details
+    const courseDetails = [];
+    if (selectedCourse?.holes) courseDetails.push(`${selectedCourse.holes} holes`);
+    if (selectedCourse?.par) courseDetails.push(`Par ${selectedCourse.par}`);
+    if (selectedCourse?.yardage) courseDetails.push(`${selectedCourse.yardage.toLocaleString()} yds`);
+    if (selectedCourse?.type) courseDetails.push(selectedCourse.type);
+    const detailsLine = courseDetails.length > 0 ? courseDetails.join(" · ") : "";
+    
+    // Check if there's more info to show
+    const hasMoreInfo = selectedCourse && (
+      selectedCourse.address || 
+      selectedCourse.phone || 
+      selectedCourse.website || 
+      selectedCourse.description ||
+      selectedCourse.amenities?.length > 0
+    );
 
     const favStrip =
       favs.length === 0
@@ -939,12 +960,20 @@
         <div>
           <div class="ff-course-title">${name}</div>
           ${line2 ? `<div class="ff-sub">${esc(line2)}</div>` : ""}
+          ${detailsLine ? `<div class="ff-course-details">${esc(detailsLine)}</div>` : ""}
         </div>
-        ${
-          selectedCourse
-            ? `<button type="button" class="ff-btn ff-btn-ghost ff-star" id="favBtn" title="Favourite">${starOn ? "★" : "☆"}</button>`
-            : ""
-        }
+        <div style="display:flex;gap:8px;align-items:center;">
+          ${
+            hasMoreInfo
+              ? `<button type="button" class="ff-btn ff-btn-ghost" id="courseInfoBtn" title="View course details">ℹ️</button>`
+              : ""
+          }
+          ${
+            selectedCourse
+              ? `<button type="button" class="ff-btn ff-btn-ghost ff-star" id="favBtn" title="Favourite">${starOn ? "★" : "☆"}</button>`
+              : ""
+          }
+        </div>
       </div>
       ${favStrip}
     </div>`;
@@ -1086,10 +1115,90 @@
     </div>`;
   }
 
+  function showCourseDetails(course) {
+    if (!course) return;
+    
+    const c = normalizeCourse(course);
+    const details = [];
+    
+    // Basic info
+    if (c.club_name && c.club_name !== c.name) {
+      details.push(`<div class="ff-course-detail-row"><strong>Club:</strong> ${esc(c.club_name)}</div>`);
+    }
+    if (c.address) {
+      details.push(`<div class="ff-course-detail-row"><strong>Address:</strong> ${esc(c.address)}</div>`);
+    }
+    if (c.postal_code) {
+      details.push(`<div class="ff-course-detail-row"><strong>Postal Code:</strong> ${esc(c.postal_code)}</div>`);
+    }
+    
+    // Contact
+    if (c.phone) {
+      details.push(`<div class="ff-course-detail-row"><strong>Phone:</strong> <a href="tel:${esc(c.phone)}">${esc(c.phone)}</a></div>`);
+    }
+    if (c.email) {
+      details.push(`<div class="ff-course-detail-row"><strong>Email:</strong> <a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>`);
+    }
+    if (c.website) {
+      const websiteUrl = c.website.startsWith('http') ? c.website : `https://${c.website}`;
+      details.push(`<div class="ff-course-detail-row"><strong>Website:</strong> <a href="${esc(websiteUrl)}" target="_blank" rel="noopener">${esc(c.website)}</a></div>`);
+    }
+    
+    // Course specs
+    const specs = [];
+    if (c.holes) specs.push(`${c.holes} holes`);
+    if (c.par) specs.push(`Par ${c.par}`);
+    if (c.yardage) specs.push(`${c.yardage.toLocaleString()} yards`);
+    if (c.rating) specs.push(`Rating ${c.rating}`);
+    if (c.slope) specs.push(`Slope ${c.slope}`);
+    if (specs.length > 0) {
+      details.push(`<div class="ff-course-detail-row"><strong>Course Specs:</strong> ${esc(specs.join(" · "))}</div>`);
+    }
+    
+    if (c.type) {
+      details.push(`<div class="ff-course-detail-row"><strong>Type:</strong> ${esc(c.type)}</div>`);
+    }
+    if (c.style) {
+      details.push(`<div class="ff-course-detail-row"><strong>Style:</strong> ${esc(c.style)}</div>`);
+    }
+    if (c.designer) {
+      details.push(`<div class="ff-course-detail-row"><strong>Designer:</strong> ${esc(c.designer)}</div>`);
+    }
+    if (c.year_opened) {
+      details.push(`<div class="ff-course-detail-row"><strong>Year Opened:</strong> ${c.year_opened}</div>`);
+    }
+    
+    // Description
+    if (c.description) {
+      details.push(`<div class="ff-course-detail-row" style="margin-top:12px;"><div style="margin-top:8px;">${esc(c.description)}</div></div>`);
+    }
+    
+    // Amenities
+    if (Array.isArray(c.amenities) && c.amenities.length > 0) {
+      details.push(`<div class="ff-course-detail-row" style="margin-top:12px;"><strong>Amenities:</strong> ${esc(c.amenities.join(", "))}</div>`);
+    }
+    
+    // Booking
+    if (c.booking_url) {
+      const bookingUrl = c.booking_url.startsWith('http') ? c.booking_url : `https://${c.booking_url}`;
+      details.push(`<div class="ff-course-detail-row" style="margin-top:12px;"><a href="${esc(bookingUrl)}" target="_blank" rel="noopener" class="ff-btn ff-btn-primary" style="display:inline-block;margin-top:8px;">Book Tee Time</a></div>`);
+    }
+    
+    if (details.length === 0) {
+      openInfoModal(c.name || "Course Details", "No additional information available for this course.");
+      return;
+    }
+    
+    openInfoModal(c.name || "Course Details", details.join(""), true);
+  }
+
   function wireHeaderButtons() {
     const host = locationSlot || resultsEl;
     const favBtn = $("favBtn");
     favBtn?.addEventListener("click", () => toggleFavourite(selectedCourse));
+    
+    const courseInfoBtn = $("courseInfoBtn");
+    courseInfoBtn?.addEventListener("click", () => showCourseDetails(selectedCourse));
 
     const favs = loadFavs();
 
@@ -1202,13 +1311,52 @@
   /* ---------- SEARCH ---------- */
   function normalizeCourse(raw) {
     return {
+      // Basic identification
       id: raw?.id ?? null,
       name: raw?.name || raw?.course_name || raw?.club_name || "Course",
+      club_name: raw?.club_name || "",
+      course_name: raw?.course_name || "",
+      
+      // Location
       city: raw?.city || "",
       state: raw?.state || "",
       country: raw?.country || "",
       lat: typeof raw?.lat === "number" ? raw.lat : null,
       lon: typeof raw?.lon === "number" ? raw.lon : null,
+      address: raw?.address || "",
+      postal_code: raw?.postal_code || "",
+      
+      // Contact information
+      phone: raw?.phone || "",
+      website: raw?.website || "",
+      email: raw?.email || "",
+      
+      // Course details
+      par: typeof raw?.par === "number" ? raw.par : null,
+      yardage: typeof raw?.yardage === "number" ? raw.yardage : null,
+      rating: typeof raw?.rating === "number" ? raw.rating : null,
+      slope: typeof raw?.slope === "number" ? raw.slope : null,
+      holes: typeof raw?.holes === "number" ? raw.holes : null,
+      type: raw?.type || "",
+      description: raw?.description || "",
+      style: raw?.style || "",
+      designer: raw?.designer || "",
+      year_opened: typeof raw?.year_opened === "number" ? raw.year_opened : null,
+      
+      // Media
+      images: Array.isArray(raw?.images) ? raw.images : [],
+      logo: raw?.logo || "",
+      
+      // Amenities & features
+      amenities: Array.isArray(raw?.amenities) ? raw.amenities : [],
+      facilities: raw?.facilities || "",
+      
+      // Additional info
+      green_fees: raw?.green_fees || null,
+      booking_url: raw?.booking_url || "",
+      reviews: raw?.reviews || null,
+      review_rating: typeof raw?.review_rating === "number" ? raw.review_rating : null,
+      review_count: typeof raw?.review_count === "number" ? raw.review_count : null,
     };
   }
 
@@ -1240,10 +1388,20 @@
       const c = normalizeCourse(raw);
       const line2 = [c.city, c.state, c.country].filter(Boolean).join(", ");
       const disabled = !(Number.isFinite(c.lat) && Number.isFinite(c.lon));
+      
+      // Build course details line
+      const details = [];
+      if (c.holes) details.push(`${c.holes} holes`);
+      if (c.par) details.push(`Par ${c.par}`);
+      if (c.yardage) details.push(`${c.yardage.toLocaleString()} yds`);
+      if (c.type) details.push(c.type);
+      const detailsLine = details.length > 0 ? details.join(" · ") : "";
+      
       return `<button class="ff-result" type="button" data-i="${idx}" ${disabled ? "disabled" : ""}>
         <div class="ff-result-main">
           <div class="ff-result-title">${esc(c.name)}</div>
           <div class="ff-result-sub">${esc(line2)}</div>
+          ${detailsLine ? `<div class="ff-result-details">${esc(detailsLine)}</div>` : ""}
         </div>
       </button>`;
     }).join("");
