@@ -517,6 +517,11 @@
 
   async function fetchCourses(query) {
     const q = (query || "").trim();
+    if (!q) {
+      console.warn(`[Search] Empty query provided`);
+      return [];
+    }
+
     const cacheKey = q.toLowerCase();
     const cached = cacheGet(memCache.courses, cacheKey, COURSE_CACHE_TTL_MS);
     if (cached) {
@@ -530,6 +535,8 @@
 
     let list = [];
     let source = "unknown";
+    let apiError = null;
+    
     try {
       console.log(`🌐 [GolfAPI] Calling primary API: /courses?search=${enc}`);
       const data = await apiGet(`/courses?search=${enc}`);
@@ -539,38 +546,51 @@
       if (list.length > 0) {
         console.log(`✅ [GolfAPI] Found ${list.length} course(s)`);
       } else {
-        console.log(`⚠️ [GolfAPI] No results found (data:`, data, `)`);
+        console.log(`⚠️ [GolfAPI] No results found`);
       }
     } catch (err) {
+      apiError = err;
       console.error("❌ [GolfAPI] Primary API failed:", err);
       console.error("   Error details:", {
         message: err?.message,
         status: err?.status,
-        name: err?.name,
-        stack: err?.stack
+        name: err?.name
       });
-      if (err?.status === 429) {
-        console.warn("   ⚠️ Rate limit detected (429)");
+      
+      // If rate limited, don't try fallback - just throw
+      if (err?.status === 429 || err?.name === "RateLimitError") {
+        console.warn("   ⚠️ Rate limit detected (429) - not trying fallback");
+        throw err;
       }
+      
       list = [];
       source = "GolfAPI (failed)";
     }
 
-    // Fallback to Supabase when no primary matches
-    if (!Array.isArray(list) || list.length === 0) {
+    // Fallback to Supabase when no primary matches (only if not rate limited)
+    if ((!Array.isArray(list) || list.length === 0) && (!apiError || apiError?.status !== 429)) {
       console.log(`🔄 [Fallback] Trying Supabase...`);
-      const supa = await fetchCoursesSupabase(q);
-      if (supa.length > 0) {
-        list = supa;
-        source = "Supabase";
-        console.log(`✅ [Fallback] Using ${supa.length} result(s) from Supabase`);
-      } else {
-        console.log(`❌ [Fallback] Supabase also returned no results`);
+      try {
+        const supa = await fetchCoursesSupabase(q);
+        if (supa.length > 0) {
+          list = supa;
+          source = "Supabase";
+          console.log(`✅ [Fallback] Using ${supa.length} result(s) from Supabase`);
+        } else {
+          console.log(`❌ [Fallback] Supabase also returned no results`);
+        }
+      } catch (fallbackErr) {
+        console.error("❌ [Fallback] Supabase also failed:", fallbackErr);
       }
     }
 
     console.log(`📊 [Search] Final result: ${list.length} course(s) from ${source}`);
-    cacheSet(memCache.courses, cacheKey, list);
+
+    // Cache successful results (even if empty, but not errors)
+    if (source !== "unknown" && (!apiError || apiError?.status !== 429)) {
+      cacheSet(memCache.courses, cacheKey, list);
+    }
+
     return list;
   }
 
