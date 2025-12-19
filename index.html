@@ -101,7 +101,17 @@
 
     <!-- ✅ NEW: SEARCH RESULTS SLOT (shows “Select a result” directly under search) -->
     <section id="searchResultsSlot" class="ff-search-results" aria-live="polite" aria-label="Search results">
-      <!-- app.js should render the “Select a result” card/list here -->
+      <!-- app.js renders the “Select a result” card/list here -->
+    </section>
+
+    <!-- ================= LOCATION (moved up, just under search) ================= -->
+    <section aria-label="Location">
+      <div class="ff-section-label">Location</div>
+      <div id="locationSlot"></div>
+
+      <div class="ff-hint">
+        Tap ★ to add or remove favourites
+      </div>
     </section>
 
     <!-- ================= TABS ================= -->
@@ -138,25 +148,12 @@
       </section>
     </section>
 
-    <!-- ================= RESULTS ================= -->
+    <!-- ================= RESULTS (FORECAST ONLY) ================= -->
     <section id="results" class="ff-results" aria-live="polite">
-
-      <!-- LOCATION -->
-      <div>
-        <div class="ff-section-label">Location</div>
-        <div id="locationSlot"></div>
-
-        <div class="ff-hint">
-          Tap ★ to add or remove favourites
-        </div>
-      </div>
-
-      <!-- FORECAST -->
       <div>
         <div class="ff-section-label">Forecast</div>
         <div id="forecastSlot"></div>
       </div>
-
     </section>
 
     <!-- ================= PLAYABILITY ================= -->

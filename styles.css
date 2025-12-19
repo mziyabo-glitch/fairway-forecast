@@ -101,6 +101,18 @@ button, input, select{ font: inherit; }
 }
 .ff-panel{ padding:14px; }
 
+/* Course/location header card – slightly tinted for stronger icon contrast */
+.ff-course-header{
+  background: #E3F2EC;
+  border-color: rgba(31,111,92,.28);
+}
+.ff-course-header .ff-course-title{
+  font-weight: 800;
+}
+.ff-course-header .ff-sub{
+  color: #3E5A53;
+}
+
 /* ---------- Search ---------- */
 .ff-label{
   font-size:13px;
