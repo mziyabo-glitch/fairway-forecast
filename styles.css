@@ -1,0 +1,480 @@
+
+/* =========================================================
+   Fairway Forecast — MOBILE-FIRST PREMIUM (Option B)
+   CSS ONLY — no app.js changes
+   ========================================================= */
+
+/* ---------- Base / Reset ---------- */
+:root{
+  --bg: #EEF2F0;
+  --surface: #F9FBFA;
+  --surface-2: #F1F5F3;
+
+  --text: #0E1C1A;
+  --muted: #5F6F6B;
+  --line: rgba(14, 28, 26, 0.10);
+
+  --brand: #1F6F5C;
+  --brand-2: #185E4E;
+  --brand-soft: rgba(31,111,92,.14);
+
+  --danger: #C0362C;
+  --danger-soft: rgba(192,54,44,.14);
+
+  --shadow-soft: 0 6px 16px rgba(8,20,18,.06);
+
+  --r-xl: 22px;
+  --r-lg: 18px;
+  --r-md: 14px;
+
+  --gap: 14px;
+}
+
+*{ box-sizing:border-box; }
+html, body{ height:100%; }
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 50% -220px, rgba(31,111,92,.16), transparent 65%),
+    linear-gradient(var(--bg), var(--bg));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x:hidden;
+}
+
+img{ max-width:100%; display:block; }
+button, input, select{ font: inherit; }
+
+/* ---------- Layout ---------- */
+.ff-wrap{
+  max-width:560px;
+  margin:0 auto;
+  padding: 14px 14px calc(18px + env(safe-area-inset-bottom));
+  display:flex;
+  flex-direction:column;
+  gap: var(--gap);
+}
+
+/* ---------- Header ---------- */
+.ff-header{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-xl);
+  box-shadow:var(--shadow-soft);
+  padding:14px;
+}
+.ff-brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.ff-logo{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  padding:6px;
+}
+.ff-brand-text strong{
+  font-size:18px;
+  letter-spacing:.2px;
+  display:block;
+}
+.ff-brand-text span{
+  font-size:12.5px;
+  color:var(--muted);
+  margin-top:3px;
+  display:block;
+}
+
+/* ---------- Panels / Cards ---------- */
+.ff-panel,
+.ff-verdict,
+.ff-results > *{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-xl);
+  box-shadow:var(--shadow-soft);
+}
+.ff-panel{ padding:14px; }
+
+/* ---------- Search ---------- */
+.ff-label{
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  margin-bottom:10px;
+  display:block;
+}
+/* --- Search results slot: sits under search bar --- */
+.ff-search-results{
+  display:none;              /* hidden until it has content */
+  margin-top: -6px;          /* visually tucks under search card */
+}
+
+.ff-search-results:has(*){
+  display:block;
+}
+
+/* The card that app.js renders (“Select a result”) */
+.ff-search-results > *{
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-soft);
+  padding: 14px;
+}
+
+/* Make the list easier to scan/tap */
+.ff-search-results button,
+.ff-search-results a{
+  width:100%;
+  text-align:left;
+}
+/* IMPORTANT: contain the geo button + prevent overflow */
+.ff-search-row{
+  display:grid;
+  grid-template-columns: 1fr auto auto;
+  gap:10px;
+  align-items:center;
+  width: 100%;
+}
+
+.ff-input{
+  padding:13px 14px;
+  border-radius:16px;
+  border:1px solid var(--line);
+  font-size:16px;
+  background:#fff;
+  min-width: 0;
+  width: 100%;
+}
+
+.ff-input:focus{
+  border-color:rgba(31,111,92,.45);
+  box-shadow:0 0 0 4px rgba(31,111,92,.14);
+  outline:none;
+}
+
+.ff-btn{
+  border-radius:16px;
+  border:1px solid var(--line);
+  background:#fff;
+  font-weight:700;
+  font-size:15px;
+  min-height:46px;
+  padding:12px 14px;
+  cursor:pointer;
+  max-width: 100%;
+}
+
+.ff-btn-primary{
+  background:linear-gradient(180deg,var(--brand),var(--brand-2));
+  color:#fff;
+  border-color:rgba(31,111,92,.45);
+}
+
+.ff-btn-ghost{
+  width:46px;
+  min-width:46px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  background:#fff;
+}
+
+.ff-units-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:12px;
+}
+.ff-select{
+  border-radius:16px;
+  border:1px solid var(--line);
+  padding:10px 12px;
+  font-weight:700;
+  background:#fff;
+  min-height:44px;
+}
+
+/* Mobile: force geo button INSIDE the card by stacking row */
+@media (max-width: 520px){
+  .ff-search-row{
+    grid-template-columns: 1fr 46px;
+    grid-template-areas:
+      "input geo"
+      "search search";
+  }
+  #searchInput{ grid-area: input; }
+  #btnGeo{ grid-area: geo; }
+  #searchBtn{ grid-area: search; width:100%; }
+}
+
+/* ---------- Tabs (sticky segmented control) ---------- */
+.ff-tabs{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:10px;
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  padding: 8px;
+  margin: 0 -2px;
+  border-radius: 22px;
+  background: rgba(241,245,243,.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(14,28,26,.08);
+}
+
+.ff-tab{
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  min-height:46px;
+  font-weight:900;
+  font-size:15px;
+}
+
+.ff-tab.active{
+  background:linear-gradient(180deg,var(--brand),var(--brand-2));
+  color:#fff;
+  border-color:rgba(31,111,92,.45);
+}
+
+/* ---------- Verdict (Play / No-Play) ---------- */
+.ff-verdict{
+  padding:12px 14px;
+}
+.ff-verdict-main{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.ff-verdict-badge,
+.ff-verdict-icon{
+  width:36px;
+  height:36px;
+  border-radius:14px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  display:grid;
+  place-items:center;
+  font-weight:900;
+  font-size:18px;
+  flex:0 0 auto;
+}
+.ff-verdict-text{ flex:1; min-width:0; }
+.ff-verdict-label{
+  font-weight:900;
+  font-size:16px;
+  line-height:1.15;
+}
+.ff-verdict-reason{
+  font-size:13px;
+  color:var(--muted);
+  margin-top:2px;
+}
+.ff-verdict-meta{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px dashed rgba(14,28,26,.18);
+  font-size:13px;
+  color:var(--muted);
+}
+
+.ff-verdict--play{
+  background:linear-gradient(180deg,rgba(31,111,92,.16),#fff);
+  border-color:rgba(31,111,92,.35);
+}
+.ff-verdict--no{
+  background:linear-gradient(180deg,rgba(192,54,44,.16),#fff);
+  border-color:rgba(192,54,44,.35);
+}
+.ff-verdict--maybe{
+  background:linear-gradient(180deg,rgba(245,158,11,.18),#fff);
+  border-color:rgba(245,158,11,.30);
+}
+
+/* ---------- Results ---------- */
+.ff-results{
+  display:flex;
+  flex-direction:column;
+  gap:var(--gap);
+}
+#results > *{ padding:14px; }
+
+#results h2, #results h3{
+  margin:0 0 6px 0;
+  font-size:18px;
+  letter-spacing:.1px;
+}
+#results p{
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* ---------- Favourites chips (wrap nicely) ---------- */
+#results .favourites,
+#results .favorites,
+#results [data-favourites],
+#results [data-favorites]{
+  margin-top:10px;
+  padding:10px;
+  border-radius:18px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  overflow:hidden;
+}
+
+/* ---------- Current weather icon ---------- */
+#results img[src*="openweathermap"]{
+  width: 76px;
+  height: 76px;
+  margin: 10px auto 6px auto;
+  background: rgba(255,255,255,.85);
+  border-radius: 18px;
+  padding: 6px;
+  /* boost contrast / colour a touch so icons don't look washed out */
+  filter:
+    drop-shadow(0 6px 10px rgba(8,20,18,.2))
+    saturate(1.18)
+    contrast(1.12);
+}
+/* =========================================================
+   FIX: “Rain chance0% / Sunrise08:10” spacing
+   Works when markup is: TextNode + <strong>Value</strong>
+   ========================================================= */
+#results .ff-kvline{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+}
+
+/* Convert any line that contains a <strong> into a 2-col row */
+#results div:has(> strong),
+#results p:has(> strong),
+#results li:has(> strong){
+  display:grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 10px;
+  align-items: baseline;
+}
+
+/* Make the label part look consistent (the text node becomes first “cell”) */
+#results div:has(> strong) strong,
+#results p:has(> strong) strong,
+#results li:has(> strong) strong{
+  margin-left: 0 !important;
+  justify-self: end;
+  font-weight: 900;
+}
+
+/* If browser doesn’t support :has(), keep a safe fallback */
+@supports not(selector(:has(*))){
+  #results strong{ margin-left: 8px; }
+}
+
+/* ---------- Tables ---------- */
+#results table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:#fff;
+}
+#results thead th{
+  background:#EEF4F2;
+  color:var(--muted);
+  font-size:12.5px;
+  font-weight:900;
+  padding:10px 10px;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+#results tbody td{
+  padding:10px 10px;
+  border-bottom:1px solid rgba(14,28,26,.06);
+  font-weight:800;
+  vertical-align:middle;
+}
+#results tbody tr:last-child td{ border-bottom:0; }
+#results td img{
+  width:26px;
+  height:26px;
+  vertical-align:middle;
+}
+
+/* Daily: hide last column (usually Summary) */
+@media (max-width:520px){
+  #results table thead th:last-child,
+  #results table tbody td:last-child{
+    display:none;
+  }
+}
+
+/* ---------- Playability footer ---------- */
+.ff-play{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.ff-play-title{
+  font-weight:900;
+  font-size:16px;
+}
+.ff-play-sub{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:700;
+  margin-top:2px;
+}
+.ff-play-score{
+  min-width:86px;
+  text-align:center;
+  font-weight:900;
+  font-size:18px;
+  padding:10px 14px;
+  border-radius:18px;
+  background:var(--brand-soft);
+  border:1px solid rgba(31,111,92,.22);
+}
+
+/* ---------- Icon + ghost button contrast tweaks ---------- */
+.ff-btn-ghost{
+  background: var(--surface-2);
+  color: var(--brand-2);
+}
+
+.ff-star{
+  color: #e0a500;
+}
+
+/* ---------- Footer ---------- */
+.ff-foot{
+  font-size:12px;
+  color:var(--muted);
+  text-align:center;
+  padding:6px 0;
+}
+
+/* ---------- Ultra small: tighten ---------- */
+@media (max-width:360px){
+  .ff-wrap{ padding-left:12px; padding-right:12px; }
+  .ff-panel, #results > *{ padding:12px; }
+  .ff-tab{ min-height:44px; font-size:14px; }
+}
+
+
