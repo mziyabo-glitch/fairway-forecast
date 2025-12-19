@@ -23,6 +23,9 @@
   const searchInput = $("searchInput");
   const searchBtn = $("searchBtn");
   const resultsEl = $("results");
+  const locationSlot = $("locationSlot") || resultsEl;
+  const forecastSlot = $("forecastSlot") || resultsEl;
+  const searchResultsSlot = $("searchResultsSlot") || null;
   const playabilityScoreEl = $("playabilityScore");
 
   const tabCurrent = $("tabCurrent");
@@ -104,15 +107,25 @@
   }
 
   function showMessage(msg) {
-    resultsEl.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
+    if (forecastSlot) {
+      forecastSlot.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
+    } else if (resultsEl) {
+      resultsEl.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
+    }
   }
 
   function showError(msg, extra = "") {
     const hint = extra ? `<div class="ff-sub muted" style="margin-top:8px">${esc(extra)}</div>` : "";
-    resultsEl.innerHTML = `<div class="ff-card">
+    const html = `<div class="ff-card">
       <div class="ff-big">⚠️</div>
       <div>${esc(msg)}</div>${hint}
     </div>`;
+
+    if (forecastSlot) {
+      forecastSlot.innerHTML = html;
+    } else if (resultsEl) {
+      resultsEl.innerHTML = html;
+    }
   }
 
   /* ---------- ICONS (OpenWeather CDN) ---------- */
@@ -673,10 +686,13 @@
   }
 
   function wireHeaderButtons() {
+    const host = locationSlot || resultsEl;
     const favBtn = $("favBtn");
     favBtn?.addEventListener("click", () => toggleFavourite(selectedCourse));
 
-    resultsEl.querySelectorAll("[data-ll]").forEach((btn) => {
+    host
+      ?.querySelectorAll("[data-ll]")
+      .forEach((btn) => {
       btn.addEventListener("click", () => {
         const ll = btn.getAttribute("data-ll") || "";
         const [latStr, lonStr] = ll.split(",");
@@ -687,7 +703,7 @@
         selectedCourse = { id: null, name: btn.textContent.replace(/^★\s*/, ""), city: "", state: "", country: "", lat, lon };
         loadWeatherForSelected();
       });
-    });
+      });
   }
 
   function renderAll() {
@@ -704,7 +720,14 @@
       body = renderDaily(lastNorm);
     }
 
-    resultsEl.innerHTML = `${header}${body}`;
+    if (locationSlot) locationSlot.innerHTML = header;
+    if (forecastSlot) {
+      forecastSlot.innerHTML = body;
+    } else if (resultsEl && !locationSlot) {
+      // fallback for legacy markup
+      resultsEl.innerHTML = `${header}${body}`;
+    }
+
     wireHeaderButtons();
   }
 
@@ -721,12 +744,27 @@
     };
   }
 
+  function clearSearchResults() {
+    if (searchResultsSlot) {
+      searchResultsSlot.innerHTML = "";
+    }
+  }
+
   function renderSearchResults(list) {
     const header = renderHeaderBlock();
 
+    if (locationSlot) {
+      locationSlot.innerHTML = header;
+    }
+
+    const host = searchResultsSlot || forecastSlot || resultsEl;
+
     if (!Array.isArray(list) || list.length === 0) {
-      resultsEl.innerHTML = `${header}<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
+      if (host) host.innerHTML = `<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
       wireHeaderButtons();
+      if (searchResultsSlot) {
+        searchResultsSlot.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
       return;
     }
 
@@ -742,14 +780,17 @@
       </button>`;
     }).join("");
 
-    resultsEl.innerHTML = `${header}
-      <div class="ff-card">
+    if (host) {
+      host.innerHTML = `<div class="ff-card">
         <div class="ff-card-title">Select a result</div>
         <div class="ff-result-list">${items}</div>
       </div>`;
+    }
 
     // IMPORTANT: bind clicks AFTER inserting the DOM
-    resultsEl.querySelectorAll(".ff-result[data-i]").forEach((btn) => {
+    host
+      ?.querySelectorAll(".ff-result[data-i]")
+      .forEach((btn) => {
       btn.addEventListener("click", () => {
         const i = Number(btn.getAttribute("data-i"));
         const c = normalizeCourse(list[i]);
@@ -760,9 +801,13 @@
         selectedCourse = c;
         loadWeatherForSelected();
       });
-    });
+      });
 
     wireHeaderButtons();
+
+    if (searchResultsSlot) {
+      searchResultsSlot.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   async function doSearch() {
@@ -772,6 +817,7 @@
       return;
     }
 
+    clearSearchResults();
     setBtnLoading(true);
     showMessage("Loading…");
 
@@ -817,6 +863,7 @@
       renderVerdictCard(lastNorm);
       renderPlayability(lastNorm);
       renderAll();
+      clearSearchResults();
     } catch (err) {
       console.error("Weather error:", err);
       if (err?.name === "AbortError") {
@@ -868,6 +915,42 @@
   tabDaily?.addEventListener("click", () => setActiveTab("daily"));
 
   searchBtn?.addEventListener("click", doSearch);
+
+  // lightweight typeahead: update suggestions and inline list while typing
+  let typeaheadTimer = null;
+  function handleTypeahead() {
+    if (!searchInput) return;
+    const q = searchInput.value.trim();
+
+    if (!q || q.length < 3) {
+      clearSearchResults();
+      return;
+    }
+
+    if (typeaheadTimer) clearTimeout(typeaheadTimer);
+    typeaheadTimer = setTimeout(async () => {
+      try {
+        const list = await fetchCourses(q);
+        // reuse existing renderer so keyboard + button behave the same
+        renderSearchResults(list);
+
+        if (suggestionsEl) {
+          suggestionsEl.innerHTML = list
+            .slice(0, 12)
+            .map((raw) => {
+              const c = normalizeCourse(raw);
+              const line2 = [c.city, c.state, c.country].filter(Boolean).join(", ");
+              return `<option value="${esc(line2 ? `${c.name} — ${line2}` : c.name)}"></option>`;
+            })
+            .join("");
+        }
+      } catch (err) {
+        console.error("Typeahead error:", err);
+      }
+    }, 250);
+  }
+
+  searchInput?.addEventListener("input", handleTypeahead);
 
   searchInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
