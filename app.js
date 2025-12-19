@@ -205,14 +205,11 @@
   }
 
   function showMessage(msg) {
-    // Don't overwrite search results slot with messages
-    if (searchResultsSlot && searchResultsSlot.innerHTML.trim()) {
-      // Search results are showing, don't overwrite
-      return;
-    }
+    // Only show messages in forecast slot, never in search results slot
     if (forecastSlot) {
       forecastSlot.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
-    } else if (resultsEl) {
+    } else if (resultsEl && !searchResultsSlot) {
+      // Only use resultsEl if searchResultsSlot doesn't exist
       resultsEl.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
     }
   }
@@ -224,7 +221,7 @@
       <div>${esc(msg)}</div>${hint}
     </div>`;
 
-    // Show error in search results slot if it exists and has content, otherwise forecast slot
+    // Show error in search results slot if it exists (for search errors), otherwise forecast slot
     if (searchResultsSlot) {
       searchResultsSlot.innerHTML = html;
     } else if (forecastSlot) {
@@ -2111,15 +2108,30 @@
   }
 
   async function doSearch() {
-    const q = (searchInput?.value || "").trim();
+    if (!searchInput) {
+      console.error("Search input not found");
+      return;
+    }
+    
+    const q = (searchInput.value || "").trim();
     if (!q) {
-      showMessage("Type a town/city or golf course name.");
+      if (searchResultsSlot) {
+        searchResultsSlot.innerHTML = `<div class="ff-card muted">Type a town/city or golf course name.</div>`;
+      } else {
+        showMessage("Type a town/city or golf course name.");
+      }
       return;
     }
 
     clearSearchResults();
     setBtnLoading(true);
-    showMessage("Loading…");
+    
+    // Show loading in search results slot
+    if (searchResultsSlot) {
+      searchResultsSlot.innerHTML = `<div class="ff-card muted">Loading…</div>`;
+    } else {
+      showMessage("Loading…");
+    }
 
     try {
       let list = await fetchCourses(q);
@@ -2146,13 +2158,17 @@
       renderSearchResults(list);
     } catch (err) {
       console.error("Search error:", err);
-      if (err?.name === "AbortError") {
-        showError("Search timed out.", "Try again (your API may be slow right now).");
-      } else if (err?.status === 429) {
-        showError("Rate limited (too many requests).", "Wait ~30 seconds and try again.");
-      } else {
-        showError("Search failed.", err?.message || "Unknown error");
-      }
+      const errorMsg = err?.name === "AbortError" 
+        ? "Search timed out." 
+        : err?.status === 429 
+        ? "Rate limited (too many requests)." 
+        : "Search failed.";
+      const errorHint = err?.name === "AbortError"
+        ? "Try again (your API may be slow right now)."
+        : err?.status === 429
+        ? "Wait ~30 seconds and try again."
+        : err?.message || "Unknown error";
+      showError(errorMsg, errorHint);
     } finally {
       setBtnLoading(false);
     }
@@ -2254,6 +2270,7 @@
         renderSearchResults(list);
       } catch (err) {
         console.error("Typeahead error:", err);
+        // Don't show error for typeahead, just log it
       }
     }, 250);
   }
