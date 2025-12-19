@@ -660,6 +660,12 @@
       };
       norm.sunrise = norm.sunrise ?? raw?.city?.sunrise ?? null;
       norm.sunset = norm.sunset ?? raw?.city?.sunset ?? null;
+      norm.timezoneOffset = norm.timezoneOffset ?? (typeof raw?.city?.timezone === "number" ? raw.city.timezone : null);
+    }
+    
+    // Ensure timezoneOffset is set from city data
+    if (norm.timezoneOffset === null && typeof raw?.city?.timezone === "number") {
+      norm.timezoneOffset = raw.city.timezone;
     }
 
     // hourly from forecast list
