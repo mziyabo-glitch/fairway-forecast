@@ -2055,7 +2055,7 @@
     console.log(`[Search] Rendering ${list.length} result(s) to`, resultsHost.id || "host element");
 
     if (!Array.isArray(list) || list.length === 0) {
-      if (host) host.innerHTML = `<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
+      if (resultsHost) resultsHost.innerHTML = `<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
       wireHeaderButtons();
       if (searchResultsSlot) {
         searchResultsSlot.scrollIntoView({ behavior: "smooth", block: "start" });
