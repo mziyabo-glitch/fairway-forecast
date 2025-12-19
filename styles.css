@@ -515,7 +515,7 @@ button, input, select{ font: inherit; }
 
 /* ---------- Modal ---------- */
 .ff-modal[hidden]{
-  display:none;
+  display:none !important;
 }
 
 .ff-modal{
@@ -524,7 +524,8 @@ button, input, select{ font: inherit; }
   display:flex;
   align-items:center;
   justify-content:center;
-  z-index:60;
+  z-index:9999;
+  pointer-events:auto;
 }
 
 .ff-modal-backdrop{
@@ -571,6 +572,15 @@ button, input, select{ font: inherit; }
   cursor:pointer;
   font-size:18px;
   line-height:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text);
+  font-weight:700;
+}
+.ff-modal-close:hover{
+  background:var(--surface);
+  border-color:rgba(7,21,18,.28);
 }
 
 /* ---------- Footer ---------- */

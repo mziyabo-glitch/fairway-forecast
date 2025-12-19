@@ -321,6 +321,41 @@
     }
   }
 
+  /* ---------- GEOCODING (City/Town lookup) ---------- */
+  async function geocodeCity(query) {
+    const q = (query || "").trim();
+    if (!q) return null;
+
+    // Check if query looks like a city (no golf keywords)
+    const golfKeywords = /golf|club|course|gc|links|country club/i;
+    if (golfKeywords.test(q)) return null; // Likely a course name, not a city
+
+    try {
+      console.log(`🌍 [Geocode] Looking up city: "${q}"`);
+      // Use OpenWeather geocoding API via worker (or direct if worker supports it)
+      const data = await apiGet(`/geocode?q=${encodeURIComponent(q)}&limit=1`);
+      
+      if (Array.isArray(data) && data.length > 0) {
+        const loc = data[0];
+        const lat = typeof loc.lat === "number" ? loc.lat : typeof loc.latitude === "number" ? loc.latitude : null;
+        const lon = typeof loc.lon === "number" ? loc.lon : typeof loc.longitude === "number" ? loc.longitude : null;
+        const name = loc.name || loc.local_names?.en || q;
+        const country = loc.country || "";
+        const state = loc.state || "";
+
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          console.log(`✅ [Geocode] Found: ${name} (${lat}, ${lon})`);
+          return { name, lat, lon, country, state, city: name };
+        }
+      }
+      console.log(`⚠️ [Geocode] No location found`);
+      return null;
+    } catch (err) {
+      console.warn("⚠️ [Geocode] Failed", err);
+      return null;
+    }
+  }
+
   async function fetchCourses(query) {
     const q = (query || "").trim();
     const cacheKey = q.toLowerCase();
@@ -662,15 +697,22 @@
 
   /* ---------- EXPLAINER MODAL ---------- */
   function openInfoModal(title, body) {
-    if (!infoModal || !infoModalTitle || !infoModalBody) return;
+    if (!infoModal || !infoModalTitle || !infoModalBody) {
+      console.warn("Modal elements not found");
+      return;
+    }
     infoModalTitle.textContent = title;
     infoModalBody.textContent = body;
-    infoModal.hidden = false;
+    infoModal.removeAttribute("hidden");
+    infoModal.style.display = "flex"; // Ensure it shows
+    console.log("📋 [Modal] Opened:", title);
   }
 
   function closeInfoModal() {
     if (!infoModal) return;
-    infoModal.hidden = true;
+    infoModal.setAttribute("hidden", "");
+    infoModal.style.display = "none";
+    console.log("📋 [Modal] Closed");
   }
 
   /* ---------- RENDER ---------- */
@@ -997,7 +1039,27 @@
     showMessage("Loading…");
 
     try {
-      const list = await fetchCourses(q);
+      let list = await fetchCourses(q);
+      
+      // If no courses found, try geocoding as a city/town
+      if (!Array.isArray(list) || list.length === 0) {
+        console.log(`🌍 [City Search] No courses found, trying city geocoding...`);
+        const cityLoc = await geocodeCity(q);
+        if (cityLoc) {
+          // Create a "location" result that user can select
+          list = [{
+            id: null,
+            name: cityLoc.name,
+            city: cityLoc.city || cityLoc.name,
+            state: cityLoc.state || "",
+            country: cityLoc.country || "",
+            lat: cityLoc.lat,
+            lon: cityLoc.lon,
+          }];
+          console.log(`✅ [City Search] Found city location: ${cityLoc.name}`);
+        }
+      }
+
       renderSearchResults(list);
 
       // optional suggestions list
@@ -1126,6 +1188,18 @@
   }
 
   searchInput?.addEventListener("input", handleTypeahead);
+
+  // Fix: Handle datalist selection (when user clicks a suggestion)
+  searchInput?.addEventListener("change", () => {
+    // Small delay to ensure value is set from datalist
+    setTimeout(() => {
+      const q = (searchInput?.value || "").trim();
+      if (q && q.length >= 2) {
+        console.log("🔍 [Datalist] Selection detected, triggering search...");
+        doSearch();
+      }
+    }, 100);
+  });
 
   searchInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
