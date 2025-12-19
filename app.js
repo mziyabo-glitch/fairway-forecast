@@ -392,26 +392,35 @@
     try {
       const res = await fetch(url, { method: "GET", signal: ctrl.signal });
 
+      // Handle rate limiting first
       if (res.status === 429) {
-        const err = new Error("HTTP 429 Too Many Requests");
+        const err = new Error("HTTP 429 Too Many Requests - Rate limit exceeded");
         err.status = 429;
+        err.name = "RateLimitError";
+        clearTimeout(t);
         throw err;
       }
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");
-        const err = new Error(`HTTP ${res.status} ${res.statusText} ${text}`.trim());
+        const err = new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text.substring(0, 100)}` : ""}`.trim());
         err.status = res.status;
+        err.name = res.status >= 500 ? "ServerError" : "ClientError";
         console.error(`[API] Request failed: ${url}`, err);
-        if (res.status === 429) {
-          console.warn(`[API] Rate limit hit - status 429`);
-        }
+        clearTimeout(t);
         throw err;
       }
 
-      return await res.json();
-    } finally {
+      const data = await res.json();
       clearTimeout(t);
+      return data;
+    } catch (err) {
+      clearTimeout(t);
+      if (err.name === "AbortError") {
+        err.name = "TimeoutError";
+        err.message = "Request timed out after 15 seconds";
+      }
+      throw err;
     }
   }
 
@@ -2012,7 +2021,13 @@
   }
 
   function renderSearchResults(list) {
-    console.log(`[Search] renderSearchResults called with`, list?.length || 0, "items");
+    // Ensure list is an array
+    if (!Array.isArray(list)) {
+      console.error("[Search] ❌ renderSearchResults called with non-array:", list);
+      list = [];
+    }
+    
+    console.log(`[Search] renderSearchResults called with`, list.length, "items");
     
     const header = renderHeaderBlock();
 
@@ -2172,18 +2187,29 @@
       let errorMsg = "Search failed.";
       let errorHint = err?.message || "Unknown error";
       
-      if (err?.name === "AbortError") {
+      if (err?.name === "AbortError" || err?.name === "TimeoutError") {
         errorMsg = "Search timed out.";
-        errorHint = "Try again (your API may be slow right now).";
-      } else if (err?.status === 429) {
-        errorMsg = "Rate limited (too many requests).";
-        errorHint = "Wait ~30 seconds and try again. The API has rate limits.";
-      } else if (err?.status) {
-        errorMsg = `Search failed (HTTP ${err.status}).`;
-        errorHint = err?.message || "Check your API configuration.";
+        errorHint = "The request took too long. Try again in a moment.";
+      } else if (err?.status === 429 || err?.name === "RateLimitError") {
+        errorMsg = "Rate limited ⏱️";
+        errorHint = "Too many requests. Please wait 30-60 seconds before searching again.";
+      } else if (err?.status >= 500) {
+        errorMsg = "Server error";
+        errorHint = "The API server is having issues. Try again in a few minutes.";
+      } else if (err?.status >= 400) {
+        errorMsg = `Request error (${err.status})`;
+        errorHint = err?.message || "Check your search query and try again.";
+      } else {
+        errorMsg = "Search failed";
+        errorHint = err?.message || "Please check your connection and try again.";
       }
       
-      showError(errorMsg, errorHint);
+      // Show error in search results slot
+      if (searchResultsSlot) {
+        showError(errorMsg, errorHint);
+      } else {
+        showError(errorMsg, errorHint);
+      }
     } finally {
       setBtnLoading(false);
     }
