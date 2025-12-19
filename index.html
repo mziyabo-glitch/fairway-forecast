@@ -47,23 +47,21 @@
 
     <!-- ================= SEARCH ================= -->
     <section class="ff-panel ff-panel--search">
-      <label class="ff-label" for="searchInput">Search location or golf course</label>
+      <label class="ff-label" for="searchInput">
+        Search location or golf course
+      </label>
 
       <div class="ff-search-row">
         <input
           id="searchInput"
           class="ff-input"
           type="search"
-          placeholder='e.g. Swindon, GB or "golf club swindon"'
+          placeholder='e.g. Swindon, GB or "golf club"'
           autocomplete="off"
           inputmode="search"
           list="searchSuggestions"
+          aria-describedby="searchHelp"
         />
-        <datalist id="searchSuggestions"></datalist>
-
-        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button">
-          Search
-        </button>
 
         <button
           id="btnGeo"
@@ -74,6 +72,22 @@
         >
           ⌖
         </button>
+      </div>
+
+      <!-- 🔹 Search suggestions live directly under input -->
+      <datalist id="searchSuggestions"></datalist>
+
+      <button
+        id="searchBtn"
+        class="ff-btn ff-btn-primary"
+        type="button"
+        style="margin-top:12px;width:100%;"
+      >
+        Search
+      </button>
+
+      <div id="searchHelp" class="ff-hint">
+        Start typing to see course suggestions
       </div>
 
       <div class="ff-units-row">
@@ -92,32 +106,52 @@
       <button id="tabDaily" class="ff-tab" type="button">Daily</button>
     </nav>
 
-    <!-- ================= PLAY / NO-PLAY (MOVED OUT OF RESULTS so JS can't wipe it) ================= -->
-    <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
-      <div class="ff-verdict-main">
-        <div class="ff-verdict-badge" aria-hidden="true">
-          <span id="verdictIcon">⏳</span>
-        </div>
+    <!-- ================= DECISION ================= -->
+    <section aria-label="Play decision">
+      <div class="ff-section-label">Decision</div>
 
-        <div class="ff-verdict-text">
-          <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
-          <div id="verdictReason" class="ff-verdict-reason">—</div>
+      <section
+        id="verdictCard"
+        class="ff-panel ff-verdict ff-verdict--neutral"
+        aria-live="polite"
+      >
+        <div class="ff-verdict-main">
+          <div class="ff-verdict-badge" aria-hidden="true">
+            <span id="verdictIcon">⏳</span>
+          </div>
 
-          <div class="ff-verdict-meta">
-            <span>Best tee time:</span>
-            <strong id="verdictBestTime">—</strong>
+          <div class="ff-verdict-text">
+            <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
+            <div id="verdictReason" class="ff-verdict-reason">—</div>
+
+            <div class="ff-verdict-meta">
+              <span>Best tee time</span>
+              <strong id="verdictBestTime">—</strong>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </section>
 
-    <!-- ================= RESULTS (ORDER LOCKED) ================= -->
+    <!-- ================= RESULTS ================= -->
     <section id="results" class="ff-results" aria-live="polite">
-      <!-- 2nd tile: Location / favourites -->
-      <div id="locationSlot"></div>
 
-      <!-- 3rd tile: Forecast tiles -->
-      <div id="forecastSlot"></div>
+      <!-- LOCATION -->
+      <div>
+        <div class="ff-section-label">Location</div>
+        <div id="locationSlot"></div>
+
+        <div class="ff-hint">
+          Tap ★ to add or remove favourites
+        </div>
+      </div>
+
+      <!-- FORECAST -->
+      <div>
+        <div class="ff-section-label">Forecast</div>
+        <div id="forecastSlot"></div>
+      </div>
+
     </section>
 
     <!-- ================= PLAYABILITY ================= -->
@@ -125,7 +159,9 @@
       <div class="ff-play">
         <div>
           <div class="ff-play-title">Playability</div>
-          <div class="ff-play-sub">Wind, rain probability & temperature comfort</div>
+          <div class="ff-play-sub">
+            Wind, rain probability & temperature comfort
+          </div>
         </div>
         <div id="playabilityScore" class="ff-play-score">--/10</div>
       </div>
@@ -135,6 +171,7 @@
     <footer class="ff-foot">
       Weather data © OpenWeather · Course data © GolfCourseAPI
     </footer>
+
   </main>
 
   <script src="./app.js"></script>
