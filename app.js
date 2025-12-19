@@ -847,7 +847,7 @@
       verdictIcon.textContent = "—";
     }
 
-    verdictLabel.textContent = v.label || "—";
+    verdictLabel.innerHTML = `${v.label || "—"} <span class="ff-info-icon" title="Click for more info">ℹ️</span>`;
     verdictReason.textContent = v.reason || "—";
     verdictBestTime.textContent =
       v.best && typeof v.best.dt === "number" ? fmtTime(v.best.dt) : "—";
@@ -1065,7 +1065,7 @@
       const dayDt = d?.dt || null;
 
       return `<tr class="ff-daily-row" data-day-dt="${dayDt || ""}" data-day-idx="${idx}" style="cursor:pointer;" title="Click for play prediction">
-        <td class="ff-td-day">${esc(day)}</td>
+        <td class="ff-td-day">${esc(day)} <span class="ff-info-icon" title="Click for prediction">ℹ️</span></td>
         <td class="ff-td-icon">${ico || ""}</td>
         <td>${esc(hiLo)}</td>
         <td>${esc(rain)}</td>
@@ -1075,7 +1075,6 @@
 
     return `<div class="ff-card">
       <div class="ff-card-title">Daily · up to 7 days</div>
-      <div class="ff-hint" style="margin-bottom:8px;font-size:12px;">Click a day for play prediction</div>
       <div class="ff-table-wrap">
         <table class="ff-table">
           <thead>
