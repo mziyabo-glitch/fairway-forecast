@@ -133,20 +133,23 @@
     }
   }
 
-  /* ---------- ICONS (OpenWeather CDN) ---------- */
-  function owIconUrl(iconCode, size = 2) {
-    if (!iconCode) return "";
-    const s = size === 4 ? "@4x" : "@2x";
-    return `https://openweathermap.org/img/wn/${iconCode}${s}.png`;
-  }
-
   function iconHtml(weatherArr, size = 2) {
-    const icon = Array.isArray(weatherArr) ? weatherArr?.[0]?.icon : null;
     const main = Array.isArray(weatherArr) ? weatherArr?.[0]?.main : "";
     const desc = Array.isArray(weatherArr) ? weatherArr?.[0]?.description : "";
-    const url = owIconUrl(icon, size);
-    if (!url) return "";
-    return `<img class="ff-wicon" src="${esc(url)}" alt="${esc(desc || main || "Weather")}" loading="lazy" />`;
+
+    // High-contrast emoji-based icons so they never look washed out
+    const key = (main || desc || "").toLowerCase();
+    let emoji = "🌤️";
+    if (key.includes("rain") || key.includes("drizzle")) emoji = "🌧️";
+    else if (key.includes("storm") || key.includes("thunder")) emoji = "⛈️";
+    else if (key.includes("snow")) emoji = "❄️";
+    else if (key.includes("cloud")) emoji = "☁️";
+    else if (key.includes("fog") || key.includes("mist") || key.includes("haze")) emoji = "🌫️";
+    else if (key.includes("clear")) emoji = "☀️";
+
+    const sizeClass = size >= 4 ? "ff-wicon--xl" : size <= 1 ? "ff-wicon--sm" : "ff-wicon--lg";
+
+    return `<div class="ff-wicon ${sizeClass}" aria-label="${esc(desc || main || "Weather")}">${emoji}</div>`;
   }
 
   /* ---------- LOCAL STORAGE (FAVOURITES) ---------- */
@@ -303,6 +306,12 @@
         wind_speed: typeof c?.wind?.speed === "number" ? c.wind.speed : null,
         wind_gust: typeof c?.wind?.gust === "number" ? c.wind.gust : null,
         pop: typeof c.pop === "number" ? c.pop : null,
+        rain_mm:
+          typeof c?.rain?.["1h"] === "number"
+            ? c.rain["1h"]
+            : typeof c?.rain?.["3h"] === "number"
+            ? c.rain["3h"]
+            : null,
         weather: Array.isArray(c.weather) ? c.weather : [],
       };
     } else if (Array.isArray(raw?.list) && raw.list.length) {
@@ -315,6 +324,12 @@
         wind_speed: typeof first?.wind?.speed === "number" ? first.wind.speed : null,
         wind_gust: typeof first?.wind?.gust === "number" ? first.wind.gust : null,
         pop: typeof first?.pop === "number" ? first.pop : null,
+        rain_mm:
+          typeof first?.rain?.["1h"] === "number"
+            ? first.rain["1h"]
+            : typeof first?.rain?.["3h"] === "number"
+            ? first.rain["3h"]
+            : null,
         weather: Array.isArray(first?.weather) ? first.weather : [],
       };
       norm.sunrise = norm.sunrise ?? raw?.city?.sunrise ?? null;
@@ -328,6 +343,12 @@
         temp: it?.main?.temp ?? null,
         pop: typeof it?.pop === "number" ? it.pop : null,
         wind_speed: it?.wind?.speed ?? null,
+        rain_mm:
+          typeof it?.rain?.["1h"] === "number"
+            ? it.rain["1h"]
+            : typeof it?.rain?.["3h"] === "number"
+            ? it.rain["3h"]
+            : null,
         weather: Array.isArray(it?.weather) ? it.weather : [],
       }));
     }
@@ -606,7 +627,9 @@
 
     const wind = typeof c.wind_speed === "number" ? `${c.wind_speed.toFixed(1)} ${windUnit()}` : "";
     const gust = typeof c.wind_gust === "number" ? `${c.wind_gust.toFixed(1)} ${windUnit()}` : "";
-    const rain = typeof c.pop === "number" ? pct(c.pop) : "";
+    const rainProb = typeof c.pop === "number" ? pct(c.pop) : "";
+    const rainMm = typeof c.rain_mm === "number" ? `${c.rain_mm.toFixed(1)} mm` : "";
+    const rain = [rainProb, rainMm].filter(Boolean).join(" · ");
 
     const sunrise = norm.sunrise ? fmtTime(norm.sunrise) : "";
     const sunset = norm.sunset ? fmtTime(norm.sunset) : "";
@@ -617,7 +640,7 @@
     const stats = [
       wind ? `<div class="ff-stat"><span>Wind</span><strong>${esc(wind)}</strong></div>` : "",
       gust ? `<div class="ff-stat"><span>Gust</span><strong>${esc(gust)}</strong></div>` : "",
-      rain ? `<div class="ff-stat"><span>Rain chance</span><strong>${esc(rain)}</strong></div>` : "",
+      rain ? `<div class="ff-stat"><span>Rain</span><strong>${esc(rain)}</strong></div>` : "",
       sunrise ? `<div class="ff-stat"><span>Sunrise</span><strong>${esc(sunrise)}</strong></div>` : "",
       sunset ? `<div class="ff-stat"><span>Sunset</span><strong>${esc(sunset)}</strong></div>` : "",
       bestText ? `<div class="ff-stat"><span>Best time</span><strong>${esc(bestText)}</strong></div>` : "",
@@ -642,7 +665,9 @@
     const rows = hourly.slice(0, 16).map((h) => {
       const time = h?.dt ? fmtTime(h.dt) : "";
       const t = typeof h.temp === "number" ? `${Math.round(h.temp)}${tempUnit()}` : "";
-      const rain = typeof h.pop === "number" ? pct(h.pop) : "";
+      const rainProb = typeof h.pop === "number" ? pct(h.pop) : "";
+      const rainMm = typeof h.rain_mm === "number" ? `${h.rain_mm.toFixed(1)} mm` : "";
+      const rain = [rainProb, rainMm].filter(Boolean).join(" · ");
       const wind = typeof h.wind_speed === "number" ? `${h.wind_speed.toFixed(1)} ${windUnit()}` : "";
       const ico = iconHtml(h.weather, 2);
 

@@ -359,20 +359,32 @@ button, input, select{ font: inherit; }
   overflow:hidden;
 }
 
-/* ---------- Current weather icon ---------- */
-#results img[src*="openweathermap"]{
-  width: 76px;
-  height: 76px;
-  margin: 10px auto 6px auto;
+/* ---------- Weather icon (emoji-based) ---------- */
+.ff-wicon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:20px;
   background: radial-gradient(circle at 30% 20%, #ffffff, #f2faf7);
-  border-radius: 20px;
-  padding: 6px;
-  /* punchy, not washed out */
-  filter:
-    drop-shadow(0 10px 24px rgba(6,24,20,.25))
-    saturate(1.32)
-    contrast(1.22)
-    brightness(1.05);
+  box-shadow:0 10px 24px rgba(6,24,20,.22);
+}
+
+.ff-wicon--xl{
+  width:88px;
+  height:88px;
+  font-size:40px;
+}
+
+.ff-wicon--lg{
+  width:64px;
+  height:64px;
+  font-size:30px;
+}
+
+.ff-wicon--sm{
+  width:32px;
+  height:32px;
+  font-size:20px;
 }
 /* =========================================================
    FIX: “Rain chance0% / Sunrise08:10” spacing
