@@ -1554,7 +1554,9 @@
     if (!hourly.length) return `<div class="ff-card muted">No hourly data available.</div>`;
 
     const best = bestTimeToday(norm);
-    const bestDt = best?.dt;
+    const sunset = norm?.sunset;
+    // Safety check: ensure best time never exceeds sunset
+    const bestDt = best?.dt && (!sunset || best.dt < sunset) ? best.dt : null;
 
     // Prepare data for mini charts
     const windValues = hourly.map(h => typeof h.wind_speed === "number" ? h.wind_speed : 0);
