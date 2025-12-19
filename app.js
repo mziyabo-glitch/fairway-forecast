@@ -205,6 +205,11 @@
   }
 
   function showMessage(msg) {
+    // Don't overwrite search results slot with messages
+    if (searchResultsSlot && searchResultsSlot.innerHTML.trim()) {
+      // Search results are showing, don't overwrite
+      return;
+    }
     if (forecastSlot) {
       forecastSlot.innerHTML = `<div class="ff-card muted">${esc(msg)}</div>`;
     } else if (resultsEl) {
@@ -219,7 +224,10 @@
       <div>${esc(msg)}</div>${hint}
     </div>`;
 
-    if (forecastSlot) {
+    // Show error in search results slot if it exists and has content, otherwise forecast slot
+    if (searchResultsSlot) {
+      searchResultsSlot.innerHTML = html;
+    } else if (forecastSlot) {
       forecastSlot.innerHTML = html;
     } else if (resultsEl) {
       resultsEl.innerHTML = html;
