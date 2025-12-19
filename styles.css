@@ -108,7 +108,31 @@ button, input, select{ font: inherit; }
   margin-bottom:10px;
   display:block;
 }
+/* --- Search results slot: sits under search bar --- */
+.ff-search-results{
+  display:none;              /* hidden until it has content */
+  margin-top: -6px;          /* visually tucks under search card */
+}
 
+.ff-search-results:has(*){
+  display:block;
+}
+
+/* The card that app.js renders (“Select a result”) */
+.ff-search-results > *{
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-soft);
+  padding: 14px;
+}
+
+/* Make the list easier to scan/tap */
+.ff-search-results button,
+.ff-search-results a{
+  width:100%;
+  text-align:left;
+}
 /* IMPORTANT: contain the geo button + prevent overflow */
 .ff-search-row{
   display:grid;
@@ -439,4 +463,5 @@ button, input, select{ font: inherit; }
   .ff-panel, #results > *{ padding:12px; }
   .ff-tab{ min-height:44px; font-size:14px; }
 }
+
 
