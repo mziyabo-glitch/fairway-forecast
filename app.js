@@ -2105,8 +2105,18 @@
     </div>`;
 
     console.log(`[Search] Setting innerHTML on`, resultsHost.id || "host");
+    console.log(`[Search] HTML to set (first 300 chars):`, resultsHtml.substring(0, 300));
     resultsHost.innerHTML = resultsHtml;
     console.log(`[Search] innerHTML set, content length:`, resultsHost.innerHTML.length);
+    
+    // Verify it was set correctly
+    const verify = resultsHost.querySelector(".ff-result-list");
+    if (!verify) {
+      console.error("[Search] ❌ Result list not found after setting innerHTML!");
+      console.error("[Search] Actual HTML:", resultsHost.innerHTML.substring(0, 500));
+    } else {
+      console.log(`[Search] ✅ Result list found with ${verify.children.length} children`);
+    }
 
     // IMPORTANT: bind clicks AFTER inserting the DOM
     const resultButtons = resultsHost.querySelectorAll(".ff-result[data-i]");
@@ -2173,27 +2183,41 @@
 
     try {
       let list = await fetchCourses(q);
+      console.log(`[Search] fetchCourses returned:`, list);
+      
+      // Ensure list is an array
+      if (!Array.isArray(list)) {
+        console.error("[Search] fetchCourses returned non-array:", list);
+        list = [];
+      }
       
       // If no courses found, try geocoding as a city/town
-      if (!Array.isArray(list) || list.length === 0) {
+      if (list.length === 0) {
         console.log(`🌍 [City Search] No courses found, trying city geocoding...`);
-        const cityLoc = await geocodeCity(q);
-        if (cityLoc) {
-          // Create a "location" result that user can select
-          list = [{
-            id: null,
-            name: cityLoc.name,
-            city: cityLoc.city || cityLoc.name,
-            state: cityLoc.state || "",
-            country: cityLoc.country || "",
-            lat: cityLoc.lat,
-            lon: cityLoc.lon,
-          }];
-          console.log(`✅ [City Search] Found city location: ${cityLoc.name}`);
+        try {
+          const cityLoc = await geocodeCity(q);
+          if (cityLoc) {
+            // Create a "location" result that user can select
+            list = [{
+              id: null,
+              name: cityLoc.name,
+              city: cityLoc.city || cityLoc.name,
+              state: cityLoc.state || "",
+              country: cityLoc.country || "",
+              lat: cityLoc.lat,
+              lon: cityLoc.lon,
+            }];
+            console.log(`✅ [City Search] Found city location: ${cityLoc.name}`);
+          }
+        } catch (geoErr) {
+          console.warn("[City Search] Geocoding failed:", geoErr);
         }
       }
 
-      console.log(`[Search] Rendering ${list.length} result(s)`);
+      console.log(`[Search] About to render ${list.length} result(s)`);
+      if (list.length > 0) {
+        console.log(`[Search] First result:`, list[0]);
+      }
       renderSearchResults(list);
     } catch (err) {
       console.error("❌ [Search] Error in doSearch:", err);
@@ -2310,7 +2334,12 @@
   tabHourly?.addEventListener("click", () => setActiveTab("hourly"));
   tabDaily?.addEventListener("click", () => setActiveTab("daily"));
 
-  searchBtn?.addEventListener("click", doSearch);
+  searchBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("[Search] Search button clicked");
+    doSearch();
+  });
 
   // lightweight typeahead: update suggestions and inline list while typing
   let typeaheadTimer = null;
@@ -2326,14 +2355,19 @@
     if (typeaheadTimer) clearTimeout(typeaheadTimer);
     typeaheadTimer = setTimeout(async () => {
       try {
+        console.log("[Typeahead] Searching for:", q);
         const list = await fetchCourses(q);
-        // reuse existing renderer so keyboard + button behave the same
-        renderSearchResults(list);
+        console.log("[Typeahead] Got results:", list?.length || 0);
+        if (Array.isArray(list) && list.length > 0) {
+          renderSearchResults(list);
+        } else {
+          clearSearchResults();
+        }
       } catch (err) {
-        console.error("Typeahead error:", err);
+        console.error("[Typeahead] Error:", err);
         // Don't show error for typeahead, just log it
       }
-    }, 250);
+    }, 300);
   }
 
   searchInput?.addEventListener("input", handleTypeahead);
