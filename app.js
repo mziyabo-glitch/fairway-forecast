@@ -2069,11 +2069,17 @@
       <div class="ff-result-list">${items}</div>
     </div>`;
 
+    console.log(`[Search] Setting innerHTML on`, resultsHost.id || "host");
     resultsHost.innerHTML = resultsHtml;
+    console.log(`[Search] innerHTML set, content length:`, resultsHost.innerHTML.length);
 
     // IMPORTANT: bind clicks AFTER inserting the DOM
     const resultButtons = resultsHost.querySelectorAll(".ff-result[data-i]");
     console.log(`[Search] Found ${resultButtons.length} result buttons to bind`);
+    
+    if (resultButtons.length === 0) {
+      console.warn(`[Search] ⚠️ No buttons found! HTML:`, resultsHost.innerHTML.substring(0, 200));
+    }
     
     resultButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
