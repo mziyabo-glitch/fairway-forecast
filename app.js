@@ -332,13 +332,16 @@
 
     try {
       console.log(`🌍 [Geocode] Looking up city: "${q}"`);
-      // Use OpenWeather geocoding API via worker (or direct if worker supports it)
+      // Worker returns array directly (OpenWeather format)
       const data = await apiGet(`/geocode?q=${encodeURIComponent(q)}&limit=1`);
       
-      if (Array.isArray(data) && data.length > 0) {
-        const loc = data[0];
-        const lat = typeof loc.lat === "number" ? loc.lat : typeof loc.latitude === "number" ? loc.latitude : null;
-        const lon = typeof loc.lon === "number" ? loc.lon : typeof loc.longitude === "number" ? loc.longitude : null;
+      // Handle both array response (from worker) and wrapped response (fallback)
+      const locations = Array.isArray(data) ? data : (Array.isArray(data?.locations) ? data.locations : []);
+      
+      if (locations.length > 0) {
+        const loc = locations[0];
+        const lat = typeof loc.lat === "number" ? loc.lat : null;
+        const lon = typeof loc.lon === "number" ? loc.lon : null;
         const name = loc.name || loc.local_names?.en || q;
         const country = loc.country || "";
         const state = loc.state || "";
