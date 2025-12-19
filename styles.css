@@ -1,574 +1,275 @@
 /* =========================================================
-   Fairway Forecast — OPTION A (NHS-style calm, premium)
-   CSS ONLY (no app.js changes)
+   Fairway Forecast — OPTION B (Porcelain & Pine, premium)
+   CSS ONLY — no app.js changes
    ========================================================= */
 
 /* ---------- Base / Reset ---------- */
 :root{
-  --bg: #EEF4F5;               /* off-white / light cool */
-  --surface: #FFFFFF;          /* card */
-  --surface-2: #F7FAFA;        /* soft inset */
-  --text: #0F172A;             /* slate-900 */
-  --muted: #64748B;            /* slate-500 */
-  --line: rgba(15, 23, 42, .10);
+  /* Backgrounds */
+  --bg: #EEF2F0;               /* porcelain grey */
+  --surface: #F9FBFA;          /* card surface */
+  --surface-2: #F1F5F3;        /* inset / icon pads */
 
-  --brand: #0F6B6E;            /* teal */
-  --brand-2: #0B5560;
-  --brand-soft: rgba(15,107,110,.12);
+  /* Text */
+  --text: #0E1C1A;             /* deep slate green-black */
+  --muted: #5F6F6B;            /* calm secondary text */
+  --line: rgba(14, 28, 26, 0.10);
 
-  --danger: #E11D48;           /* rose */
-  --danger-soft: rgba(225,29,72,.10);
+  /* Brand (pine green) */
+  --brand: #1F6F5C;
+  --brand-2: #185E4E;
+  --brand-soft: rgba(31,111,92,.14);
 
-  --shadow: 0 10px 30px rgba(2, 12, 27, .08);
-  --shadow-soft: 0 6px 18px rgba(2, 12, 27, .06);
+  /* Status */
+  --danger: #C0362C;           /* muted clay red */
+  --danger-soft: rgba(192,54,44,.14);
 
+  /* Elevation */
+  --shadow: 0 12px 28px rgba(8,20,18,.10);
+  --shadow-soft: 0 6px 16px rgba(8,20,18,.06);
+
+  /* Radius & spacing */
   --r-xl: 22px;
   --r-lg: 18px;
   --r-md: 14px;
-
   --gap: 14px;
 }
 
-*{ box-sizing: border-box; }
-html, body{ height:100%; }
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
 body{
   margin:0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color: var(--text);
-  background: radial-gradient(1200px 600px at 50% -200px, rgba(15,107,110,.18), transparent 65%),
-              linear-gradient(var(--bg), var(--bg));
+  background:
+    radial-gradient(1200px 600px at 50% -220px, rgba(31,111,92,.16), transparent 65%),
+    linear-gradient(var(--bg), var(--bg));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x:hidden;
 }
 
 img{ max-width:100%; display:block; }
 
-/* Prevent accidental horizontal scroll on mobile */
-body{ overflow-x:hidden; }
-
+/* ---------- Layout ---------- */
 .ff-wrap{
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 14px 14px calc(18px + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap);
+  max-width:560px;
+  margin:0 auto;
+  padding:14px 14px calc(18px + env(safe-area-inset-bottom));
+  display:flex;
+  flex-direction:column;
+  gap:var(--gap);
 }
 
 /* ---------- Header ---------- */
 .ff-header{
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-xl);
-  box-shadow: var(--shadow-soft);
-  padding: 14px 14px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-xl);
+  box-shadow:var(--shadow-soft);
+  padding:14px;
 }
 
 .ff-brand{
   display:flex;
-  gap: 12px;
   align-items:center;
+  gap:12px;
 }
 
 .ff-logo{
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  padding: 6px;
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  padding:6px;
 }
 
 .ff-brand-text strong{
-  font-size: 18px;
-  line-height: 1.1;
+  font-size:18px;
+  letter-spacing:.2px;
   display:block;
-  letter-spacing: .2px;
 }
 
 .ff-brand-text span{
-  font-size: 12.5px;
-  color: var(--muted);
+  font-size:12.5px;
+  color:var(--muted);
+  margin-top:3px;
   display:block;
-  margin-top: 3px;
 }
 
 /* ---------- Panels / Cards ---------- */
 .ff-panel,
 .ff-verdict,
 .ff-results > *{
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-xl);
-  box-shadow: var(--shadow-soft);
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-xl);
+  box-shadow:var(--shadow-soft);
 }
 
-.ff-panel{ padding: 14px; }
+.ff-panel{ padding:14px; }
 
-/* Search panel */
-.ff-panel--search{
-  padding: 14px;
-}
-
+/* ---------- Search ---------- */
 .ff-label{
-  font-size: 13px;
-  color: var(--muted);
-  font-weight: 600;
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  margin-bottom:10px;
   display:block;
-  margin-bottom: 10px;
 }
 
 .ff-search-row{
   display:grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
-  align-items: center;
+  grid-template-columns:1fr auto auto;
+  gap:10px;
 }
 
 .ff-input{
-  width:100%;
-  padding: 13px 14px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: #fff;
-  font-size: 16px;
-  outline: none;
+  padding:13px 14px;
+  border-radius:16px;
+  border:1px solid var(--line);
+  font-size:16px;
+  background:#fff;
 }
 
 .ff-input:focus{
-  border-color: rgba(15,107,110,.40);
-  box-shadow: 0 0 0 4px rgba(15,107,110,.14);
+  border-color:rgba(31,111,92,.45);
+  box-shadow:0 0 0 4px rgba(31,111,92,.14);
+  outline:none;
 }
 
 .ff-btn{
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 12px 14px;
-  font-weight: 700;
-  font-size: 15px;
-  cursor:pointer;
-  background: #fff;
-  color: var(--text);
-  min-height: 46px;
+  border-radius:16px;
+  border:1px solid var(--line);
+  background:#fff;
+  font-weight:700;
+  font-size:15px;
+  min-height:46px;
+  padding:12px 14px;
 }
 
 .ff-btn-primary{
-  background: linear-gradient(180deg, var(--brand), var(--brand-2));
-  border-color: rgba(15,107,110,.40);
-  color: #fff;
-  padding-left: 18px;
-  padding-right: 18px;
+  background:linear-gradient(180deg,var(--brand),var(--brand-2));
+  color:#fff;
+  border-color:rgba(31,111,92,.45);
 }
-
-.ff-btn-primary:active{ transform: translateY(1px); }
 
 .ff-btn-ghost{
-  width: 46px;
-  padding: 0;
+  width:46px;
+  padding:0;
   display:grid;
   place-items:center;
-  background: #fff;
 }
 
-.ff-units-row{
-  display:flex;
-  align-items:center;
-  justify-content: space-between;
-  margin-top: 12px;
-  gap: 12px;
-}
-
-.ff-select{
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  padding: 10px 12px;
-  font-weight: 700;
-  background: #fff;
-  min-height: 44px;
-}
-
-.ff-tip{
-  display:none; /* OPTION A: remove tips to save space */
-}
-
-/* ---------- Verdict (Play / No-play card) ---------- */
-/* Your HTML uses .ff-verdict-badge, not .ff-verdict-icon.
-   So we style BOTH to be safe. */
+/* ---------- Verdict (Play / No-Play) ---------- */
 .ff-verdict{
-  padding: 12px 14px;
-  border-radius: var(--r-xl);
+  padding:12px 14px;
 }
 
 .ff-verdict-main{
   display:flex;
+  gap:12px;
   align-items:center;
-  gap: 12px;
 }
 
-/* Support both class names */
 .ff-verdict-badge,
 .ff-verdict-icon{
-  width: 36px;
-  height: 36px;
-  border-radius: 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
+  width:36px;
+  height:36px;
+  border-radius:14px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
   display:grid;
   place-items:center;
-  font-weight: 900;
-  font-size: 18px;
+  font-weight:900;
 }
 
-.ff-verdict-text{ flex:1; min-width:0; }
-
 .ff-verdict-label{
-  font-weight: 900;
-  font-size: 16px;
-  line-height: 1.15;
+  font-weight:900;
+  font-size:16px;
 }
 
 .ff-verdict-reason{
-  color: var(--muted);
-  font-size: 13px;
-  margin-top: 2px;
+  font-size:13px;
+  color:var(--muted);
 }
 
 .ff-verdict-meta{
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed rgba(15, 23, 42, .12);
-  color: var(--muted);
-  font-size: 13px;
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px dashed rgba(14,28,26,.18);
+  font-size:13px;
+  color:var(--muted);
 }
 
-/* IMPORTANT: app.js uses --play/--maybe/--no/--neutral
-   So we style those (and keep your older good/bad as fallback). */
-.ff-verdict--neutral{
-  background: #fff;
+/* Verdict states */
+.ff-verdict--play{
+  background:linear-gradient(180deg,rgba(31,111,92,.16),#fff);
+  border-color:rgba(31,111,92,.35);
 }
 
-.ff-verdict--play,
-.ff-verdict--good{
-  background: linear-gradient(180deg, rgba(15,107,110,.12), #fff);
-  border: 1px solid rgba(15,107,110,.28);
-}
-
-.ff-verdict--play .ff-verdict-badge,
-.ff-verdict--good .ff-verdict-badge,
-.ff-verdict--play .ff-verdict-icon,
-.ff-verdict--good .ff-verdict-icon{
-  background: rgba(15,107,110,.16);
-  border-color: rgba(15,107,110,.25);
+.ff-verdict--no{
+  background:linear-gradient(180deg,rgba(192,54,44,.16),#fff);
+  border-color:rgba(192,54,44,.35);
 }
 
 .ff-verdict--maybe{
-  background: linear-gradient(180deg, rgba(245,158,11,.14), #fff);
-  border: 1px solid rgba(245,158,11,.30);
-}
-
-.ff-verdict--maybe .ff-verdict-badge,
-.ff-verdict--maybe .ff-verdict-icon{
-  background: rgba(245,158,11,.16);
-  border-color: rgba(245,158,11,.25);
-}
-
-.ff-verdict--no,
-.ff-verdict--bad{
-  background: linear-gradient(180deg, rgba(225,29,72,.14), #fff);
-  border: 1px solid rgba(225,29,72,.30);
-}
-
-.ff-verdict--no .ff-verdict-badge,
-.ff-verdict--bad .ff-verdict-badge,
-.ff-verdict--no .ff-verdict-icon,
-.ff-verdict--bad .ff-verdict-icon{
-  background: rgba(225,29,72,.16);
-  border-color: rgba(225,29,72,.25);
+  background:linear-gradient(180deg,rgba(245,158,11,.18),#fff);
 }
 
 /* ---------- Tabs ---------- */
 .ff-tabs{
   display:grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 4px;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
 }
 
 .ff-tab{
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  min-height: 48px;
-  font-weight: 900;
-  font-size: 15px;
-  color: var(--text);
-  box-shadow: var(--shadow-soft);
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  min-height:48px;
+  font-weight:900;
 }
 
 .ff-tab.active{
-  background: linear-gradient(180deg, var(--brand), var(--brand-2));
-  border-color: rgba(15,107,110,.40);
-  color: #fff;
+  background:linear-gradient(180deg,var(--brand),var(--brand-2));
+  color:#fff;
+  border-color:rgba(31,111,92,.45);
 }
 
-/* ---------- Results container ---------- */
+/* ---------- Results ---------- */
 .ff-results{
   display:flex;
-  flex-direction: column;
-  gap: var(--gap);
+  flex-direction:column;
+  gap:var(--gap);
 }
 
-#results > *{
-  padding: 14px;
-}
+#results > *{ padding:14px; }
 
-/* Ensure the play tile always shows (CSS can't fix missing HTML IDs, but prevents hiding) */
-#playSlot{ display:block; }
-#verdictCard{ display:block !important; }
-
-/* Location header card compact & premium */
-#results h2, #results h3{
-  margin: 0 0 6px 0;
-  font-size: 18px;
-  letter-spacing: .1px;
-}
-
-#results p{
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-/* Favourites chips wrap nicely */
-#results .favourites,
-#results .favorites,
-#results [data-favourites],
-#results [data-favorites]{
-  margin-top: 10px;
-  padding: 10px;
-  border-radius: 18px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  overflow:auto;
-}
-
-#results button,
-#results .fav,
-#results .favorite,
-#results .chip{
-  border-radius: 14px;
-}
-
-/* Star / favourite button (keep small, aligned) */
-#results .star,
-#results .fav-btn,
-#results button[aria-label*="favourite"],
-#results button[aria-label*="favorite"]{
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  background: #fff;
-  box-shadow: var(--shadow-soft);
-}
-
-/* ---------- Current Weather Card tightening ---------- */
-#results .current,
-#results .current-card,
-#results [data-view="current"],
-#results [data-section="current"]{
-  display:grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-#results .current .weather-icon,
-#results .current-card .weather-icon,
-#results img.weather-icon,
-#results img[alt*="weather"],
+/* ---------- Icons clarity ---------- */
 #results img[src*="openweathermap"]{
-  width: 64px;
-  height: 64px;
-  margin: 6px auto 2px auto;
-  filter: drop-shadow(0 6px 10px rgba(2,12,27,.10));
-}
-
-#results .temp,
-#results .temperature,
-#results .summary{
-  text-align:left;
-  font-weight: 900;
-}
-
-#results .temp{
-  font-size: 34px;
-  line-height: 1.05;
-  letter-spacing: -0.6px;
-}
-
-#results .summary{
-  font-size: 14px;
-  color: var(--muted);
-  font-weight: 700;
-  margin-top: 2px;
-}
-
-/* Key metrics -> compact grid pills */
-#results .metrics,
-#results .stats,
-#results .kv,
-#results .details{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-#results .metrics > div,
-#results .stats > div,
-#results .kv > div,
-#results .details > div{
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 10px 12px;
-  min-height: 52px;
-}
-
-/* label/value spacing helpers (fixes Sunrise18:39 when rendered as separate nodes) */
-#results .metrics strong,
-#results .stats strong,
-#results .kv strong,
-#results .details strong,
-#results strong{
-  display:block;
-  font-size: 16px;
-  letter-spacing: .1px;
-}
-
-#results .metrics span,
-#results .stats span,
-#results .kv span,
-#results .details span{
-  display:block;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 2px;
-}
-
-/* ---------- Hourly Table improvements ---------- */
-#results table{
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  overflow:hidden;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: #fff;
-}
-
-#results thead th{
-  background: #F1F6F6;
-  color: var(--muted);
-  font-size: 12.5px;
-  letter-spacing: .2px;
-  text-transform: none;
-  font-weight: 900;
-  padding: 12px 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-#results tbody td{
-  padding: 12px 12px;
-  border-bottom: 1px solid rgba(15, 23, 42, .06);
-  font-weight: 800;
-}
-
-#results tbody tr:last-child td{
-  border-bottom: 0;
-}
-
-#results td img{
-  width: 22px;
-  height: 22px;
-  vertical-align: middle;
-  margin-right: 6px;
-}
-
-/* ---------- Daily: bigger icons + hide last “Summary” column ---------- */
-@media (max-width: 520px){
-  #results table td img{
-    width: 28px;
-    height: 28px;
-  }
-
-  #results table thead th:last-child,
-  #results table tbody td:last-child{
-    display:none;
-  }
-}
-
-/* ---------- Playability footer card ---------- */
-.ff-play{
-  display:flex;
-  justify-content: space-between;
-  align-items:center;
-  gap: 12px;
-}
-
-.ff-play-title{
-  font-weight: 900;
-  font-size: 16px;
-}
-
-.ff-play-sub{
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  margin-top: 2px;
-}
-
-.ff-play-score{
-  min-width: 86px;
-  text-align:center;
-  font-weight: 900;
-  font-size: 18px;
-  padding: 10px 14px;
-  border-radius: 18px;
-  background: var(--brand-soft);
-  border: 1px solid rgba(15,107,110,.22);
+  filter:drop-shadow(0 6px 10px rgba(8,20,18,.18));
 }
 
 /* ---------- Footer ---------- */
 .ff-foot{
-  color: var(--muted);
-  font-size: 12px;
+  font-size:12px;
+  color:var(--muted);
   text-align:center;
-  padding: 6px 0 2px;
+  padding:6px 0;
 }
 
-/* ---------- Small device tweaks ---------- */
-@media (max-width: 380px){
+/* ---------- Mobile tweaks ---------- */
+@media(max-width:380px){
   .ff-search-row{
-    grid-template-columns: 1fr auto;
+    grid-template-columns:1fr auto;
     grid-template-areas:
       "input geo"
       "search search";
   }
-
-  #searchInput{ grid-area: input; }
-  #btnGeo{ grid-area: geo; }
-  #searchBtn{ grid-area: search; width:100%; }
-
-  .ff-btn-primary{ width:100%; }
-}
-
-/* ---------- Make sure nothing overflows ---------- */
-.ff-wrap, .ff-panel, .ff-verdict, .ff-results, #results{
-  overflow: visible;
-}
-
-#results{
-  scroll-margin-top: 12px;
+  #searchInput{ grid-area:input; }
+  #btnGeo{ grid-area:geo; }
+  #searchBtn{ grid-area:search; width:100%; }
 }
