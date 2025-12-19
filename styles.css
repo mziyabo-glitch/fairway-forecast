@@ -154,6 +154,116 @@ button, input, select{ font: inherit; }
   text-decoration:underline;
 }
 
+/* Course logo */
+.ff-course-logo{
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  object-fit:cover;
+  border:1px solid var(--line);
+  flex-shrink:0;
+  margin-right:12px;
+}
+
+.ff-course-header-left{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  flex:1;
+  min-width:0;
+}
+
+/* Quick action buttons */
+.ff-quick-actions{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid var(--line);
+  flex-wrap:wrap;
+}
+
+.ff-action-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  text-decoration:none;
+  font-size:20px;
+  transition:all 0.2s ease;
+  flex-shrink:0;
+}
+
+.ff-action-btn:hover,
+.ff-action-btn:active{
+  background:var(--brand-soft);
+  border-color:var(--brand);
+  transform:translateY(-1px);
+}
+
+/* Course images gallery */
+.ff-course-images-gallery{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding:8px 0;
+  margin:-8px 0 12px 0;
+  scrollbar-width:thin;
+  scrollbar-color:var(--line) transparent;
+}
+
+.ff-course-images-gallery::-webkit-scrollbar{
+  height:4px;
+}
+
+.ff-course-images-gallery::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+.ff-course-images-gallery::-webkit-scrollbar-thumb{
+  background:var(--line);
+  border-radius:2px;
+}
+
+.ff-course-image{
+  width:120px;
+  height:80px;
+  border-radius:12px;
+  object-fit:cover;
+  border:1px solid var(--line);
+  cursor:pointer;
+  flex-shrink:0;
+  transition:transform 0.2s ease;
+}
+
+.ff-course-image:hover{
+  transform:scale(1.05);
+  box-shadow:0 4px 12px rgba(6,24,20,.15);
+}
+
+/* Mobile optimizations */
+@media (max-width:520px){
+  .ff-course-logo{
+    width:40px;
+    height:40px;
+  }
+  
+  .ff-course-image{
+    width:100px;
+    height:70px;
+  }
+  
+  .ff-action-btn{
+    width:40px;
+    height:40px;
+    font-size:18px;
+  }
+}
+
 /* ---------- Search ---------- */
 .ff-label{
   font-size:13px;

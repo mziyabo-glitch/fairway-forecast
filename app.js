@@ -955,12 +955,37 @@
             </div>
           </div>`;
 
+    // Course logo/image
+    const courseLogo = selectedCourse?.logo ? `<img src="${esc(selectedCourse.logo)}" alt="${name}" class="ff-course-logo" loading="lazy" />` : "";
+    const hasImages = selectedCourse?.images && Array.isArray(selectedCourse.images) && selectedCourse.images.length > 0;
+    
+    // Quick actions
+    const quickActions = [];
+    if (selectedCourse?.phone) {
+      quickActions.push(`<a href="tel:${esc(selectedCourse.phone)}" class="ff-action-btn" aria-label="Call ${name}" title="Call">📞</a>`);
+    }
+    if (selectedCourse?.lat && selectedCourse?.lon) {
+      quickActions.push(`<a href="https://maps.google.com/?q=${selectedCourse.lat},${selectedCourse.lon}" target="_blank" class="ff-action-btn" aria-label="Get directions" title="Directions">🗺️</a>`);
+    }
+    if (selectedCourse?.website) {
+      const websiteUrl = selectedCourse.website.startsWith('http') ? selectedCourse.website : `https://${selectedCourse.website}`;
+      quickActions.push(`<a href="${esc(websiteUrl)}" target="_blank" rel="noopener" class="ff-action-btn" aria-label="Visit website" title="Website">🌐</a>`);
+    }
+    if (selectedCourse?.booking_url) {
+      const bookingUrl = selectedCourse.booking_url.startsWith('http') ? selectedCourse.booking_url : `https://${selectedCourse.booking_url}`;
+      quickActions.push(`<a href="${esc(bookingUrl)}" target="_blank" rel="noopener" class="ff-action-btn" aria-label="Book tee time" title="Book">📅</a>`);
+    }
+    const quickActionsHtml = quickActions.length > 0 ? `<div class="ff-quick-actions">${quickActions.join("")}</div>` : "";
+
     return `<div class="ff-card ff-course-header">
       <div class="ff-course-header-main">
-        <div>
-          <div class="ff-course-title">${name}</div>
-          ${line2 ? `<div class="ff-sub">${esc(line2)}</div>` : ""}
-          ${detailsLine ? `<div class="ff-course-details">${esc(detailsLine)}</div>` : ""}
+        <div class="ff-course-header-left">
+          ${courseLogo}
+          <div>
+            <div class="ff-course-title">${name}</div>
+            ${line2 ? `<div class="ff-sub">${esc(line2)}</div>` : ""}
+            ${detailsLine ? `<div class="ff-course-details">${esc(detailsLine)}</div>` : ""}
+          </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
           ${
@@ -975,6 +1000,7 @@
           }
         </div>
       </div>
+      ${quickActionsHtml}
       ${favStrip}
     </div>`;
   }
@@ -1121,6 +1147,16 @@
     const c = normalizeCourse(course);
     const details = [];
     
+    // Course images gallery
+    if (Array.isArray(c.images) && c.images.length > 0) {
+      const imagesHtml = c.images.slice(0, 6).map((img, idx) => 
+        `<img src="${esc(img)}" alt="${esc(c.name)} - Image ${idx + 1}" class="ff-course-image" loading="lazy" onclick="window.open('${esc(img)}', '_blank')" />`
+      ).join("");
+      details.push(`<div class="ff-course-images-gallery">${imagesHtml}</div>`);
+    } else if (c.logo) {
+      details.push(`<div class="ff-course-images-gallery"><img src="${esc(c.logo)}" alt="${esc(c.name)} logo" class="ff-course-image" loading="lazy" /></div>`);
+    }
+    
     // Basic info
     if (c.club_name && c.club_name !== c.name) {
       details.push(`<div class="ff-course-detail-row"><strong>Club:</strong> ${esc(c.club_name)}</div>`);
@@ -1184,6 +1220,11 @@
       details.push(`<div class="ff-course-detail-row" style="margin-top:12px;"><a href="${esc(bookingUrl)}" target="_blank" rel="noopener" class="ff-btn ff-btn-primary" style="display:inline-block;margin-top:8px;">Book Tee Time</a></div>`);
     }
     
+    // Share button
+    if (navigator.share && selectedCourse) {
+      details.push(`<div class="ff-course-detail-row" style="margin-top:12px;"><button type="button" class="ff-btn ff-btn-ghost" id="shareCourseBtn" style="width:100%;">📤 Share Course & Weather</button></div>`);
+    }
+    
     if (details.length === 0) {
       openInfoModal(c.name || "Course Details", "No additional information available for this course.");
       return;
@@ -1199,6 +1240,29 @@
     
     const courseInfoBtn = $("courseInfoBtn");
     courseInfoBtn?.addEventListener("click", () => showCourseDetails(selectedCourse));
+    
+    // Wire up share button if it exists
+    const shareCourseBtn = $("shareCourseBtn");
+    shareCourseBtn?.addEventListener("click", async () => {
+      if (!navigator.share || !selectedCourse) return;
+      const c = normalizeCourse(selectedCourse);
+      const weather = lastNorm?.current;
+      const temp = weather?.temp ? `${Math.round(weather.temp)}${tempUnit()}` : "";
+      const condition = weather?.weather?.[0]?.description || "checking weather";
+      const playability = calculatePlayability(lastNorm);
+      
+      try {
+        await navigator.share({
+          title: `${c.name} - Golf Weather Forecast`,
+          text: `🏌️ Playing at ${c.name} today!\n🌤️ Weather: ${temp}, ${condition}\n✅ Playability: ${playability}/10\n📍 ${[c.city, c.state, c.country].filter(Boolean).join(", ")}`,
+          url: window.location.href
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Share failed:', err);
+        }
+      }
+    });
 
     const favs = loadFavs();
 
