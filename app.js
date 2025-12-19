@@ -305,7 +305,7 @@
         humidity: typeof c.humidity === "number" ? c.humidity : null,
         wind_speed: typeof c?.wind?.speed === "number" ? c.wind.speed : null,
         wind_gust: typeof c?.wind?.gust === "number" ? c.wind.gust : null,
-        pop: typeof c.pop === "number" ? c.pop : null,
+        pop: typeof c.pop === "number" ? c.pop : 0,
         rain_mm:
           typeof c?.rain?.["1h"] === "number"
             ? c.rain["1h"]
@@ -323,7 +323,7 @@
         humidity: typeof first?.main?.humidity === "number" ? first.main.humidity : null,
         wind_speed: typeof first?.wind?.speed === "number" ? first.wind.speed : null,
         wind_gust: typeof first?.wind?.gust === "number" ? first.wind.gust : null,
-        pop: typeof first?.pop === "number" ? first.pop : null,
+        pop: typeof first?.pop === "number" ? first.pop : 0,
         rain_mm:
           typeof first?.rain?.["1h"] === "number"
             ? first.rain["1h"]
@@ -341,7 +341,7 @@
       norm.hourly = raw.list.slice(0, 16).map((it) => ({
         dt: it.dt,
         temp: it?.main?.temp ?? null,
-        pop: typeof it?.pop === "number" ? it.pop : null,
+        pop: typeof it?.pop === "number" ? it.pop : 0,
         wind_speed: it?.wind?.speed ?? null,
         rain_mm:
           typeof it?.rain?.["1h"] === "number"
@@ -593,11 +593,16 @@
         : `<div class="ff-favs">
             <div class="ff-favs-title">Favourites</div>
             <div class="ff-favs-list">
-              ${favs.slice(0, 12).map((f) => {
-                const ll = `${f.lat},${f.lon}`;
-                const title = [f.name, f.city, f.state, f.country].filter(Boolean).join(", ");
-                return `<button type="button" class="ff-fav-pill" data-ll="${esc(ll)}" title="${esc(title)}">★ ${esc(f.name || "Favourite")}</button>`;
-              }).join("")}
+              ${favs
+                .slice(0, 12)
+                .map((f) => {
+                  const ll = `${f.lat},${f.lon}`;
+                  const title = [f.name, f.city, f.state, f.country].filter(Boolean).join(", ");
+                  return `<button type="button" class="ff-fav-pill" data-ll="${esc(
+                    ll
+                  )}" data-fav-key="${esc(f.key)}" title="${esc(title)}">★ ${esc(f.name || "Favourite")}</button>`;
+                })
+                .join("")}
             </div>
           </div>`;
 
@@ -627,8 +632,9 @@
 
     const wind = typeof c.wind_speed === "number" ? `${c.wind_speed.toFixed(1)} ${windUnit()}` : "";
     const gust = typeof c.wind_gust === "number" ? `${c.wind_gust.toFixed(1)} ${windUnit()}` : "";
-    const rainProb = typeof c.pop === "number" ? pct(c.pop) : "";
-    const rainMm = typeof c.rain_mm === "number" ? `${c.rain_mm.toFixed(1)} mm` : "";
+    const popValue = typeof c.pop === "number" ? c.pop : 0;
+    const rainProb = pct(popValue);
+    const rainMm = `${(typeof c.rain_mm === "number" ? c.rain_mm : 0).toFixed(2)} mm`;
     const rain = [rainProb, rainMm].filter(Boolean).join(" · ");
 
     const sunrise = norm.sunrise ? fmtTime(norm.sunrise) : "";
@@ -665,8 +671,9 @@
     const rows = hourly.slice(0, 16).map((h) => {
       const time = h?.dt ? fmtTime(h.dt) : "";
       const t = typeof h.temp === "number" ? `${Math.round(h.temp)}${tempUnit()}` : "";
-      const rainProb = typeof h.pop === "number" ? pct(h.pop) : "";
-      const rainMm = typeof h.rain_mm === "number" ? `${h.rain_mm.toFixed(1)} mm` : "";
+      const popValue = typeof h.pop === "number" ? h.pop : 0;
+      const rainProb = pct(popValue);
+      const rainMm = `${(typeof h.rain_mm === "number" ? h.rain_mm : 0).toFixed(2)} mm`;
       const rain = [rainProb, rainMm].filter(Boolean).join(" · ");
       const wind = typeof h.wind_speed === "number" ? `${h.wind_speed.toFixed(1)} ${windUnit()}` : "";
       const ico = iconHtml(h.weather, 2);
@@ -733,19 +740,50 @@
     const favBtn = $("favBtn");
     favBtn?.addEventListener("click", () => toggleFavourite(selectedCourse));
 
+    const favs = loadFavs();
+
     host
       ?.querySelectorAll("[data-ll]")
       .forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const ll = btn.getAttribute("data-ll") || "";
-        const [latStr, lonStr] = ll.split(",");
-        const lat = Number(latStr);
-        const lon = Number(lonStr);
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+        btn.addEventListener("click", () => {
+          const favKeyAttr = btn.getAttribute("data-fav-key") || null;
+          const ll = btn.getAttribute("data-ll") || "";
+          const [latStr, lonStr] = ll.split(",");
+          const lat = Number(latStr);
+          const lon = Number(lonStr);
 
-        selectedCourse = { id: null, name: btn.textContent.replace(/^★\s*/, ""), city: "", state: "", country: "", lat, lon };
-        loadWeatherForSelected();
-      });
+          let next = null;
+          if (favKeyAttr) {
+            const fromStore = favs.find((f) => f.key === favKeyAttr);
+            if (fromStore) {
+              next = {
+                id: fromStore.id ?? null,
+                name: fromStore.name ?? "",
+                city: fromStore.city ?? "",
+                state: fromStore.state ?? "",
+                country: fromStore.country ?? "",
+                lat: fromStore.lat ?? null,
+                lon: fromStore.lon ?? null,
+              };
+            }
+          }
+
+          if (!next) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+            next = {
+              id: null,
+              name: btn.textContent.replace(/^★\s*/, ""),
+              city: "",
+              state: "",
+              country: "",
+              lat,
+              lon,
+            };
+          }
+
+          selectedCourse = next;
+          loadWeatherForSelected();
+        });
       });
   }
 
@@ -1011,15 +1049,15 @@
 
   verdictCard?.addEventListener("click", () => {
     openInfoModal(
-      "How we make the play decision",
-      "We combine wind, rain probability, temperature and daylight to decide whether conditions are good enough to recommend playing, playable but tough, or no-play. The best tee time is the slot today with the lowest rain and most comfortable wind and temperature around daylight hours."
+      "Decision & playability explained",
+      "The decision (Play / Playable (tough) / No-play) and the playability score use the same ingredients: wind strength, rain chance and mm, temperature comfort and remaining daylight. 9–10 means ideal conditions, 6–8 is playable with some compromises, and 0–5 suggests most golfers will find it poor. The suggested best tee time is picked from today’s daylight hours where rain and wind are lowest and temperature is closest to a comfortable target."
     );
   });
 
   playabilityScoreEl?.addEventListener("click", () => {
     openInfoModal(
-      "Playability score explained",
-      "The score runs from 0 to 10 and rewards low wind, low rain chance and comfortable temperatures in your chosen units. 9–10 is ideal, 6–8 is playable with some compromises, and 0–5 means conditions are likely poor for most golfers."
+      "Decision & playability explained",
+      "The decision (Play / Playable (tough) / No-play) and the playability score use the same ingredients: wind strength, rain chance and mm, temperature comfort and remaining daylight. 9–10 means ideal conditions, 6–8 is playable with some compromises, and 0–5 suggests most golfers will find it poor. The suggested best tee time is picked from today’s daylight hours where rain and wind are lowest and temperature is closest to a comfortable target."
     );
   });
 

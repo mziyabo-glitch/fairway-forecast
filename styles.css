@@ -332,6 +332,20 @@ button, input, select{ font: inherit; }
 }
 #results > *{ padding:14px; }
 
+/* Current card layout helpers */
+.ff-current-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.ff-current-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
 #results h2, #results h3{
   margin:0 0 6px 0;
   font-size:18px;
