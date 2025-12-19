@@ -2299,6 +2299,31 @@
     }
   });
 
+  // Expose diagnostic function for debugging
+  window.testSearchAPI = async function(query = "golf") {
+    console.log("🔧 [Test] Testing search API with query:", query);
+    try {
+      const enc = encodeURIComponent(query);
+      const url = `${API_BASE}/courses?search=${enc}`;
+      console.log("🔧 [Test] Calling:", url);
+      const res = await fetch(url);
+      console.log("🔧 [Test] Response status:", res.status);
+      console.log("🔧 [Test] Response headers:", Object.fromEntries(res.headers.entries()));
+      const text = await res.text();
+      console.log("🔧 [Test] Response body:", text);
+      try {
+        const json = JSON.parse(text);
+        console.log("🔧 [Test] Parsed JSON:", json);
+      } catch (e) {
+        console.warn("🔧 [Test] Not valid JSON");
+      }
+      return { status: res.status, text, ok: res.ok };
+    } catch (err) {
+      console.error("🔧 [Test] Error:", err);
+      return { error: err.message };
+    }
+  };
+
   geoBtn?.addEventListener("click", useMyLocation);
 
   unitsSelect?.addEventListener("change", () => {
