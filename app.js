@@ -2109,11 +2109,13 @@
 
   async function doSearch() {
     if (!searchInput) {
-      console.error("Search input not found");
+      console.error("[Search] Search input element not found");
       return;
     }
     
     const q = (searchInput.value || "").trim();
+    console.log(`[Search] Starting search for: "${q}"`);
+    
     if (!q) {
       if (searchResultsSlot) {
         searchResultsSlot.innerHTML = `<div class="ff-card muted">Type a town/city or golf course name.</div>`;
@@ -2129,8 +2131,8 @@
     // Show loading in search results slot
     if (searchResultsSlot) {
       searchResultsSlot.innerHTML = `<div class="ff-card muted">Loading…</div>`;
-    } else {
-      showMessage("Loading…");
+    } else if (forecastSlot) {
+      forecastSlot.innerHTML = `<div class="ff-card muted">Loading…</div>`;
     }
 
     try {
