@@ -783,12 +783,9 @@
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     if (!sunrise || !sunset || hourly.length === 0) return null;
 
-    const start = sunrise + 3600; // 1 hour after sunrise
-    const end = sunset; // Never exceed sunset
-    const candidates = hourly.filter((h) => {
-      if (typeof h.dt !== "number") return false;
-      return h.dt >= start && h.dt < end; // Strict: must be before sunset
-    });
+    const start = sunrise + 3600;
+    const end = sunset - 3600;
+    const candidates = hourly.filter((h) => typeof h.dt === "number" && h.dt >= start && h.dt <= end);
     if (candidates.length === 0) return null;
 
     const pops = candidates.map((h) => (typeof h.pop === "number" ? h.pop : null)).filter((x) => typeof x === "number");
@@ -840,37 +837,14 @@
 
     if (dayHourly.length === 0) return null;
 
-    // Use actual sunset if available, otherwise estimate
-    const actualSunset = norm?.sunset;
-    let sunsetTime;
-    if (actualSunset && typeof actualSunset === "number") {
-      const sunsetDate = new Date(actualSunset * 1000);
-      const sunsetDayStart = new Date(sunsetDate);
-      sunsetDayStart.setHours(0, 0, 0, 0);
-      const targetDayStart = new Date(dayStart);
-      
-      // Check if sunset is for the same day
-      if (sunsetDayStart.getTime() === targetDayStart.getTime()) {
-        sunsetTime = actualSunset;
-      } else {
-        // Estimate sunset for this day (sunset times don't vary much day-to-day)
-        const estimatedSunset = dayStartSec + (20 * 3600); // 8 PM fallback
-        sunsetTime = estimatedSunset;
-      }
-    } else {
-      // Estimate sunrise/sunset for this day (simplified: use 6am-8pm as daylight hours)
-      const estimatedSunset = dayStartSec + (20 * 3600); // 8 PM
-      sunsetTime = estimatedSunset;
-    }
-    
+    // Estimate sunrise/sunset for this day (simplified: use 6am-8pm as daylight hours)
+    // In a real app, you'd calculate actual sunrise/sunset for that day
     const estimatedSunrise = dayStartSec + (6 * 3600); // 6 AM
+    const estimatedSunset = dayStartSec + (20 * 3600); // 8 PM
+
     const start = estimatedSunrise + 3600; // 7 AM
-    const end = sunsetTime; // Never exceed sunset
-    
-    const candidates = dayHourly.filter((h) => {
-      if (typeof h.dt !== "number") return false;
-      return h.dt >= start && h.dt < end; // Strict: must be before sunset
-    });
+    const end = estimatedSunset - 3600; // 7 PM
+    const candidates = dayHourly.filter((h) => typeof h.dt === "number" && h.dt >= start && h.dt <= end);
     if (candidates.length === 0) return null;
 
     const pops = candidates.map((h) => (typeof h.pop === "number" ? h.pop : null)).filter((x) => typeof x === "number");
@@ -1123,22 +1097,12 @@
     }
     
     // Best time: Show tomorrow's best time if nighttime
-    // Safety check: ensure tee time never exceeds sunset
-    const sunset = norm?.sunset;
     if (isNighttime && tomorrowData?.best && typeof tomorrowData.best.dt === "number") {
-      const bestDt = tomorrowData.best.dt;
-      if (!sunset || bestDt < sunset) {
-        verdictBestTime.textContent = fmtTime(bestDt);
-      } else {
-        verdictBestTime.textContent = "—";
-      }
+      verdictBestTime.textContent = fmtTime(tomorrowData.best.dt);
+    } else if (v.best && typeof v.best.dt === "number") {
+      verdictBestTime.textContent = fmtTime(v.best.dt);
     } else {
-      const bestDt = v.best && typeof v.best.dt === "number" ? v.best.dt : null;
-      if (bestDt && (!sunset || bestDt < sunset)) {
-        verdictBestTime.textContent = fmtTime(bestDt);
-      } else {
-        verdictBestTime.textContent = "—";
-      }
+      verdictBestTime.textContent = "—";
     }
 
     // Quick stats: Show tomorrow's stats when nighttime
@@ -1524,9 +1488,7 @@
     }
 
     const best = isNighttime ? null : bestTimeToday(norm);
-    // Safety check: ensure displayed tee time never exceeds sunset
-    const sunset = norm?.sunset;
-    const bestText = best?.dt && (!sunset || best.dt < sunset) ? fmtTime(best.dt) : "";
+    const bestText = best?.dt ? fmtTime(best.dt) : "";
 
     const stats = [
       timeDisplay ? `<div class="ff-stat"><span>Time</span><strong>${esc(timeDisplay)}</strong></div>` : "",
@@ -1559,9 +1521,7 @@
     if (!hourly.length) return `<div class="ff-card muted">No hourly data available.</div>`;
 
     const best = bestTimeToday(norm);
-    const sunset = norm?.sunset;
-    // Safety check: ensure best time never exceeds sunset
-    const bestDt = best?.dt && (!sunset || best.dt < sunset) ? best.dt : null;
+    const bestDt = best?.dt || null;
 
     // Prepare data for mini charts
     const windValues = hourly.map(h => typeof h.wind_speed === "number" ? h.wind_speed : 0);
