@@ -245,6 +245,89 @@ button, input, select{ font: inherit; }
   box-shadow:0 4px 12px rgba(6,24,20,.15);
 }
 
+/* Course rating */
+.ff-course-rating{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:4px;
+  font-size:13px;
+}
+
+.ff-rating-stars{
+  font-size:14px;
+  line-height:1;
+  letter-spacing:1px;
+}
+
+.ff-rating-count{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:600;
+}
+
+.ff-nearby-course-rating{
+  margin-top:2px;
+  font-size:12px;
+}
+
+/* Nearby courses */
+.ff-nearby-courses-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.ff-nearby-course{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px;
+  border-radius:16px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  cursor:pointer;
+  transition:all 0.2s ease;
+  text-align:left;
+  width:100%;
+}
+
+.ff-nearby-course:hover,
+.ff-nearby-course:active{
+  background:var(--surface);
+  border-color:var(--brand);
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(6,24,20,.1);
+}
+
+.ff-nearby-course-main{
+  flex:1;
+  min-width:0;
+}
+
+.ff-nearby-course-name{
+  font-weight:800;
+  font-size:15px;
+  margin-bottom:2px;
+}
+
+.ff-nearby-course-location{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.ff-nearby-course-distance{
+  font-weight:900;
+  font-size:14px;
+  color:var(--brand);
+  flex-shrink:0;
+  padding:6px 10px;
+  background:var(--brand-soft);
+  border-radius:12px;
+}
+
 /* Mobile optimizations */
 @media (max-width:520px){
   .ff-course-logo{
@@ -261,6 +344,19 @@ button, input, select{ font: inherit; }
     width:40px;
     height:40px;
     font-size:18px;
+  }
+  
+  .ff-nearby-course{
+    padding:10px;
+  }
+  
+  .ff-nearby-course-name{
+    font-size:14px;
+  }
+  
+  .ff-nearby-course-distance{
+    font-size:12px;
+    padding:4px 8px;
   }
 }
 

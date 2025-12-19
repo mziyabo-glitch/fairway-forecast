@@ -61,6 +61,7 @@
   let selectedCourse = null;
   let lastNorm = null;
   let activeTab = "current";
+  let nearbyCourses = [];
 
   /* ---------- SAFE HTML ---------- */
   const esc = (s) =>
@@ -76,6 +77,22 @@
 
   function clamp(n, min, max) {
     return Math.max(min, Math.min(max, n));
+  }
+
+  // Calculate distance between two coordinates using Haversine formula (returns km)
+  function calculateDistance(lat1, lon1, lat2, lon2) {
+    if (!Number.isFinite(lat1) || !Number.isFinite(lon1) || !Number.isFinite(lat2) || !Number.isFinite(lon2)) {
+      return null;
+    }
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 
   function pct(pop) {
@@ -136,6 +153,20 @@
     } else if (resultsEl) {
       resultsEl.innerHTML = html;
     }
+  }
+
+  function renderStarRating(rating, maxRating = 5) {
+    if (typeof rating !== "number" || !Number.isFinite(rating)) return "";
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    const emptyStars = maxRating - fullStars - (hasHalfStar ? 1 : 0);
+    
+    let stars = "";
+    for (let i = 0; i < fullStars; i++) stars += "⭐";
+    if (hasHalfStar) stars += "½";
+    for (let i = 0; i < emptyStars; i++) stars += "☆";
+    
+    return `<span class="ff-rating-stars" title="${rating.toFixed(1)} out of ${maxRating}">${stars}</span>`;
   }
 
   function iconHtml(weatherArr, size = 2) {
@@ -442,6 +473,58 @@
     console.log(`📊 [Search] Final result: ${list.length} course(s) from ${source}`);
     cacheSet(memCache.courses, cacheKey, list);
     return list;
+  }
+
+  async function fetchNearbyCourses(lat, lon, radiusKm = 10, maxResults = 5) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
+    
+    try {
+      // Search for courses in the area - use city name or broad search
+      // We'll search for "golf" in the area and filter by distance
+      const searchTerms = ["golf", "golf course", "golf club"];
+      const allCourses = [];
+      
+      for (const term of searchTerms) {
+        try {
+          const data = await apiGet(`/courses?search=${encodeURIComponent(term)}`);
+          const courses = Array.isArray(data?.courses) ? data.courses : [];
+          allCourses.push(...courses);
+        } catch (err) {
+          console.warn(`[Nearby] Search failed for "${term}"`, err);
+        }
+      }
+      
+      // Filter by distance and remove duplicates
+      const nearby = [];
+      const seenIds = new Set();
+      const currentCourseId = selectedCourse?.id;
+      
+      for (const course of allCourses) {
+        const courseLat = course?.lat || course?.location?.latitude;
+        const courseLon = course?.lon || course?.location?.longitude;
+        const courseId = course?.id;
+        
+        // Skip if no coordinates or already seen or is current course
+        if (!Number.isFinite(courseLat) || !Number.isFinite(courseLon)) continue;
+        if (courseId && (seenIds.has(courseId) || courseId === currentCourseId)) continue;
+        
+        const distance = calculateDistance(lat, lon, courseLat, courseLon);
+        if (distance !== null && distance <= radiusKm) {
+          seenIds.add(courseId);
+          nearby.push({
+            ...course,
+            distance: distance
+          });
+        }
+      }
+      
+      // Sort by distance and limit results
+      nearby.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+      return nearby.slice(0, maxResults);
+    } catch (err) {
+      console.warn("[Nearby] Failed to fetch nearby courses", err);
+      return [];
+    }
   }
 
   async function fetchWeather(lat, lon) {
@@ -959,6 +1042,11 @@
     const courseLogo = selectedCourse?.logo ? `<img src="${esc(selectedCourse.logo)}" alt="${name}" class="ff-course-logo" loading="lazy" />` : "";
     const hasImages = selectedCourse?.images && Array.isArray(selectedCourse.images) && selectedCourse.images.length > 0;
     
+    // Course rating
+    const rating = selectedCourse?.review_rating || selectedCourse?.rating;
+    const reviewCount = selectedCourse?.review_count;
+    const ratingHtml = rating ? `<div class="ff-course-rating">${renderStarRating(rating)}${reviewCount ? `<span class="ff-rating-count">(${reviewCount})</span>` : ""}</div>` : "";
+    
     // Quick actions
     const quickActions = [];
     if (selectedCourse?.phone) {
@@ -983,6 +1071,7 @@
           ${courseLogo}
           <div>
             <div class="ff-course-title">${name}</div>
+            ${ratingHtml}
             ${line2 ? `<div class="ff-sub">${esc(line2)}</div>` : ""}
             ${detailsLine ? `<div class="ff-course-details">${esc(detailsLine)}</div>` : ""}
           </div>
@@ -1157,6 +1246,15 @@
       details.push(`<div class="ff-course-images-gallery"><img src="${esc(c.logo)}" alt="${esc(c.name)} logo" class="ff-course-image" loading="lazy" /></div>`);
     }
     
+    // Rating and reviews
+    const rating = c.review_rating || c.rating;
+    if (rating) {
+      const ratingDisplay = renderStarRating(rating);
+      const reviewInfo = [];
+      if (c.review_count) reviewInfo.push(`${c.review_count} review${c.review_count !== 1 ? 's' : ''}`);
+      details.push(`<div class="ff-course-detail-row"><strong>Rating:</strong> ${ratingDisplay} ${rating.toFixed(1)}/5${reviewInfo.length > 0 ? ` · ${reviewInfo.join(', ')}` : ''}</div>`);
+    }
+    
     // Basic info
     if (c.club_name && c.club_name !== c.name) {
       details.push(`<div class="ff-course-detail-row"><strong>Club:</strong> ${esc(c.club_name)}</div>`);
@@ -1311,6 +1409,32 @@
       });
   }
 
+  function renderNearbyCourses() {
+    if (!Array.isArray(nearbyCourses) || nearbyCourses.length === 0) return "";
+    
+    const items = nearbyCourses.map((course, idx) => {
+      const c = normalizeCourse(course);
+      const distance = typeof course.distance === "number" ? course.distance.toFixed(1) : "";
+      const line2 = [c.city, c.state, c.country].filter(Boolean).join(", ");
+      const rating = c.review_rating || c.rating;
+      const ratingHtml = rating ? renderStarRating(rating) : "";
+      
+      return `<button class="ff-nearby-course" type="button" data-course-idx="${idx}" data-course-lat="${c.lat || ''}" data-course-lon="${c.lon || ''}">
+        <div class="ff-nearby-course-main">
+          <div class="ff-nearby-course-name">${esc(c.name)}</div>
+          ${ratingHtml ? `<div class="ff-nearby-course-rating">${ratingHtml}</div>` : ""}
+          <div class="ff-nearby-course-location">${esc(line2)}</div>
+        </div>
+        <div class="ff-nearby-course-distance">${distance} km</div>
+      </button>`;
+    }).join("");
+
+    return `<div class="ff-card">
+      <div class="ff-card-title">Nearby Courses</div>
+      <div class="ff-nearby-courses-list">${items}</div>
+    </div>`;
+  }
+
   function renderAll() {
     const header = renderHeaderBlock();
 
@@ -1324,17 +1448,51 @@
     } else {
       body = renderDaily(lastNorm);
     }
+    
+    // Add nearby courses section if we have a selected course
+    const nearbySection = selectedCourse && Number.isFinite(selectedCourse.lat) && Number.isFinite(selectedCourse.lon) 
+      ? renderNearbyCourses() 
+      : "";
 
     if (locationSlot) locationSlot.innerHTML = header;
     if (forecastSlot) {
-      forecastSlot.innerHTML = body;
+      forecastSlot.innerHTML = body + (nearbySection ? `<div style="margin-top:var(--gap);">${nearbySection}</div>` : "");
     } else if (resultsEl && !locationSlot) {
       // fallback for legacy markup
-      resultsEl.innerHTML = `${header}${body}`;
+      resultsEl.innerHTML = `${header}${body}${nearbySection ? `<div style="margin-top:var(--gap);">${nearbySection}</div>` : ""}`;
     }
 
     wireHeaderButtons();
     wireDailyRows();
+    wireNearbyCourses();
+  }
+  
+  function wireNearbyCourses() {
+    const host = forecastSlot || resultsEl;
+    if (!host) return;
+    
+    host.querySelectorAll(".ff-nearby-course").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const idx = Number(btn.getAttribute("data-course-idx"));
+        const course = nearbyCourses[idx];
+        if (!course) return;
+        
+        const c = normalizeCourse(course);
+        if (!Number.isFinite(c.lat) || !Number.isFinite(c.lon)) {
+          showError("That course is missing coordinates.", "Try another course.");
+          return;
+        }
+        
+        selectedCourse = c;
+        nearbyCourses = []; // Clear nearby courses when switching
+        await loadWeatherForSelected();
+        // Fetch new nearby courses after loading weather
+        if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) {
+          nearbyCourses = await fetchNearbyCourses(c.lat, c.lon);
+          renderAll();
+        }
+      });
+    });
   }
 
   function wireDailyRows() {
@@ -1556,6 +1714,7 @@
     }
 
     showMessage("Loading forecast…");
+    nearbyCourses = []; // Clear nearby courses
 
     try {
       const raw = await fetchWeather(selectedCourse.lat, selectedCourse.lon);
@@ -1565,6 +1724,12 @@
       renderPlayability(lastNorm);
       renderAll();
       clearSearchResults();
+      
+      // Fetch nearby courses in background
+      if (Number.isFinite(selectedCourse.lat) && Number.isFinite(selectedCourse.lon)) {
+        nearbyCourses = await fetchNearbyCourses(selectedCourse.lat, selectedCourse.lon);
+        renderAll(); // Re-render to show nearby courses
+      }
     } catch (err) {
       console.error("Weather error:", err);
       if (err?.name === "AbortError") {
