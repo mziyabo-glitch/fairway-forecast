@@ -2115,7 +2115,20 @@
 
     console.log(`[Search] Setting innerHTML on`, resultsHost.id || "host");
     console.log(`[Search] HTML to set (first 300 chars):`, resultsHtml.substring(0, 300));
+    
+    // Set the HTML
     resultsHost.innerHTML = resultsHtml;
+    
+    // Force display if it's searchResultsSlot (CSS hides it by default until it has content)
+    if (resultsHost === searchResultsSlot) {
+      // The :has(*) selector should show it, but ensure it's visible
+      const computed = window.getComputedStyle(resultsHost);
+      if (computed.display === "none") {
+        console.warn("[Search] searchResultsSlot is hidden, forcing display");
+        resultsHost.style.display = "block";
+      }
+    }
+    
     console.log(`[Search] innerHTML set, content length:`, resultsHost.innerHTML.length);
     
     // Verify it was set correctly
