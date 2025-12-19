@@ -1,42 +1,36 @@
 /* =========================================================
-   Fairway Forecast — OPTION B (Porcelain & Pine, premium)
+   Fairway Forecast — MOBILE-FIRST PREMIUM (Option B base)
    CSS ONLY — no app.js changes
    ========================================================= */
 
 /* ---------- Base / Reset ---------- */
 :root{
-  /* Backgrounds */
   --bg: #EEF2F0;               /* porcelain grey */
   --surface: #F9FBFA;          /* card surface */
   --surface-2: #F1F5F3;        /* inset / icon pads */
 
-  /* Text */
-  --text: #0E1C1A;             /* deep slate green-black */
-  --muted: #5F6F6B;            /* calm secondary text */
+  --text: #0E1C1A;
+  --muted: #5F6F6B;
   --line: rgba(14, 28, 26, 0.10);
 
-  /* Brand (pine green) */
   --brand: #1F6F5C;
   --brand-2: #185E4E;
   --brand-soft: rgba(31,111,92,.14);
 
-  /* Status */
-  --danger: #C0362C;           /* muted clay red */
+  --danger: #C0362C;
   --danger-soft: rgba(192,54,44,.14);
 
-  /* Elevation */
-  --shadow: 0 12px 28px rgba(8,20,18,.10);
   --shadow-soft: 0 6px 16px rgba(8,20,18,.06);
 
-  /* Radius & spacing */
   --r-xl: 22px;
   --r-lg: 18px;
   --r-md: 14px;
+
   --gap: 14px;
 }
 
 *{ box-sizing:border-box; }
-html,body{ height:100%; }
+html, body{ height:100%; }
 body{
   margin:0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -50,15 +44,16 @@ body{
 }
 
 img{ max-width:100%; display:block; }
+button, input, select{ font: inherit; }
 
 /* ---------- Layout ---------- */
 .ff-wrap{
   max-width:560px;
   margin:0 auto;
-  padding:14px 14px calc(18px + env(safe-area-inset-bottom));
+  padding: 14px 14px calc(18px + env(safe-area-inset-bottom));
   display:flex;
   flex-direction:column;
-  gap:var(--gap);
+  gap: var(--gap);
 }
 
 /* ---------- Header ---------- */
@@ -69,13 +64,11 @@ img{ max-width:100%; display:block; }
   box-shadow:var(--shadow-soft);
   padding:14px;
 }
-
 .ff-brand{
   display:flex;
   align-items:center;
   gap:12px;
 }
-
 .ff-logo{
   width:44px;
   height:44px;
@@ -84,13 +77,11 @@ img{ max-width:100%; display:block; }
   border:1px solid var(--line);
   padding:6px;
 }
-
 .ff-brand-text strong{
   font-size:18px;
   letter-spacing:.2px;
   display:block;
 }
-
 .ff-brand-text span{
   font-size:12.5px;
   color:var(--muted);
@@ -107,7 +98,6 @@ img{ max-width:100%; display:block; }
   border-radius:var(--r-xl);
   box-shadow:var(--shadow-soft);
 }
-
 .ff-panel{ padding:14px; }
 
 /* ---------- Search ---------- */
@@ -121,8 +111,9 @@ img{ max-width:100%; display:block; }
 
 .ff-search-row{
   display:grid;
-  grid-template-columns:1fr auto auto;
+  grid-template-columns: 1fr auto auto;
   gap:10px;
+  align-items:center;
 }
 
 .ff-input{
@@ -131,6 +122,7 @@ img{ max-width:100%; display:block; }
   border:1px solid var(--line);
   font-size:16px;
   background:#fff;
+  min-width: 0; /* critical on mobile */
 }
 
 .ff-input:focus{
@@ -147,6 +139,7 @@ img{ max-width:100%; display:block; }
   font-size:15px;
   min-height:46px;
   padding:12px 14px;
+  cursor:pointer;
 }
 
 .ff-btn-primary{
@@ -160,19 +153,65 @@ img{ max-width:100%; display:block; }
   padding:0;
   display:grid;
   place-items:center;
+  background:#fff;
+}
+
+.ff-units-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:12px;
+}
+.ff-select{
+  border-radius:16px;
+  border:1px solid var(--line);
+  padding:10px 12px;
+  font-weight:700;
+  background:#fff;
+  min-height:44px;
+}
+
+/* ---------- Tabs (sticky segmented control) ---------- */
+.ff-tabs{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:10px;
+  position: sticky;
+  top: 8px; /* keeps tabs reachable */
+  z-index: 20;
+  padding: 8px;
+  margin: 0 -2px;
+  border-radius: 22px;
+  background: rgba(241,245,243,.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(14,28,26,.08);
+}
+
+.ff-tab{
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  min-height:46px;
+  font-weight:900;
+  font-size:15px;
+}
+
+.ff-tab.active{
+  background:linear-gradient(180deg,var(--brand),var(--brand-2));
+  color:#fff;
+  border-color:rgba(31,111,92,.45);
 }
 
 /* ---------- Verdict (Play / No-Play) ---------- */
 .ff-verdict{
   padding:12px 14px;
 }
-
 .ff-verdict-main{
   display:flex;
   gap:12px;
   align-items:center;
 }
-
 .ff-verdict-badge,
 .ff-verdict-icon{
   width:36px;
@@ -183,18 +222,20 @@ img{ max-width:100%; display:block; }
   display:grid;
   place-items:center;
   font-weight:900;
+  font-size:18px;
+  flex: 0 0 auto;
 }
-
+.ff-verdict-text{ flex:1; min-width:0; }
 .ff-verdict-label{
   font-weight:900;
   font-size:16px;
+  line-height:1.15;
 }
-
 .ff-verdict-reason{
   font-size:13px;
   color:var(--muted);
+  margin-top:2px;
 }
-
 .ff-verdict-meta{
   margin-top:8px;
   padding-top:8px;
@@ -203,40 +244,18 @@ img{ max-width:100%; display:block; }
   color:var(--muted);
 }
 
-/* Verdict states */
+/* Verdict states (app.js uses these) */
 .ff-verdict--play{
   background:linear-gradient(180deg,rgba(31,111,92,.16),#fff);
   border-color:rgba(31,111,92,.35);
 }
-
 .ff-verdict--no{
   background:linear-gradient(180deg,rgba(192,54,44,.16),#fff);
   border-color:rgba(192,54,44,.35);
 }
-
 .ff-verdict--maybe{
   background:linear-gradient(180deg,rgba(245,158,11,.18),#fff);
-}
-
-/* ---------- Tabs ---------- */
-.ff-tabs{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
-  gap:10px;
-}
-
-.ff-tab{
-  border-radius:18px;
-  border:1px solid var(--line);
-  background:var(--surface);
-  min-height:48px;
-  font-weight:900;
-}
-
-.ff-tab.active{
-  background:linear-gradient(180deg,var(--brand),var(--brand-2));
-  color:#fff;
-  border-color:rgba(31,111,92,.45);
+  border-color:rgba(245,158,11,.30);
 }
 
 /* ---------- Results ---------- */
@@ -245,12 +264,132 @@ img{ max-width:100%; display:block; }
   flex-direction:column;
   gap:var(--gap);
 }
-
 #results > *{ padding:14px; }
 
-/* ---------- Icons clarity ---------- */
+/* Tighten headings on mobile */
+#results h2, #results h3{
+  margin: 0 0 6px 0;
+  font-size: 18px;
+  letter-spacing: .1px;
+}
+#results p{
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* ---------- Favourites chips (wrap nicely) ---------- */
+#results .favourites,
+#results .favorites,
+#results [data-favourites],
+#results [data-favorites]{
+  margin-top:10px;
+  padding:10px;
+  border-radius:18px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  overflow: hidden; /* stop ugly scroll */
+}
+
+#results .favourites button,
+#results .favorites button,
+#results button{
+  max-width: 100%;
+}
+
+/* ---------- Current weather: make it compact + centred ---------- */
 #results img[src*="openweathermap"]{
-  filter:drop-shadow(0 6px 10px rgba(8,20,18,.18));
+  width: 76px;
+  height: 76px;
+  margin: 10px auto 6px auto;
+  filter: drop-shadow(0 6px 10px rgba(8,20,18,.18));
+}
+
+/* Improve “Sunrise08:12” / “Rain chance0%” WITHOUT JS
+   If app.js renders label and value as separate nodes, this gives space.
+*/
+#results strong{
+  margin-left: 6px;
+}
+
+/* If app.js uses a simple list of lines, make them readable */
+#results{
+  line-height: 1.25;
+}
+
+/* ---------- Tables: mobile safe ---------- */
+#results table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  overflow:hidden;
+  border-radius:18px;
+  border:1px solid var(--line);
+  background:#fff;
+}
+
+#results thead th{
+  background: #EEF4F2;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 900;
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+#results tbody td{
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(14,28,26,.06);
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+#results tbody tr:last-child td{ border-bottom:0; }
+
+#results td img{
+  width: 26px;
+  height: 26px;
+  vertical-align: middle;
+}
+
+/* Daily: hide last column on phones (usually Summary) */
+@media (max-width: 520px){
+  #results table thead th:last-child,
+  #results table tbody td:last-child{
+    display:none;
+  }
+}
+
+/* ---------- Playability footer card ---------- */
+.ff-play{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.ff-play-title{
+  font-weight:900;
+  font-size:16px;
+}
+.ff-play-sub{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:700;
+  margin-top:2px;
+}
+.ff-play-score{
+  min-width: 86px;
+  text-align:center;
+  font-weight:900;
+  font-size:18px;
+  padding:10px 14px;
+  border-radius:18px;
+  background:var(--brand-soft);
+  border:1px solid rgba(31,111,92,.22);
 }
 
 /* ---------- Footer ---------- */
@@ -261,15 +400,22 @@ img{ max-width:100%; display:block; }
   padding:6px 0;
 }
 
-/* ---------- Mobile tweaks ---------- */
-@media(max-width:380px){
+/* ---------- Small phones: stack Search nicely ---------- */
+@media (max-width: 420px){
   .ff-search-row{
-    grid-template-columns:1fr auto;
+    grid-template-columns: 1fr auto;
     grid-template-areas:
       "input geo"
       "search search";
   }
-  #searchInput{ grid-area:input; }
-  #btnGeo{ grid-area:geo; }
-  #searchBtn{ grid-area:search; width:100%; }
+  #searchInput{ grid-area: input; }
+  #btnGeo{ grid-area: geo; }
+  #searchBtn{ grid-area: search; width:100%; }
+}
+
+/* ---------- Ultra small: tighten padding ---------- */
+@media (max-width: 360px){
+  .ff-wrap{ padding-left:12px; padding-right:12px; }
+  .ff-panel, #results > *{ padding:12px; }
+  .ff-tab{ min-height:44px; font-size:14px; }
 }
