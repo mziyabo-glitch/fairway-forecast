@@ -45,6 +45,7 @@
   const verdictLabel = $("verdictLabel");
   const verdictReason = $("verdictReason");
   const verdictBestTime = $("verdictBestTime");
+  const verdictQuickStats = $("verdictQuickStats");
 
   const infoModal = $("infoModal");
   const infoModalTitle = $("infoModalTitle");
@@ -154,6 +155,42 @@
     const sizeClass = size >= 4 ? "ff-wicon--xl" : size <= 1 ? "ff-wicon--sm" : "ff-wicon--lg";
 
     return `<div class="ff-wicon ${sizeClass}" aria-label="${esc(desc || main || "Weather")}">${emoji}</div>`;
+  }
+
+  /* ---------- WIND DIRECTION HELPERS ---------- */
+  function windDirection(deg) {
+    if (typeof deg !== "number" || !Number.isFinite(deg)) return null;
+    const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    const idx = Math.round(deg / 22.5) % 16;
+    return dirs[idx];
+  }
+
+  function windCompassHtml(deg, speed) {
+    if (typeof deg !== "number" || !Number.isFinite(deg)) return "";
+    const dir = windDirection(deg);
+    const rotation = deg;
+    return `<div class="ff-wind-compass" title="Wind from ${dir}">
+      <svg width="32" height="32" viewBox="0 0 32 32" class="ff-compass-bg">
+        <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.2"/>
+        <line x1="16" y1="16" x2="16" y2="6" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+        <text x="16" y="10" text-anchor="middle" font-size="8" fill="currentColor" opacity="0.6">N</text>
+      </svg>
+      <svg width="32" height="32" viewBox="0 0 32 32" class="ff-compass-arrow" style="transform: rotate(${rotation}deg);">
+        <line x1="16" y1="16" x2="16" y2="8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <polygon points="16,8 14,12 18,12" fill="currentColor"/>
+      </svg>
+    </div>`;
+  }
+
+  /* ---------- MINI CHART HELPERS ---------- */
+  function miniBarChart(values, maxValue, color = "var(--brand)") {
+    if (!Array.isArray(values) || values.length === 0) return "";
+    const max = Math.max(...values.filter(v => typeof v === "number"), 1);
+    const bars = values.map((v, i) => {
+      const height = typeof v === "number" ? Math.max((v / max) * 100, 5) : 5;
+      return `<div class="ff-mini-bar" style="height:${height}%; background:${color};" title="${v}"></div>`;
+    }).join("");
+    return `<div class="ff-mini-chart">${bars}</div>`;
   }
 
   /* ---------- LOCAL STORAGE (FAVOURITES) ---------- */
@@ -436,6 +473,7 @@
         humidity: typeof c.humidity === "number" ? c.humidity : null,
         wind_speed: typeof c?.wind?.speed === "number" ? c.wind.speed : null,
         wind_gust: typeof c?.wind?.gust === "number" ? c.wind.gust : null,
+        wind_deg: typeof c?.wind?.deg === "number" ? c.wind.deg : typeof c?.wind_deg === "number" ? c.wind_deg : null,
         pop: typeof c.pop === "number" ? c.pop : 0,
         rain_mm:
           typeof c?.rain?.["1h"] === "number"
@@ -454,6 +492,7 @@
         humidity: typeof first?.main?.humidity === "number" ? first.main.humidity : null,
         wind_speed: typeof first?.wind?.speed === "number" ? first.wind.speed : null,
         wind_gust: typeof first?.wind?.gust === "number" ? first.wind.gust : null,
+        wind_deg: typeof first?.wind?.deg === "number" ? first.wind.deg : null,
         pop: typeof first?.pop === "number" ? first.pop : 0,
         rain_mm:
           typeof first?.rain?.["1h"] === "number"
@@ -474,6 +513,7 @@
         temp: it?.main?.temp ?? null,
         pop: typeof it?.pop === "number" ? it.pop : 0,
         wind_speed: it?.wind?.speed ?? null,
+        wind_deg: typeof it?.wind?.deg === "number" ? it.wind.deg : null,
         rain_mm:
           typeof it?.rain?.["1h"] === "number"
             ? it.rain["1h"]
@@ -668,6 +708,7 @@
     if (!verdictCard || !verdictLabel || !verdictReason || !verdictIcon || !verdictBestTime) return;
 
     const v = norm ? calculateVerdict(norm) : { status: "NEUTRAL", label: "—", reason: "—", best: null };
+    const c = norm?.current;
 
     verdictCard.classList.remove("ff-verdict--play", "ff-verdict--maybe", "ff-verdict--no", "ff-verdict--neutral");
 
@@ -689,6 +730,34 @@
     verdictReason.textContent = v.reason || "—";
     verdictBestTime.textContent =
       v.best && typeof v.best.dt === "number" ? fmtTime(v.best.dt) : "—";
+
+    // Quick stats
+    if (verdictQuickStats && c) {
+      const wind = typeof c.wind_speed === "number" ? c.wind_speed : 0;
+      const pop = typeof c.pop === "number" ? c.pop : 0;
+      const temp = typeof c.temp === "number" ? c.temp : null;
+
+      const windText = wind > 0 ? `${wind.toFixed(1)} ${windUnit()}` : "Calm";
+      const rainText = `${Math.round(pop * 100)}%`;
+      const tempText = temp !== null ? `${Math.round(temp)}${tempUnit()}` : "—";
+
+      verdictQuickStats.innerHTML = `
+        <div class="ff-quick-stat">
+          <span class="ff-quick-label">Wind</span>
+          <strong>${esc(windText)}</strong>
+        </div>
+        <div class="ff-quick-stat">
+          <span class="ff-quick-label">Rain</span>
+          <strong>${esc(rainText)}</strong>
+        </div>
+        <div class="ff-quick-stat">
+          <span class="ff-quick-label">Temp</span>
+          <strong>${esc(tempText)}</strong>
+        </div>
+      `;
+    } else if (verdictQuickStats) {
+      verdictQuickStats.innerHTML = "";
+    }
   }
 
   function renderPlayability(norm) {
@@ -765,11 +834,19 @@
     if (!c) return `<div class="ff-card muted">No current weather available.</div>`;
 
     const t = typeof c.temp === "number" ? `${Math.round(c.temp)}${tempUnit()}` : "—";
+    const feelsLike = typeof c.feels_like === "number" ? `${Math.round(c.feels_like)}${tempUnit()}` : null;
     const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "—";
     const ico = iconHtml(c.weather, 2);
 
-    const wind = typeof c.wind_speed === "number" ? `${c.wind_speed.toFixed(1)} ${windUnit()}` : "";
+    const windSpeed = typeof c.wind_speed === "number" ? c.wind_speed : null;
+    const wind = windSpeed ? `${windSpeed.toFixed(1)} ${windUnit()}` : "";
+    const windDir = c.wind_deg;
+    const windDirText = windDir ? windDirection(windDir) : "";
+    const windCompass = windDir && windSpeed ? windCompassHtml(windDir, windSpeed) : "";
+    const windDisplay = wind ? `<div class="ff-wind-display">${windCompass}<div class="ff-wind-text"><strong>${esc(wind)}</strong>${windDirText ? `<span class="ff-wind-dir"> from ${esc(windDirText)}</span>` : ""}</div></div>` : "";
+
     const gust = typeof c.wind_gust === "number" ? `${c.wind_gust.toFixed(1)} ${windUnit()}` : "";
+    const humidity = typeof c.humidity === "number" ? `${c.humidity}%` : "";
     const popValue = typeof c.pop === "number" ? c.pop : 0;
     const rainProb = pct(popValue);
     const rainMm = `${(typeof c.rain_mm === "number" ? c.rain_mm : 0).toFixed(2)} mm`;
@@ -782,8 +859,9 @@
     const bestText = best?.dt ? fmtTime(best.dt) : "";
 
     const stats = [
-      wind ? `<div class="ff-stat"><span>Wind</span><strong>${esc(wind)}</strong></div>` : "",
+      windDisplay || (wind ? `<div class="ff-stat"><span>Wind</span><strong>${esc(wind)}</strong></div>` : ""),
       gust ? `<div class="ff-stat"><span>Gust</span><strong>${esc(gust)}</strong></div>` : "",
+      humidity ? `<div class="ff-stat"><span>Humidity</span><strong>${esc(humidity)}</strong></div>` : "",
       rain ? `<div class="ff-stat"><span>Rain</span><strong>${esc(rain)}</strong></div>` : "",
       sunrise ? `<div class="ff-stat"><span>Sunrise</span><strong>${esc(sunrise)}</strong></div>` : "",
       sunset ? `<div class="ff-stat"><span>Sunset</span><strong>${esc(sunset)}</strong></div>` : "",
@@ -793,7 +871,7 @@
     return `<div class="ff-card ff-current">
       <div class="ff-current-top">
         <div class="ff-current-left">
-          <div class="ff-current-temp">${esc(t)}</div>
+          <div class="ff-current-temp">${esc(t)}${feelsLike ? `<span class="ff-feels-like">Feels like ${esc(feelsLike)}</span>` : ""}</div>
           <div class="ff-current-desc">${esc(desc)}</div>
         </div>
         <div class="ff-current-icon">${ico || ""}</div>
@@ -806,7 +884,14 @@
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     if (!hourly.length) return `<div class="ff-card muted">No hourly data available.</div>`;
 
-    const rows = hourly.slice(0, 16).map((h) => {
+    const best = bestTimeToday(norm);
+    const bestDt = best?.dt;
+
+    // Prepare data for mini charts
+    const windValues = hourly.map(h => typeof h.wind_speed === "number" ? h.wind_speed : 0);
+    const rainValues = hourly.map(h => typeof h.pop === "number" ? h.pop * 100 : 0);
+
+    const cards = hourly.slice(0, 16).map((h) => {
       const time = h?.dt ? fmtTime(h.dt) : "";
       const t = typeof h.temp === "number" ? `${Math.round(h.temp)}${tempUnit()}` : "";
       const popValue = typeof h.pop === "number" ? h.pop : 0;
@@ -814,26 +899,32 @@
       const rainMm = `${(typeof h.rain_mm === "number" ? h.rain_mm : 0).toFixed(2)} mm`;
       const rain = [rainProb, rainMm].filter(Boolean).join(" · ");
       const wind = typeof h.wind_speed === "number" ? `${h.wind_speed.toFixed(1)} ${windUnit()}` : "";
-      const ico = iconHtml(h.weather, 2);
+      const ico = iconHtml(h.weather, 1);
+      const isBest = h?.dt === bestDt;
 
-      return `<tr>
-        <td class="ff-td-time">${esc(time)}</td>
-        <td class="ff-td-icon">${ico || ""}</td>
-        <td>${esc(t)}</td>
-        <td>${esc(rain)}</td>
-        <td>${esc(wind)}</td>
-      </tr>`;
+      return `<div class="ff-hourly-card ${isBest ? "ff-hourly-best" : ""}" ${isBest ? 'data-best="true" title="Best tee time"' : ""}>
+        <div class="ff-hourly-time">${esc(time)}</div>
+        <div class="ff-hourly-icon">${ico || ""}</div>
+        <div class="ff-hourly-temp">${esc(t)}</div>
+        <div class="ff-hourly-rain">${esc(rainProb || "0%")}</div>
+        <div class="ff-hourly-wind">${esc(wind || "—")}</div>
+      </div>`;
     }).join("");
 
     return `<div class="ff-card">
-      <div class="ff-card-title">Hourly</div>
-      <div class="ff-table-wrap">
-        <table class="ff-table">
-          <thead>
-            <tr><th>Time</th><th></th><th>Temp</th><th>Rain</th><th>Wind</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+      <div class="ff-card-title">Hourly Forecast</div>
+      <div class="ff-hourly-scroll">
+        ${cards}
+      </div>
+      <div class="ff-hourly-charts">
+        <div class="ff-chart-group">
+          <div class="ff-chart-label">Wind ${windUnit()}</div>
+          ${miniBarChart(windValues, Math.max(...windValues), "var(--brand)")}
+        </div>
+        <div class="ff-chart-group">
+          <div class="ff-chart-label">Rain %</div>
+          ${miniBarChart(rainValues, 100, "rgba(15,118,110,0.6)")}
+        </div>
       </div>
     </div>`;
   }

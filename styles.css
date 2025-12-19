@@ -583,6 +583,201 @@ button, input, select{ font: inherit; }
   border-color:rgba(7,21,18,.28);
 }
 
+/* ---------- Enhanced Current Weather ---------- */
+.ff-current-temp{
+  font-size:42px;
+  font-weight:900;
+  line-height:1;
+  margin-bottom:4px;
+}
+.ff-feels-like{
+  display:block;
+  font-size:14px;
+  font-weight:600;
+  color:var(--muted);
+  margin-top:4px;
+}
+.ff-current-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ---------- Wind Direction Compass ---------- */
+.ff-wind-display{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.ff-wind-compass{
+  position:relative;
+  width:32px;
+  height:32px;
+  flex-shrink:0;
+}
+.ff-compass-bg,
+.ff-compass-arrow{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+}
+.ff-compass-arrow{
+  transition:transform 0.3s ease;
+  color:var(--brand);
+}
+.ff-wind-text{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.ff-wind-text strong{
+  font-size:15px;
+}
+.ff-wind-dir{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:600;
+}
+
+/* ---------- Enhanced Decision Card ---------- */
+.ff-verdict-quick-stats{
+  display:flex;
+  gap:12px;
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px dashed rgba(7,21,18,.15);
+}
+.ff-quick-stat{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  flex:1;
+}
+.ff-quick-label{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.ff-quick-stat strong{
+  font-size:16px;
+  font-weight:900;
+  color:var(--text);
+}
+
+/* ---------- Horizontal Hourly Forecast ---------- */
+.ff-hourly-scroll{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:8px 0 16px 0;
+  margin:0 -14px;
+  padding-left:14px;
+  padding-right:14px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--line) transparent;
+}
+.ff-hourly-scroll::-webkit-scrollbar{
+  height:6px;
+}
+.ff-hourly-scroll::-webkit-scrollbar-track{
+  background:transparent;
+}
+.ff-hourly-scroll::-webkit-scrollbar-thumb{
+  background:var(--line);
+  border-radius:3px;
+}
+.ff-hourly-card{
+  flex:0 0 auto;
+  width:80px;
+  padding:12px 8px;
+  border-radius:16px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  text-align:center;
+  transition:all 0.2s ease;
+}
+.ff-hourly-card:hover{
+  background:var(--surface);
+  border-color:rgba(15,118,110,.25);
+  transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(6,24,20,.1);
+}
+.ff-hourly-best{
+  background:var(--brand-soft);
+  border-color:var(--brand);
+  border-width:2px;
+  box-shadow:0 4px 16px rgba(15,118,110,.2);
+}
+.ff-hourly-time{
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+}
+.ff-hourly-icon{
+  font-size:24px;
+}
+.ff-hourly-temp{
+  font-size:16px;
+  font-weight:900;
+}
+.ff-hourly-rain{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:700;
+}
+.ff-hourly-wind{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:700;
+}
+
+/* ---------- Mini Charts ---------- */
+.ff-hourly-charts{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+.ff-chart-group{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.ff-chart-label{
+  font-size:12px;
+  font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+.ff-mini-chart{
+  display:flex;
+  align-items:flex-end;
+  gap:3px;
+  height:60px;
+  padding:4px 0;
+}
+.ff-mini-bar{
+  flex:1;
+  min-width:4px;
+  border-radius:2px 2px 0 0;
+  transition:opacity 0.2s;
+}
+.ff-mini-bar:hover{
+  opacity:0.8;
+}
+
 /* ---------- Footer ---------- */
 .ff-foot{
   font-size:12px;
