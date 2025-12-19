@@ -2175,8 +2175,8 @@
 
       renderVerdictCard(lastNorm);
       renderPlayability(lastNorm);
+      clearSearchResults(); // Clear search results before rendering
       renderAll();
-      clearSearchResults();
       
       // Fetch nearby courses in background
       if (Number.isFinite(selectedCourse.lat) && Number.isFinite(selectedCourse.lon)) {
