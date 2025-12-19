@@ -46,7 +46,7 @@
     </header>
 
     <!-- ================= SEARCH ================= -->
-    <section class="ff-panel ff-panel--search">
+    <section class="ff-panel ff-panel--search" aria-label="Search">
       <label class="ff-label" for="searchInput">
         Search location or golf course
       </label>
@@ -74,7 +74,7 @@
         </button>
       </div>
 
-      <!-- 🔹 Search suggestions live directly under input -->
+      <!-- Native datalist (works in some browsers; fine to keep) -->
       <datalist id="searchSuggestions"></datalist>
 
       <button
@@ -97,6 +97,11 @@
           <option value="imperial">°F / mph</option>
         </select>
       </div>
+    </section>
+
+    <!-- ✅ NEW: SEARCH RESULTS SLOT (shows “Select a result” directly under search) -->
+    <section id="searchResultsSlot" class="ff-search-results" aria-live="polite" aria-label="Search results">
+      <!-- app.js should render the “Select a result” card/list here -->
     </section>
 
     <!-- ================= TABS ================= -->
