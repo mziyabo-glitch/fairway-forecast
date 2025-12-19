@@ -778,9 +778,12 @@
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     if (!sunrise || !sunset || hourly.length === 0) return null;
 
-    const start = sunrise + 3600;
-    const end = sunset - 3600;
-    const candidates = hourly.filter((h) => typeof h.dt === "number" && h.dt >= start && h.dt <= end);
+    const start = sunrise + 3600; // 1 hour after sunrise
+    const end = sunset; // Never exceed sunset
+    const candidates = hourly.filter((h) => {
+      if (typeof h.dt !== "number") return false;
+      return h.dt >= start && h.dt < end; // Strict: must be before sunset
+    });
     if (candidates.length === 0) return null;
 
     const pops = candidates.map((h) => (typeof h.pop === "number" ? h.pop : null)).filter((x) => typeof x === "number");
@@ -832,14 +835,37 @@
 
     if (dayHourly.length === 0) return null;
 
-    // Estimate sunrise/sunset for this day (simplified: use 6am-8pm as daylight hours)
-    // In a real app, you'd calculate actual sunrise/sunset for that day
+    // Use actual sunset if available, otherwise estimate
+    const actualSunset = norm?.sunset;
+    let sunsetTime;
+    if (actualSunset && typeof actualSunset === "number") {
+      const sunsetDate = new Date(actualSunset * 1000);
+      const sunsetDayStart = new Date(sunsetDate);
+      sunsetDayStart.setHours(0, 0, 0, 0);
+      const targetDayStart = new Date(dayStart);
+      
+      // Check if sunset is for the same day
+      if (sunsetDayStart.getTime() === targetDayStart.getTime()) {
+        sunsetTime = actualSunset;
+      } else {
+        // Estimate sunset for this day (sunset times don't vary much day-to-day)
+        const estimatedSunset = dayStartSec + (20 * 3600); // 8 PM fallback
+        sunsetTime = estimatedSunset;
+      }
+    } else {
+      // Estimate sunrise/sunset for this day (simplified: use 6am-8pm as daylight hours)
+      const estimatedSunset = dayStartSec + (20 * 3600); // 8 PM
+      sunsetTime = estimatedSunset;
+    }
+    
     const estimatedSunrise = dayStartSec + (6 * 3600); // 6 AM
-    const estimatedSunset = dayStartSec + (20 * 3600); // 8 PM
-
     const start = estimatedSunrise + 3600; // 7 AM
-    const end = estimatedSunset - 3600; // 7 PM
-    const candidates = dayHourly.filter((h) => typeof h.dt === "number" && h.dt >= start && h.dt <= end);
+    const end = sunsetTime; // Never exceed sunset
+    
+    const candidates = dayHourly.filter((h) => {
+      if (typeof h.dt !== "number") return false;
+      return h.dt >= start && h.dt < end; // Strict: must be before sunset
+    });
     if (candidates.length === 0) return null;
 
     const pops = candidates.map((h) => (typeof h.pop === "number" ? h.pop : null)).filter((x) => typeof x === "number");
