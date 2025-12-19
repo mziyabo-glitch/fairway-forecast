@@ -651,6 +651,127 @@
     return best;
   }
 
+  function bestTimeForDay(norm, dayDt) {
+    if (!dayDt || !norm) return null;
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    if (hourly.length === 0) return null;
+
+    // Get the date for the selected day (start of day in seconds)
+    const dayStart = new Date(dayDt * 1000);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayStartSec = Math.floor(dayStart.getTime() / 1000);
+    const dayEndSec = dayStartSec + 86400; // 24 hours later
+
+    // Filter hourly data for this specific day
+    const dayHourly = hourly.filter((h) => {
+      const hDt = h?.dt;
+      return typeof hDt === "number" && hDt >= dayStartSec && hDt < dayEndSec;
+    });
+
+    if (dayHourly.length === 0) return null;
+
+    // Estimate sunrise/sunset for this day (simplified: use 6am-8pm as daylight hours)
+    // In a real app, you'd calculate actual sunrise/sunset for that day
+    const estimatedSunrise = dayStartSec + (6 * 3600); // 6 AM
+    const estimatedSunset = dayStartSec + (20 * 3600); // 8 PM
+
+    const start = estimatedSunrise + 3600; // 7 AM
+    const end = estimatedSunset - 3600; // 7 PM
+    const candidates = dayHourly.filter((h) => typeof h.dt === "number" && h.dt >= start && h.dt <= end);
+    if (candidates.length === 0) return null;
+
+    const pops = candidates.map((h) => (typeof h.pop === "number" ? h.pop : null)).filter((x) => typeof x === "number");
+    if (pops.length) {
+      const minPop = Math.min(...pops);
+      const avgPop = pops.reduce((a, b) => a + b, 0) / pops.length;
+      if (minPop >= 0.8 || avgPop >= 0.85) return null;
+    }
+
+    function slotScore(h) {
+      const pop = typeof h.pop === "number" ? h.pop : 0.35;
+      const wind = typeof h.wind_speed === "number" ? h.wind_speed : 5;
+      const temp = typeof h.temp === "number" ? h.temp : null;
+
+      const target = units() === "imperial" ? 65 : 18;
+      const tempPenalty = temp === null ? 2 : Math.abs(temp - target) / 6;
+      return pop * 12 + wind * 0.9 + tempPenalty;
+    }
+
+    let best = candidates[0];
+    let bestScore = slotScore(best);
+
+    for (const c of candidates.slice(1)) {
+      const s = slotScore(c);
+      if (s < bestScore) {
+        bestScore = s;
+        best = c;
+      }
+    }
+    return best;
+  }
+
+  function calculateVerdictForDay(norm, dayDt, dayData) {
+    if (!norm || !dayDt || !dayData) {
+      return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null };
+    }
+
+    const best = bestTimeForDay(norm, dayDt);
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    
+    // Get hourly data for this day
+    const dayStart = new Date(dayDt * 1000);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayStartSec = Math.floor(dayStart.getTime() / 1000);
+    const dayEndSec = dayStartSec + 86400;
+    const dayHourly = hourly.filter((h) => {
+      const hDt = h?.dt;
+      return typeof hDt === "number" && hDt >= dayStartSec && hDt < dayEndSec;
+    });
+
+    // Calculate average conditions for the day
+    const windSpeeds = dayHourly.map(h => typeof h.wind_speed === "number" ? h.wind_speed : 0).filter(v => v > 0);
+    const pops = dayHourly.map(h => typeof h.pop === "number" ? h.pop : 0).filter(v => v >= 0);
+    const temps = dayHourly.map(h => typeof h.temp === "number" ? h.temp : null).filter(t => t !== null);
+
+    const avgWind = windSpeeds.length > 0 ? windSpeeds.reduce((a, b) => a + b, 0) / windSpeeds.length : 0;
+    const maxPop = pops.length > 0 ? Math.max(...pops) : (typeof dayData.pop === "number" ? dayData.pop : 0.25);
+    const avgTemp = temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : (typeof dayData.max === "number" ? dayData.max : null);
+
+    let score = 100;
+
+    if (units() === "metric") {
+      if (avgWind > 12) score -= 45;
+      else if (avgWind > 9) score -= 30;
+      else if (avgWind > 6) score -= 18;
+    } else {
+      if (avgWind > 27) score -= 45;
+      else if (avgWind > 20) score -= 30;
+      else if (avgWind > 14) score -= 18;
+    }
+
+    if (maxPop >= 0.85) score -= 50;
+    else if (maxPop >= 0.6) score -= 35;
+    else if (maxPop >= 0.35) score -= 20;
+
+    if (avgTemp !== null) {
+      if (units() === "metric") {
+        if (avgTemp < 3 || avgTemp > 30) score -= 25;
+        else if (avgTemp < 7 || avgTemp > 27) score -= 12;
+      } else {
+        if (avgTemp < 38 || avgTemp > 86) score -= 25;
+        else if (avgTemp < 45 || avgTemp > 82) score -= 12;
+      }
+    }
+
+    if (!best) score -= 18;
+
+    score = clamp(Math.round(score), 0, 100);
+
+    if (score >= 72) return { status: "PLAY", label: "Play", reason: "Good overall conditions", best };
+    if (score >= 48) return { status: "MAYBE", label: "Playable (tough)", reason: "Manageable, but expect challenges", best };
+    return { status: "NO", label: "No-play recommended", reason: best ? "Poor overall conditions" : "Rain likely throughout daylight", best };
+  }
+
   function calculateVerdict(norm) {
     if (!norm?.current) return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null };
 
@@ -889,7 +1010,7 @@
 
     // Prepare data for mini charts
     const windValues = hourly.map(h => typeof h.wind_speed === "number" ? h.wind_speed : 0);
-    const rainValues = hourly.map(h => typeof h.pop === "number" ? h.pop * 100 : 0);
+    const rainValues = hourly.map(h => typeof h.rain_mm === "number" ? h.rain_mm : 0);
 
     const cards = hourly.slice(0, 16).map((h) => {
       const time = h?.dt ? fmtTime(h.dt) : "";
@@ -922,8 +1043,8 @@
           ${miniBarChart(windValues, Math.max(...windValues), "var(--brand)")}
         </div>
         <div class="ff-chart-group">
-          <div class="ff-chart-label">Rain %</div>
-          ${miniBarChart(rainValues, 100, "rgba(15,118,110,0.6)")}
+          <div class="ff-chart-label">Rain mm</div>
+          ${miniBarChart(rainValues, Math.max(...rainValues, 1), "rgba(15,118,110,0.6)")}
         </div>
       </div>
     </div>`;
@@ -933,7 +1054,7 @@
     const daily = Array.isArray(norm?.daily) ? norm.daily : [];
     if (!daily.length) return `<div class="ff-card muted">No daily data available.</div>`;
 
-    const rows = daily.slice(0, 7).map((d) => {
+    const rows = daily.slice(0, 7).map((d, idx) => {
       const day = d?.dt ? fmtDay(d.dt) : "";
       const hi = typeof d.max === "number" ? Math.round(d.max) : null;
       const lo = typeof d.min === "number" ? Math.round(d.min) : null;
@@ -941,8 +1062,9 @@
       const rain = typeof d.pop === "number" ? pct(d.pop) : "";
       const summary = d?.weather?.[0]?.main || d?.weather?.[0]?.description || "";
       const ico = iconHtml(d.weather, 2);
+      const dayDt = d?.dt || null;
 
-      return `<tr>
+      return `<tr class="ff-daily-row" data-day-dt="${dayDt || ""}" data-day-idx="${idx}" style="cursor:pointer;" title="Click for play prediction">
         <td class="ff-td-day">${esc(day)}</td>
         <td class="ff-td-icon">${ico || ""}</td>
         <td>${esc(hiLo)}</td>
@@ -953,6 +1075,7 @@
 
     return `<div class="ff-card">
       <div class="ff-card-title">Daily · up to 7 days</div>
+      <div class="ff-hint" style="margin-bottom:8px;font-size:12px;">Click a day for play prediction</div>
       <div class="ff-table-wrap">
         <table class="ff-table">
           <thead>
@@ -1039,6 +1162,42 @@
     }
 
     wireHeaderButtons();
+    wireDailyRows();
+  }
+
+  function wireDailyRows() {
+    const host = forecastSlot || resultsEl;
+    if (!host) return;
+
+    host.querySelectorAll(".ff-daily-row").forEach((row) => {
+      row.addEventListener("click", () => {
+        const dayDtStr = row.getAttribute("data-day-dt");
+        const dayIdxStr = row.getAttribute("data-day-idx");
+        
+        if (!dayDtStr || !lastNorm) return;
+        
+        const dayDt = Number(dayDtStr);
+        const dayIdx = Number(dayIdxStr);
+        
+        if (!Number.isFinite(dayDt) || !Number.isFinite(dayIdx)) return;
+        
+        const daily = Array.isArray(lastNorm?.daily) ? lastNorm.daily : [];
+        const dayData = daily[dayIdx];
+        
+        if (!dayData) return;
+        
+        const verdict = calculateVerdictForDay(lastNorm, dayDt, dayData);
+        const dayName = dayData?.dt ? fmtDay(dayData.dt) : "Selected day";
+        const bestTime = verdict.best && typeof verdict.best.dt === "number" ? fmtTime(verdict.best.dt) : "—";
+        
+        // Show prediction in modal
+        const verdictIcon = verdict.status === "PLAY" ? "✅" : verdict.status === "MAYBE" ? "⚠️" : "⛔";
+        const verdictLabel = verdict.label || "No prediction";
+        const body = `${verdictIcon} ${verdictLabel}\n\n${verdict.reason}\n\nBest tee time: ${bestTime}\n\nThis prediction considers wind strength, rain probability, temperature comfort, and daylight hours for ${dayName}.`;
+        
+        openInfoModal(`${dayName} - Play Prediction`, body);
+      });
+    });
   }
 
   /* ---------- SEARCH ---------- */

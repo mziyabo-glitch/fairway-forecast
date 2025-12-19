@@ -461,6 +461,15 @@ button, input, select{ font: inherit; }
   vertical-align:middle;
 }
 #results tbody tr:last-child td{ border-bottom:0; }
+.ff-daily-row{
+  transition:background-color 0.2s ease;
+}
+.ff-daily-row:hover{
+  background-color:var(--surface-2);
+}
+.ff-daily-row:active{
+  background-color:var(--brand-soft);
+}
 #results td img{
   width:26px;
   height:26px;
