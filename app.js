@@ -11,7 +11,12 @@
   "use strict";
 
   /* ---------- CONFIG ---------- */
-  const API_BASE = "https://fairway-forecast-api.mziyabo.workers.dev";
+  const APP = window.APP_CONFIG || {};
+  const API_BASE = APP.WORKER_BASE_URL || "https://fairway-forecast-api.mziyabo.workers.dev";
+  const SUPABASE_URL = APP.SUPABASE_URL || "";
+  const SUPABASE_ANON_KEY = APP.SUPABASE_ANON_KEY || "";
+  const COURSES_TABLE = APP.COURSES_TABLE || "uk_golf_courses";
+  const COURSE_COLS = APP.COURSE_COLS || { name: "name", lat: "latitude", lon: "longitude", country: "country" };
   const MAX_RESULTS = 12;
 
   const COURSE_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -263,15 +268,104 @@
     }
   }
 
+  async function fetchCoursesSupabase(query) {
+    const q = (query || "").trim();
+    if (!q || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      console.log("🔍 [Supabase] Skipped - missing query or config");
+      return [];
+    }
+
+    const table = COURSES_TABLE;
+    const cols = COURSE_COLS;
+
+    console.log(`🔍 [Supabase] Searching for: "${q}"`);
+
+    // Simple ilike on name for now; schema only has name/lat/lon/country
+    const pattern = `*${q.replace(/[%*]/g, "").trim()}*`;
+    const searchParam = encodeURIComponent(`name.ilike.${pattern}`);
+
+    const url = `${SUPABASE_URL}/rest/v1/${encodeURIComponent(table)}?select=*&${searchParam}`;
+
+    try {
+      const res = await fetch(url, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+      if (!res.ok) {
+        console.warn("🔍 [Supabase] Search failed", res.status, await res.text().catch(() => ""));
+        return [];
+      }
+      const rows = await res.json();
+      if (!Array.isArray(rows) || !rows.length) {
+        console.log(`🔍 [Supabase] No results found`);
+        return [];
+      }
+
+      console.log(`✅ [Supabase] Found ${rows.length} course(s)`);
+
+      // Map Supabase columns into the shape normalizeCourse expects
+      return rows.map((row) => ({
+        id: row.id ?? null,
+        name: row[cols.name] ?? row.name ?? "Course",
+        lat: typeof row[cols.lat] === "number" ? row[cols.lat] : null,
+        lon: typeof row[cols.lon] === "number" ? row[cols.lon] : null,
+        country: row[cols.country] ?? row.country ?? "",
+        city: "",
+        state: "",
+      }));
+    } catch (err) {
+      console.warn("🔍 [Supabase] Search error", err);
+      return [];
+    }
+  }
+
   async function fetchCourses(query) {
     const q = (query || "").trim();
     const cacheKey = q.toLowerCase();
     const cached = cacheGet(memCache.courses, cacheKey, COURSE_CACHE_TTL_MS);
-    if (cached) return cached;
+    if (cached) {
+      console.log(`🔍 [Cache] Found cached results for: "${q}"`);
+      return cached;
+    }
+
+    console.log(`🔍 [Search] Starting search for: "${q}"`);
 
     const enc = encodeURIComponent(q);
-    const data = await apiGet(`/courses?search=${enc}`);
-    const list = Array.isArray(data?.courses) ? data.courses : [];
+
+    let list = [];
+    let source = "unknown";
+    try {
+      console.log(`🌐 [GolfAPI] Calling primary API...`);
+      const data = await apiGet(`/courses?search=${enc}`);
+      list = Array.isArray(data?.courses) ? data.courses : [];
+      source = "GolfAPI";
+      if (list.length > 0) {
+        console.log(`✅ [GolfAPI] Found ${list.length} course(s)`);
+      } else {
+        console.log(`⚠️ [GolfAPI] No results found`);
+      }
+    } catch (err) {
+      console.warn("⚠️ [GolfAPI] Primary API failed, will try Supabase fallback", err);
+      list = [];
+      source = "GolfAPI (failed)";
+    }
+
+    // Fallback to Supabase when no primary matches
+    if (!Array.isArray(list) || list.length === 0) {
+      console.log(`🔄 [Fallback] Trying Supabase...`);
+      const supa = await fetchCoursesSupabase(q);
+      if (supa.length > 0) {
+        list = supa;
+        source = "Supabase";
+        console.log(`✅ [Fallback] Using ${supa.length} result(s) from Supabase`);
+      } else {
+        console.log(`❌ [Fallback] Supabase also returned no results`);
+      }
+    }
+
+    console.log(`📊 [Search] Final result: ${list.length} course(s) from ${source}`);
     cacheSet(memCache.courses, cacheKey, list);
     return list;
   }
