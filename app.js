@@ -42,6 +42,11 @@
   const verdictReason = $("verdictReason");
   const verdictBestTime = $("verdictBestTime");
 
+  const infoModal = $("infoModal");
+  const infoModalTitle = $("infoModalTitle");
+  const infoModalBody = $("infoModalBody");
+  const infoModalClose = $("infoModalClose");
+
   if (!resultsEl) {
     console.warn("Missing #results. App halted safely.");
     return;
@@ -540,6 +545,19 @@
     playabilityScoreEl.textContent = `${p}/10`;
   }
 
+  /* ---------- EXPLAINER MODAL ---------- */
+  function openInfoModal(title, body) {
+    if (!infoModal || !infoModalTitle || !infoModalBody) return;
+    infoModalTitle.textContent = title;
+    infoModalBody.textContent = body;
+    infoModal.hidden = false;
+  }
+
+  function closeInfoModal() {
+    if (!infoModal) return;
+    infoModal.hidden = true;
+  }
+
   /* ---------- RENDER ---------- */
   function renderHeaderBlock() {
     const favs = loadFavs();
@@ -964,6 +982,28 @@
   unitsSelect?.addEventListener("change", () => {
     if (!selectedCourse) return;
     loadWeatherForSelected();
+  });
+
+  verdictCard?.addEventListener("click", () => {
+    openInfoModal(
+      "How we make the play decision",
+      "We combine wind, rain probability, temperature and daylight to decide whether conditions are good enough to recommend playing, playable but tough, or no-play. The best tee time is the slot today with the lowest rain and most comfortable wind and temperature around daylight hours."
+    );
+  });
+
+  playabilityScoreEl?.addEventListener("click", () => {
+    openInfoModal(
+      "Playability score explained",
+      "The score runs from 0 to 10 and rewards low wind, low rain chance and comfortable temperatures in your chosen units. 9–10 is ideal, 6–8 is playable with some compromises, and 0–5 means conditions are likely poor for most golfers."
+    );
+  });
+
+  infoModalClose?.addEventListener("click", closeInfoModal);
+  infoModal?.addEventListener("click", (e) => {
+    if (e.target === infoModal) closeInfoModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeInfoModal();
   });
 
   /* ---------- INIT ---------- */

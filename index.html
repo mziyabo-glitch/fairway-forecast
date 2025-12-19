@@ -29,144 +29,145 @@
 
 <body>
   <main class="ff-wrap">
-
-    <!-- ================= HEADER ================= -->
-    <header class="ff-header">
-      <div class="ff-brand">
-        <img
-          src="/fairway-forecast/icons/icon-192.png"
-          alt="Fairway Forecast"
-          class="ff-logo"
-        />
-        <div class="ff-brand-text">
-          <strong>Fairway Forecast</strong>
-          <span>Know before you tee</span>
+    <section class="ff-shell">
+      <!-- ================= HEADER ================= -->
+      <header class="ff-header">
+        <div class="ff-brand">
+          <img
+            src="/fairway-forecast/icons/icon-192.png"
+            alt="Fairway Forecast"
+            class="ff-logo"
+          />
+          <div class="ff-brand-text">
+            <strong>Fairway Forecast</strong>
+            <span>Know before you tee</span>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <!-- ================= SEARCH ================= -->
-    <section class="ff-panel ff-panel--search" aria-label="Search">
-      <label class="ff-label" for="searchInput">
-        Search location or golf course
-      </label>
+      <!-- ================= SEARCH ================= -->
+      <section class="ff-panel ff-panel--search" aria-label="Search">
+        <label class="ff-label" for="searchInput">
+          Search location or golf course
+        </label>
 
-      <div class="ff-search-row">
-        <input
-          id="searchInput"
-          class="ff-input"
-          type="search"
-          placeholder='e.g. Swindon, GB or "golf club"'
-          autocomplete="off"
-          inputmode="search"
-          list="searchSuggestions"
-          aria-describedby="searchHelp"
-        />
+        <div class="ff-search-row">
+          <input
+            id="searchInput"
+            class="ff-input"
+            type="search"
+            placeholder='e.g. Swindon, GB or "golf club"'
+            autocomplete="off"
+            inputmode="search"
+            list="searchSuggestions"
+            aria-describedby="searchHelp"
+          />
+
+          <button
+            id="btnGeo"
+            class="ff-btn ff-btn-ghost"
+            type="button"
+            title="Use my location"
+            aria-label="Use my location"
+          >
+            ⌖
+          </button>
+        </div>
+
+        <!-- Native datalist (works in some browsers; fine to keep) -->
+        <datalist id="searchSuggestions"></datalist>
 
         <button
-          id="btnGeo"
-          class="ff-btn ff-btn-ghost"
+          id="searchBtn"
+          class="ff-btn ff-btn-primary"
           type="button"
-          title="Use my location"
-          aria-label="Use my location"
+          style="margin-top:12px;width:100%;"
         >
-          ⌖
+          Search
         </button>
-      </div>
 
-      <!-- Native datalist (works in some browsers; fine to keep) -->
-      <datalist id="searchSuggestions"></datalist>
+        <div id="searchHelp" class="ff-hint">
+          Start typing to see course suggestions
+        </div>
 
-      <button
-        id="searchBtn"
-        class="ff-btn ff-btn-primary"
-        type="button"
-        style="margin-top:12px;width:100%;"
-      >
-        Search
-      </button>
-
-      <div id="searchHelp" class="ff-hint">
-        Start typing to see course suggestions
-      </div>
-
-      <div class="ff-units-row">
-        <label class="ff-label" for="unitsSelect">Units</label>
-        <select id="unitsSelect" class="ff-select">
-          <option value="metric">°C / m·s</option>
-          <option value="imperial">°F / mph</option>
-        </select>
-      </div>
-    </section>
-
-    <!-- ✅ NEW: SEARCH RESULTS SLOT (shows “Select a result” directly under search) -->
-    <section id="searchResultsSlot" class="ff-search-results" aria-live="polite" aria-label="Search results">
-      <!-- app.js renders the “Select a result” card/list here -->
-    </section>
-
-    <!-- ================= LOCATION (moved up, just under search) ================= -->
-    <section aria-label="Location">
-      <div class="ff-section-label">Location</div>
-      <div id="locationSlot"></div>
-
-      <div class="ff-hint">
-        Tap ★ to add or remove favourites
-      </div>
-    </section>
-
-    <!-- ================= TABS ================= -->
-    <nav class="ff-tabs" aria-label="Forecast tabs">
-      <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
-      <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
-      <button id="tabDaily" class="ff-tab" type="button">Daily</button>
-    </nav>
-
-    <!-- ================= DECISION ================= -->
-    <section aria-label="Play decision">
-      <div class="ff-section-label">Decision</div>
-
-      <section
-        id="verdictCard"
-        class="ff-panel ff-verdict ff-verdict--neutral"
-        aria-live="polite"
-      >
-        <div class="ff-verdict-main">
-          <div class="ff-verdict-badge" aria-hidden="true">
-            <span id="verdictIcon">⏳</span>
-          </div>
-
-          <div class="ff-verdict-text">
-            <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
-            <div id="verdictReason" class="ff-verdict-reason">—</div>
-
-            <div class="ff-verdict-meta">
-              <span>Best tee time</span>
-              <strong id="verdictBestTime">—</strong>
-            </div>
-          </div>
+        <div class="ff-units-row">
+          <label class="ff-label" for="unitsSelect">Units</label>
+          <select id="unitsSelect" class="ff-select">
+            <option value="metric">°C / m·s</option>
+            <option value="imperial">°F / mph</option>
+          </select>
         </div>
       </section>
-    </section>
 
-    <!-- ================= RESULTS (FORECAST ONLY) ================= -->
-    <section id="results" class="ff-results" aria-live="polite">
-      <div>
-        <div class="ff-section-label">Forecast</div>
-        <div id="forecastSlot"></div>
-      </div>
-    </section>
+      <!-- ✅ NEW: SEARCH RESULTS SLOT (shows “Select a result” directly under search) -->
+      <section id="searchResultsSlot" class="ff-search-results" aria-live="polite" aria-label="Search results">
+        <!-- app.js renders the “Select a result” card/list here -->
+      </section>
 
-    <!-- ================= PLAYABILITY ================= -->
-    <section class="ff-panel">
-      <div class="ff-play">
-        <div>
-          <div class="ff-play-title">Playability</div>
-          <div class="ff-play-sub">
-            Wind, rain probability & temperature comfort
-          </div>
+      <!-- ================= LOCATION (moved up, just under search) ================= -->
+      <section aria-label="Location">
+        <div class="ff-section-label">Location</div>
+        <div id="locationSlot"></div>
+
+        <div class="ff-hint">
+          Tap ★ to add or remove favourites
         </div>
-        <div id="playabilityScore" class="ff-play-score">--/10</div>
-      </div>
+      </section>
+
+      <!-- ================= TABS ================= -->
+      <nav class="ff-tabs" aria-label="Forecast tabs">
+        <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
+        <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
+        <button id="tabDaily" class="ff-tab" type="button">Daily</button>
+      </nav>
+
+      <!-- ================= DECISION ================= -->
+      <section aria-label="Play decision">
+        <div class="ff-section-label">Decision</div>
+
+        <section
+          id="verdictCard"
+          class="ff-panel ff-verdict ff-verdict--neutral"
+          aria-live="polite"
+        >
+          <div class="ff-verdict-main">
+            <div class="ff-verdict-badge" aria-hidden="true">
+              <span id="verdictIcon">⏳</span>
+            </div>
+
+            <div class="ff-verdict-text">
+              <div id="verdictLabel" class="ff-verdict-label">Loading…</div>
+              <div id="verdictReason" class="ff-verdict-reason">—</div>
+
+              <div class="ff-verdict-meta">
+                <span>Best tee time</span>
+                <strong id="verdictBestTime">—</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ================= RESULTS (FORECAST ONLY) ================= -->
+      <section id="results" class="ff-results" aria-live="polite">
+        <div>
+          <div class="ff-section-label">Forecast</div>
+          <div id="forecastSlot"></div>
+        </div>
+      </section>
+
+      <!-- ================= PLAYABILITY ================= -->
+      <section class="ff-panel">
+        <div class="ff-play">
+          <div>
+            <div class="ff-play-title">Playability</div>
+            <div class="ff-play-sub">
+              Wind, rain probability & temperature comfort
+            </div>
+          </div>
+          <div id="playabilityScore" class="ff-play-score">--/10</div>
+        </div>
+      </section>
     </section>
 
     <!-- ================= FOOTER ================= -->
@@ -175,6 +176,16 @@
     </footer>
 
   </main>
+
+  <!-- PREMIUM EXPLAINER MODAL -->
+  <div id="infoModal" class="ff-modal" hidden>
+    <div class="ff-modal-backdrop"></div>
+    <div class="ff-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+      <button type="button" id="infoModalClose" class="ff-modal-close" aria-label="Close explanation">×</button>
+      <h2 id="infoModalTitle" class="ff-modal-title"></h2>
+      <p id="infoModalBody" class="ff-modal-body"></p>
+    </div>
+  </div>
 
   <script src="./app.js"></script>
 </body>
