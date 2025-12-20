@@ -2038,8 +2038,8 @@
     if (searchResultsSlot) {
       console.log("[Search] Clearing search results");
       searchResultsSlot.innerHTML = "";
-      // Make sure it's visible
-      searchResultsSlot.style.display = "";
+      // Hide when empty
+      searchResultsSlot.style.display = "none";
     }
   }
 
@@ -2071,10 +2071,10 @@
     
     console.log(`[Search] ✅ Rendering ${list.length} result(s) to`, resultsHost.id || "host element");
     
-    // Ensure searchResultsSlot is visible
-    if (searchResultsSlot) {
-      searchResultsSlot.style.display = "";
-      console.log("[Search] searchResultsSlot display:", window.getComputedStyle(searchResultsSlot).display);
+    // Ensure searchResultsSlot is visible when we have results
+    if (searchResultsSlot && list.length > 0) {
+      searchResultsSlot.style.display = "block";
+      searchResultsSlot.style.visibility = "visible";
     }
 
     if (!Array.isArray(list) || list.length === 0) {
@@ -2114,31 +2114,31 @@
     </div>`;
 
     console.log(`[Search] Setting innerHTML on`, resultsHost.id || "host");
-    console.log(`[Search] HTML to set (first 300 chars):`, resultsHtml.substring(0, 300));
+    console.log(`[Search] Results HTML length:`, resultsHtml.length);
     
     // Set the HTML
     resultsHost.innerHTML = resultsHtml;
     
-    // Force display if it's searchResultsSlot (CSS hides it by default until it has content)
+    // Ensure searchResultsSlot is visible (CSS should handle it, but be explicit)
     if (resultsHost === searchResultsSlot) {
-      // The :has(*) selector should show it, but ensure it's visible
-      const computed = window.getComputedStyle(resultsHost);
-      if (computed.display === "none") {
-        console.warn("[Search] searchResultsSlot is hidden, forcing display");
-        resultsHost.style.display = "block";
+      resultsHost.style.display = "block";
+      resultsHost.style.visibility = "visible";
+    }
+    
+    console.log(`[Search] innerHTML set, actual length:`, resultsHost.innerHTML.length);
+    
+    // Verify it was set correctly - wait a tick for DOM to update
+    setTimeout(() => {
+      const verify = resultsHost.querySelector(".ff-result-list");
+      const buttons = resultsHost.querySelectorAll(".ff-result[data-i]");
+      if (!verify) {
+        console.error("[Search] ❌ Result list not found after setting innerHTML!");
+        console.error("[Search] Actual HTML:", resultsHost.innerHTML.substring(0, 500));
+      } else {
+        console.log(`[Search] ✅ Result list found with ${verify.children.length} children`);
+        console.log(`[Search] ✅ Found ${buttons.length} clickable buttons`);
       }
-    }
-    
-    console.log(`[Search] innerHTML set, content length:`, resultsHost.innerHTML.length);
-    
-    // Verify it was set correctly
-    const verify = resultsHost.querySelector(".ff-result-list");
-    if (!verify) {
-      console.error("[Search] ❌ Result list not found after setting innerHTML!");
-      console.error("[Search] Actual HTML:", resultsHost.innerHTML.substring(0, 500));
-    } else {
-      console.log(`[Search] ✅ Result list found with ${verify.children.length} children`);
-    }
+    }, 0);
 
     // IMPORTANT: bind clicks AFTER inserting the DOM
     const resultButtons = resultsHost.querySelectorAll(".ff-result[data-i]");

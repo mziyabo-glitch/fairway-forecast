@@ -411,13 +411,14 @@ button, input, select{ font: inherit; }
 }
 /* --- Search results slot: sits under search bar --- */
 .ff-search-results{
-  display:none;              /* hidden until it has content */
+  display:block;             /* Always visible - app.js manages visibility */
   margin-top: 8px;          /* spacing from search card */
   margin-bottom: 8px;
+  min-height: 0;            /* Allow collapsing when empty */
 }
 
-.ff-search-results:has(*){
-  display:block;
+.ff-search-results:empty{
+  display:none;             /* Hide when empty */
 }
 
 /* The card that app.js renders (“Select a result”) */
