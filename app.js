@@ -1386,17 +1386,23 @@
     const challenge = calculateChallengeRating(selectedCourse, norm);
     
     if (challengeRating) {
-      const newText = `${challenge.label.emoji} ${challenge.label.text}`;
-      if (challengeRating.textContent !== newText) {
+      // Always show something - even on initial load
+      if (challenge && challenge.label) {
+        const newText = `${challenge.label.emoji} ${challenge.label.text}`;
         challengeRating.textContent = newText;
         challengeRating.className = `ff-challenge-badge ff-challenge--${challenge.label.class}`;
-        challengeRating.classList.add("ff-score-updated");
-        setTimeout(() => challengeRating.classList.remove("ff-score-updated"), 600);
+      } else {
+        challengeRating.textContent = "⚖️ Moderate";
+        challengeRating.className = "ff-challenge-badge ff-challenge--moderate";
       }
     }
     
     if (challengeReason) {
-      challengeReason.textContent = challenge.label.reason;
+      if (challenge && challenge.label && challenge.label.reason) {
+        challengeReason.textContent = challenge.label.reason;
+      } else {
+        challengeReason.textContent = "Search for a course to see conditions";
+      }
     }
     
     // Render course difficulty (slope/rating based) - separate section
