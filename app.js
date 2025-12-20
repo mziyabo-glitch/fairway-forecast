@@ -595,55 +595,14 @@
   }
 
   async function fetchNearbyCourses(lat, lon, radiusKm = 10, maxResults = 5) {
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-    
-    try {
-      // Search for courses in the area - use city name or broad search
-      // We'll search for "golf" in the area and filter by distance
-      const searchTerms = ["golf", "golf course", "golf club"];
-      const allCourses = [];
-      
-      for (const term of searchTerms) {
-        try {
-          const data = await apiGet(`/courses?search=${encodeURIComponent(term)}`);
-          const courses = Array.isArray(data?.courses) ? data.courses : [];
-          allCourses.push(...courses);
-        } catch (err) {
-          console.warn(`[Nearby] Search failed for "${term}"`, err);
-        }
-      }
-      
-      // Filter by distance and remove duplicates
-      const nearby = [];
-      const seenIds = new Set();
-      const currentCourseId = selectedCourse?.id;
-      
-      for (const course of allCourses) {
-        const courseLat = course?.lat || course?.location?.latitude;
-        const courseLon = course?.lon || course?.location?.longitude;
-        const courseId = course?.id;
-        
-        // Skip if no coordinates or already seen or is current course
-        if (!Number.isFinite(courseLat) || !Number.isFinite(courseLon)) continue;
-        if (courseId && (seenIds.has(courseId) || courseId === currentCourseId)) continue;
-        
-        const distance = calculateDistance(lat, lon, courseLat, courseLon);
-        if (distance !== null && distance <= radiusKm) {
-          seenIds.add(courseId);
-          nearby.push({
-            ...course,
-            distance: distance
-          });
-        }
-      }
-      
-      // Sort by distance and limit results
-      nearby.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
-      return nearby.slice(0, maxResults);
-    } catch (err) {
-      console.warn("[Nearby] Failed to fetch nearby courses", err);
-      return [];
-    }
+    // DISABLED: This feature made 3 sequential API calls which caused the app to freeze
+    // for up to 45 seconds. It should be re-enabled when a proper nearby courses API 
+    // endpoint is available (e.g., /courses/nearby?lat=...&lon=...).
+    // 
+    // The original implementation searched for generic terms like "golf" which returned
+    // random courses globally, not actually nearby courses.
+    console.log("[Nearby] Feature temporarily disabled to prevent UI freezing");
+    return [];
   }
 
   async function fetchWeather(lat, lon) {
@@ -1937,12 +1896,8 @@
         
         selectedCourse = c;
         nearbyCourses = []; // Clear nearby courses when switching
+        // loadWeatherForSelected now handles nearby courses fetch in background
         await loadWeatherForSelected();
-        // Fetch new nearby courses after loading weather
-        if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) {
-          nearbyCourses = await fetchNearbyCourses(c.lat, c.lon);
-          renderAll();
-        }
       });
     });
   }
@@ -2311,19 +2266,31 @@
       clearSearchResults(); // Clear search results before rendering
       renderAll();
       
-      // Fetch nearby courses in background
+      // Fetch nearby courses in background (non-blocking)
+      // Use .then() instead of await so it doesn't block the UI
       if (Number.isFinite(selectedCourse.lat) && Number.isFinite(selectedCourse.lon)) {
-        nearbyCourses = await fetchNearbyCourses(selectedCourse.lat, selectedCourse.lon);
-        renderAll(); // Re-render to show nearby courses
+        fetchNearbyCourses(selectedCourse.lat, selectedCourse.lon)
+          .then(courses => {
+            nearbyCourses = courses;
+            if (courses.length > 0) {
+              renderAll(); // Re-render to show nearby courses
+            }
+          })
+          .catch(err => {
+            console.warn("[Nearby] Background fetch failed:", err);
+            // Don't show error to user, this is a non-critical feature
+          });
       }
     } catch (err) {
       console.error("Weather error:", err);
-      if (err?.name === "AbortError") {
-        showError("Weather request timed out.", "Try again.");
-      } else if (err?.status === 429) {
-        showError("Weather provider rate limited.", "Wait a moment and try again.");
+      if (err?.name === "AbortError" || err?.name === "TimeoutError") {
+        showError("Weather request timed out.", "The server may be slow. Try again.");
+      } else if (err?.status === 429 || err?.name === "RateLimitError") {
+        showError("Rate limited ⏱️", "Too many requests. Please wait 30-60 seconds before trying again.");
+      } else if (err?.status >= 500) {
+        showError("Server error", "The weather service is having issues. Try again in a few minutes.");
       } else {
-        showError("Weather fetch failed.", err?.message || "Unknown error");
+        showError("Weather fetch failed.", err?.message || "Please check your connection and try again.");
       }
     }
   }
@@ -2375,6 +2342,8 @@
 
   // lightweight typeahead: update suggestions and inline list while typing
   let typeaheadTimer = null;
+  let typeaheadRequestId = 0; // Track request ID to ignore stale responses
+  
   function handleTypeahead() {
     if (!searchInput) return;
     const q = searchInput.value.trim();
@@ -2386,9 +2355,17 @@
 
     if (typeaheadTimer) clearTimeout(typeaheadTimer);
     typeaheadTimer = setTimeout(async () => {
+      const requestId = ++typeaheadRequestId; // Increment and capture current ID
       try {
-        console.log("[Typeahead] Searching for:", q);
+        console.log("[Typeahead] Searching for:", q, "requestId:", requestId);
         const list = await fetchCourses(q);
+        
+        // Ignore stale responses (user typed something new while waiting)
+        if (requestId !== typeaheadRequestId) {
+          console.log("[Typeahead] Ignoring stale response for:", q);
+          return;
+        }
+        
         console.log("[Typeahead] Got results:", list?.length || 0);
         if (Array.isArray(list) && list.length > 0) {
           renderSearchResults(list);
@@ -2396,10 +2373,12 @@
           clearSearchResults();
         }
       } catch (err) {
+        // Ignore errors from stale requests
+        if (requestId !== typeaheadRequestId) return;
         console.error("[Typeahead] Error:", err);
         // Don't show error for typeahead, just log it
       }
-    }, 300);
+    }, 350); // Slightly longer debounce to reduce API calls
   }
 
   searchInput?.addEventListener("input", handleTypeahead);
