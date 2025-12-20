@@ -443,12 +443,16 @@
     const url = `${SUPABASE_URL}/rest/v1/${encodeURIComponent(table)}?select=*&${searchParam}`;
 
     try {
+      // Hard timeout so a slow network doesn't "freeze" search UX.
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 10000);
       const res = await fetch(url, {
+        signal: ctrl.signal,
         headers: {
           apikey: SUPABASE_ANON_KEY,
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
-      });
+      }).finally(() => clearTimeout(t));
       if (!res.ok) {
         console.warn("🔍 [Supabase] Search failed", res.status, await res.text().catch(() => ""));
         return [];
@@ -598,48 +602,58 @@
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
     
     try {
-      // Search for courses in the area - use city name or broad search
-      // We'll search for "golf" in the area and filter by distance
-      const searchTerms = ["golf", "golf course", "golf club"];
-      const allCourses = [];
-      
-      for (const term of searchTerms) {
-        try {
-          const data = await apiGet(`/courses?search=${encodeURIComponent(term)}`);
-          const courses = Array.isArray(data?.courses) ? data.courses : [];
-          allCourses.push(...courses);
-        } catch (err) {
-          console.warn(`[Nearby] Search failed for "${term}"`, err);
-        }
+      // IMPORTANT:
+      // This feature must never "freeze" the UI.
+      // The upstream search endpoint can return large result sets; filtering/sorting
+      // thousands of entries on the main thread can feel like a hang on mobile devices.
+      //
+      // So we:
+      // - only do ONE broad search term (fastest)
+      // - hard-cap how many rows we process
+      // - keep only the nearest `maxResults` as we go (avoid sorting huge arrays)
+      const term = "golf";
+      const MAX_CANDIDATES = 120; // hard cap work per request
+
+      let courses = [];
+      try {
+        const data = await apiGet(`/courses?search=${encodeURIComponent(term)}`);
+        courses = Array.isArray(data?.courses) ? data.courses : [];
+      } catch (err) {
+        console.warn(`[Nearby] Search failed for "${term}"`, err);
+        return [];
       }
-      
-      // Filter by distance and remove duplicates
-      const nearby = [];
+
+      const nearest = [];
       const seenIds = new Set();
+      const seenCoords = new Set();
       const currentCourseId = selectedCourse?.id;
-      
-      for (const course of allCourses) {
+
+      const capped = courses.slice(0, MAX_CANDIDATES);
+      for (const course of capped) {
         const courseLat = course?.lat || course?.location?.latitude;
         const courseLon = course?.lon || course?.location?.longitude;
         const courseId = course?.id;
-        
+
         // Skip if no coordinates or already seen or is current course
         if (!Number.isFinite(courseLat) || !Number.isFinite(courseLon)) continue;
         if (courseId && (seenIds.has(courseId) || courseId === currentCourseId)) continue;
-        
-        const distance = calculateDistance(lat, lon, courseLat, courseLon);
-        if (distance !== null && distance <= radiusKm) {
-          seenIds.add(courseId);
-          nearby.push({
-            ...course,
-            distance: distance
-          });
-        }
+
+        // Deduplicate by coordinate bucket to avoid rendering near-identical entries
+        const coordKey = `${Number(courseLat).toFixed(4)},${Number(courseLon).toFixed(4)}`;
+        if (seenCoords.has(coordKey)) continue;
+
+        const distance = calculateDistance(lat, lon, Number(courseLat), Number(courseLon));
+        if (distance === null || distance > radiusKm) continue;
+
+        if (courseId) seenIds.add(courseId);
+        seenCoords.add(coordKey);
+
+        nearest.push({ ...course, distance });
+        nearest.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+        if (nearest.length > maxResults) nearest.length = maxResults;
       }
-      
-      // Sort by distance and limit results
-      nearby.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
-      return nearby.slice(0, maxResults);
+
+      return nearest;
     } catch (err) {
       console.warn("[Nearby] Failed to fetch nearby courses", err);
       return [];
@@ -1938,11 +1952,6 @@
         selectedCourse = c;
         nearbyCourses = []; // Clear nearby courses when switching
         await loadWeatherForSelected();
-        // Fetch new nearby courses after loading weather
-        if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) {
-          nearbyCourses = await fetchNearbyCourses(c.lat, c.lon);
-          renderAll();
-        }
       });
     });
   }
@@ -2311,10 +2320,24 @@
       clearSearchResults(); // Clear search results before rendering
       renderAll();
       
-      // Fetch nearby courses in background
+      // Fetch nearby courses WITHOUT blocking UI.
+      // Guard against race conditions (user selects a new course while this runs).
       if (Number.isFinite(selectedCourse.lat) && Number.isFinite(selectedCourse.lon)) {
-        nearbyCourses = await fetchNearbyCourses(selectedCourse.lat, selectedCourse.lon);
-        renderAll(); // Re-render to show nearby courses
+        const token = `${selectedCourse.id ?? ""}|${Number(selectedCourse.lat).toFixed(5)},${Number(selectedCourse.lon).toFixed(5)}`;
+        (async () => {
+          try {
+            const list = await fetchNearbyCourses(selectedCourse.lat, selectedCourse.lon);
+            const stillSame =
+              selectedCourse &&
+              `${selectedCourse.id ?? ""}|${Number(selectedCourse.lat).toFixed(5)},${Number(selectedCourse.lon).toFixed(5)}` === token;
+            if (!stillSame) return;
+            nearbyCourses = Array.isArray(list) ? list : [];
+            renderAll();
+          } catch (e) {
+            // Never surface this as a fatal error - nearby courses is optional.
+            console.warn("[Nearby] Background load failed", e);
+          }
+        })();
       }
     } catch (err) {
       console.error("Weather error:", err);
