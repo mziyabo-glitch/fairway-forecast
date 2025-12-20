@@ -1089,7 +1089,8 @@ button, input, select{ font: inherit; }
   border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
-.ff-challenge--tough{
+.ff-challenge--tough,
+.ff-challenge--hard{
   background: rgba(239, 68, 68, 0.15);
   color: #dc2626;
   border: 1px solid rgba(239, 68, 68, 0.3);

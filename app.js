@@ -1358,41 +1358,46 @@
   }
   
   function getChallengeLabel(score, weatherScore, courseScore) {
-    // Determine primary factor
+    // Determine primary factor for the reason
     let reason = "";
-    if (weatherScore !== null && weatherScore <= 3) {
-      reason = "Tough weather conditions";
-    } else if (weatherScore !== null && weatherScore <= 5) {
-      reason = "Weather may affect play";
-    } else if (courseScore && courseScore >= 4) {
-      reason = "Demanding course layout";
-    } else if (courseScore && courseScore >= 3.5) {
-      reason = "Course requires precision";
-    } else if (weatherScore !== null && weatherScore >= 8) {
-      reason = "Great conditions today";
-    } else {
-      reason = "Good day for golf";
+    const factors = [];
+    
+    // Weather factor
+    if (weatherScore !== null) {
+      if (weatherScore >= 8) factors.push("Ideal weather");
+      else if (weatherScore >= 6) factors.push("Good weather");
+      else if (weatherScore >= 4) factors.push("Mixed weather");
+      else factors.push("Tough weather");
     }
     
-    if (score <= 1.8) return { text: "Easy Day", emoji: "😎", class: "easy", reason };
-    if (score <= 2.5) return { text: "Fair Day", emoji: "👍", class: "fair", reason };
-    if (score <= 3.2) return { text: "Moderate", emoji: "⚖️", class: "moderate", reason };
-    if (score <= 4.0) return { text: "Challenging", emoji: "💪", class: "challenging", reason };
-    return { text: "Tough Day", emoji: "🔥", class: "tough", reason };
+    // Course factor
+    if (courseScore !== null) {
+      if (courseScore >= 4) factors.push("Demanding course");
+      else if (courseScore >= 3) factors.push("Moderate course");
+      else factors.push("Forgiving course");
+    }
+    
+    reason = factors.join(" • ") || "Good day for golf";
+    
+    // Color-coded dots: Green (easy), Amber (medium), Red (hard)
+    if (score <= 2.2) return { text: "Easy", dot: "🟢", class: "easy", reason };
+    if (score <= 3.0) return { text: "Moderate", dot: "🟡", class: "moderate", reason };
+    if (score <= 3.8) return { text: "Challenging", dot: "🟠", class: "challenging", reason };
+    return { text: "Hard", dot: "🔴", class: "hard", reason };
   }
   
   function renderPlayability(norm) {
-    // Render combined challenge rating (course + weather)
+    // Render combined playability index (course + weather)
     const challenge = calculateChallengeRating(selectedCourse, norm);
     
     if (challengeRating) {
       // Always show something - even on initial load
       if (challenge && challenge.label) {
-        const newText = `${challenge.label.emoji} ${challenge.label.text}`;
+        const newText = `${challenge.label.dot} ${challenge.label.text}`;
         challengeRating.textContent = newText;
         challengeRating.className = `ff-challenge-badge ff-challenge--${challenge.label.class}`;
       } else {
-        challengeRating.textContent = "⚖️ Moderate";
+        challengeRating.textContent = "🟡 Moderate";
         challengeRating.className = "ff-challenge-badge ff-challenge--moderate";
       }
     }
@@ -2690,10 +2695,24 @@
     );
   });
 
-  playabilityScoreEl?.addEventListener("click", () => {
+  // Playability Index info button
+  const playabilityInfoBtn = $("playabilityInfoBtn");
+  playabilityInfoBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
     openInfoModal(
-      "Decision & playability explained",
-      "The decision (Play / Playable (tough) / No-play) and the playability score use the same ingredients: wind strength, rain chance and mm, temperature comfort and remaining daylight. 9–10 means ideal conditions, 6–8 is playable with some compromises, and 0–5 suggests most golfers will find it poor. The suggested best tee time is picked from today’s daylight hours where rain and wind are lowest and temperature is closest to a comfortable target."
+      "Playability Index",
+      `<div style="line-height:1.6;">
+        <p><strong>How it's calculated:</strong></p>
+        <p>The Playability Index combines weather conditions and course difficulty.</p>
+        <p style="margin-top:12px;"><strong>Weather (60%):</strong> Wind, rain chance, temperature</p>
+        <p><strong>Course (40%):</strong> Slope rating, course rating vs par</p>
+        <p style="margin-top:14px;"><strong>Rating:</strong></p>
+        <p>🟢 Easy – Great conditions</p>
+        <p>🟡 Moderate – Some challenges</p>
+        <p>🟠 Challenging – Needs focus</p>
+        <p>🔴 Hard – Test your skills</p>
+      </div>`,
+      true
     );
   });
 
