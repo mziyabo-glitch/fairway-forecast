@@ -198,10 +198,21 @@
   }
 
   function setBtnLoading(isLoading, label = "Search") {
-    if (!searchBtn) return;
-    searchBtn.dataset._label ??= searchBtn.textContent || label;
-    searchBtn.disabled = !!isLoading;
-    searchBtn.textContent = isLoading ? "Loading…" : searchBtn.dataset._label;
+    if (!searchBtn) {
+      console.warn("[UI] Search button not found");
+      return;
+    }
+    try {
+      searchBtn.dataset._label ??= searchBtn.textContent || label;
+      searchBtn.disabled = !!isLoading;
+      searchBtn.textContent = isLoading ? "Searching…" : searchBtn.dataset._label;
+      console.log(`[UI] Search button: ${isLoading ? "disabled" : "enabled"}`);
+    } catch (err) {
+      console.error("[UI] Failed to update search button:", err);
+      // Force enable button on error
+      searchBtn.disabled = false;
+      searchBtn.textContent = label;
+    }
   }
 
   function showMessage(msg) {
@@ -221,8 +232,11 @@
       <div>${esc(msg)}</div>${hint}
     </div>`;
 
+    console.log(`[UI] Showing error: ${msg}`);
+
     // Show error in search results slot if it exists (for search errors), otherwise forecast slot
     if (searchResultsSlot) {
+      searchResultsSlot.classList.remove("ff-hidden");
       searchResultsSlot.innerHTML = html;
     } else if (forecastSlot) {
       forecastSlot.innerHTML = html;
@@ -2038,8 +2052,9 @@
     if (searchResultsSlot) {
       console.log("[Search] Clearing search results");
       searchResultsSlot.innerHTML = "";
-      // Hide when empty
-      searchResultsSlot.style.display = "none";
+      // Hide when empty - use class-based approach for reliability
+      searchResultsSlot.classList.add("ff-hidden");
+      searchResultsSlot.style.display = "";  // Reset inline style, let CSS handle it
     }
   }
 
@@ -2073,8 +2088,9 @@
     
     // Ensure searchResultsSlot is visible when we have results
     if (searchResultsSlot && list.length > 0) {
-      searchResultsSlot.style.display = "block";
-      searchResultsSlot.style.visibility = "visible";
+      searchResultsSlot.classList.remove("ff-hidden");
+      searchResultsSlot.style.display = "";  // Reset inline styles
+      searchResultsSlot.style.visibility = "";
     }
 
     if (!Array.isArray(list) || list.length === 0) {
@@ -2119,11 +2135,12 @@
     // Set the HTML
     resultsHost.innerHTML = resultsHtml;
     
-    // ALWAYS force display:block for searchResultsSlot when we have results
+    // ALWAYS force visibility for searchResultsSlot when we have results
     if (resultsHost === searchResultsSlot) {
-      resultsHost.style.display = "block";
-      resultsHost.style.visibility = "visible";
-      resultsHost.style.opacity = "1";
+      resultsHost.classList.remove("ff-hidden");
+      resultsHost.style.display = "";  // Reset inline styles, let CSS handle it
+      resultsHost.style.visibility = "";
+      resultsHost.style.opacity = "";
       console.log(`[Search] ✅ Forced searchResultsSlot to be visible`);
     }
     
@@ -2186,6 +2203,8 @@
   }
 
   async function doSearch() {
+    console.log("[Search] doSearch called");
+    
     if (!searchInput) {
       console.error("[Search] Search input element not found");
       return;
@@ -2196,6 +2215,7 @@
     
     if (!q) {
       if (searchResultsSlot) {
+        searchResultsSlot.classList.remove("ff-hidden");
         searchResultsSlot.innerHTML = `<div class="ff-card muted">Type a town/city or golf course name.</div>`;
       } else {
         showMessage("Type a town/city or golf course name.");
@@ -2203,14 +2223,15 @@
       return;
     }
 
-    clearSearchResults();
+    // Show loading state immediately
     setBtnLoading(true);
     
     // Show loading in search results slot
     if (searchResultsSlot) {
-      searchResultsSlot.innerHTML = `<div class="ff-card muted">Loading…</div>`;
+      searchResultsSlot.classList.remove("ff-hidden");
+      searchResultsSlot.innerHTML = `<div class="ff-card muted">🔍 Searching…</div>`;
     } else if (forecastSlot) {
-      forecastSlot.innerHTML = `<div class="ff-card muted">Loading…</div>`;
+      forecastSlot.innerHTML = `<div class="ff-card muted">🔍 Searching…</div>`;
     }
 
     try {
@@ -2281,13 +2302,11 @@
       }
       
       // Show error in search results slot
-      if (searchResultsSlot) {
-        showError(errorMsg, errorHint);
-      } else {
-        showError(errorMsg, errorHint);
-      }
+      showError(errorMsg, errorHint);
     } finally {
+      // ALWAYS re-enable the search button
       setBtnLoading(false);
+      console.log("[Search] Search complete, button re-enabled");
     }
   }
 
@@ -2366,11 +2385,30 @@
   tabHourly?.addEventListener("click", () => setActiveTab("hourly"));
   tabDaily?.addEventListener("click", () => setActiveTab("daily"));
 
+  // Safety timeout to prevent stuck loading state
+  let searchSafetyTimer = null;
+  
   searchBtn?.addEventListener("click", (e) => {
     e.preventDefault();
     e.stopPropagation();
     console.log("[Search] Search button clicked");
-    doSearch();
+    
+    // Clear any existing safety timer
+    if (searchSafetyTimer) clearTimeout(searchSafetyTimer);
+    
+    // Set a safety timeout - if search takes more than 20 seconds, force enable button
+    searchSafetyTimer = setTimeout(() => {
+      console.warn("[Search] Safety timeout triggered - forcing button re-enable");
+      setBtnLoading(false);
+      if (searchResultsSlot) {
+        searchResultsSlot.classList.remove("ff-hidden");
+        searchResultsSlot.innerHTML = `<div class="ff-card muted">Search took too long. Please try again.</div>`;
+      }
+    }, 20000);
+    
+    doSearch().finally(() => {
+      if (searchSafetyTimer) clearTimeout(searchSafetyTimer);
+    });
   });
 
   // lightweight typeahead: update suggestions and inline list while typing
@@ -2473,7 +2511,26 @@
   });
 
   /* ---------- INIT ---------- */
-  renderVerdictCard(null);
-  renderPlayability(null);
-  renderAll();
+  try {
+    console.log("🚀 [Init] Starting Fairway Forecast...");
+    renderVerdictCard(null);
+    renderPlayability(null);
+    renderAll();
+    console.log("✅ [Init] Fairway Forecast ready!");
+    
+    // Show ready state in UI
+    if (searchInput) {
+      searchInput.placeholder = 'e.g. Swindon, GB or "golf club"';
+    }
+    if (searchBtn) {
+      searchBtn.disabled = false;
+      searchBtn.textContent = "Search";
+    }
+  } catch (err) {
+    console.error("❌ [Init] Failed to initialize app:", err);
+    // Try to show error to user
+    if (resultsEl) {
+      resultsEl.innerHTML = `<div class="ff-card" style="color:#C0362C;"><strong>App failed to load</strong><br>Please refresh the page. If the problem persists, clear your browser cache.</div>`;
+    }
+  }
 })();

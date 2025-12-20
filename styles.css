@@ -409,16 +409,22 @@ button, input, select{ font: inherit; }
   margin-bottom:10px;
   display:block;
 }
+/* --- Utility: Hidden class for JS-controlled visibility --- */
+.ff-hidden {
+  display: none !important;
+}
+
 /* --- Search results slot: sits under search bar --- */
 .ff-search-results{
-  display:block;             /* Always visible - app.js manages visibility */
+  display: block;           /* Always visible when has content */
   margin-top: 8px;          /* spacing from search card */
   margin-bottom: 8px;
   min-height: 0;            /* Allow collapsing when empty */
 }
 
+/* Hide when empty - use :empty as fallback only */
 .ff-search-results:empty{
-  display:none;             /* Hide when empty */
+  display: none;
 }
 
 /* The card that app.js renders (“Select a result”) */
