@@ -224,6 +224,7 @@
     // Show error in search results slot if it exists (for search errors), otherwise forecast slot
     if (searchResultsSlot) {
       searchResultsSlot.innerHTML = html;
+      searchResultsSlot.style.display = "block";
     } else if (forecastSlot) {
       forecastSlot.innerHTML = html;
     } else if (resultsEl) {
@@ -2078,7 +2079,10 @@
     }
 
     if (!Array.isArray(list) || list.length === 0) {
-      if (resultsHost) resultsHost.innerHTML = `<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
+      if (resultsHost) {
+        resultsHost.innerHTML = `<div class="ff-card muted">No matches found. Try adding “golf / club / gc”.</div>`;
+        if (resultsHost === searchResultsSlot) resultsHost.style.display = "block";
+      }
       wireHeaderButtons();
       if (searchResultsSlot) {
         searchResultsSlot.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2197,6 +2201,7 @@
     if (!q) {
       if (searchResultsSlot) {
         searchResultsSlot.innerHTML = `<div class="ff-card muted">Type a town/city or golf course name.</div>`;
+        searchResultsSlot.style.display = "block";
       } else {
         showMessage("Type a town/city or golf course name.");
       }
@@ -2209,6 +2214,7 @@
     // Show loading in search results slot
     if (searchResultsSlot) {
       searchResultsSlot.innerHTML = `<div class="ff-card muted">Loading…</div>`;
+      searchResultsSlot.style.display = "block";
     } else if (forecastSlot) {
       forecastSlot.innerHTML = `<div class="ff-card muted">Loading…</div>`;
     }
