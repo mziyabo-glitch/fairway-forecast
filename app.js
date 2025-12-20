@@ -1390,16 +1390,26 @@
     // Render combined playability index (course + weather)
     const challenge = calculateChallengeRating(selectedCourse, norm);
     
+    console.log("[Playability] Rendering:", { 
+      hasChallenge: !!challenge, 
+      label: challenge?.label,
+      challengeRatingEl: !!challengeRating 
+    });
+    
     if (challengeRating) {
       // Always show something - even on initial load
-      if (challenge && challenge.label) {
+      if (challenge && challenge.label && challenge.label.dot && challenge.label.text) {
         const newText = `${challenge.label.dot} ${challenge.label.text}`;
+        console.log("[Playability] Setting text:", newText);
         challengeRating.textContent = newText;
         challengeRating.className = `ff-challenge-badge ff-challenge--${challenge.label.class}`;
       } else {
+        console.log("[Playability] Using default");
         challengeRating.textContent = "🟡 Moderate";
         challengeRating.className = "ff-challenge-badge ff-challenge--moderate";
       }
+    } else {
+      console.warn("[Playability] challengeRating element not found!");
     }
     
     if (challengeReason) {
