@@ -2119,26 +2119,36 @@
     // Set the HTML
     resultsHost.innerHTML = resultsHtml;
     
-    // Ensure searchResultsSlot is visible (CSS should handle it, but be explicit)
+    // ALWAYS force display:block for searchResultsSlot when we have results
     if (resultsHost === searchResultsSlot) {
       resultsHost.style.display = "block";
       resultsHost.style.visibility = "visible";
+      resultsHost.style.opacity = "1";
+      console.log(`[Search] ✅ Forced searchResultsSlot to be visible`);
     }
     
     console.log(`[Search] innerHTML set, actual length:`, resultsHost.innerHTML.length);
     
-    // Verify it was set correctly - wait a tick for DOM to update
+    // Verify it was set correctly - use setTimeout to check after DOM updates
     setTimeout(() => {
       const verify = resultsHost.querySelector(".ff-result-list");
       const buttons = resultsHost.querySelectorAll(".ff-result[data-i]");
+      const computed = window.getComputedStyle(resultsHost);
+      
+      console.log(`[Search] Verification:`);
+      console.log(`  - Result list found:`, !!verify);
+      console.log(`  - Buttons found:`, buttons.length);
+      console.log(`  - Display:`, computed.display);
+      console.log(`  - Visibility:`, computed.visibility);
+      console.log(`  - Opacity:`, computed.opacity);
+      
       if (!verify) {
-        console.error("[Search] ❌ Result list not found after setting innerHTML!");
+        console.error("[Search] ❌ Result list not found!");
         console.error("[Search] Actual HTML:", resultsHost.innerHTML.substring(0, 500));
       } else {
-        console.log(`[Search] ✅ Result list found with ${verify.children.length} children`);
-        console.log(`[Search] ✅ Found ${buttons.length} clickable buttons`);
+        console.log(`[Search] ✅ Successfully rendered ${verify.children.length} results`);
       }
-    }, 0);
+    }, 10);
 
     // IMPORTANT: bind clicks AFTER inserting the DOM
     const resultButtons = resultsHost.querySelectorAll(".ff-result[data-i]");
