@@ -191,16 +191,40 @@
         <div id="roundPlayabilityCard" class="ff-card"></div>
       </section>
 
-      <!-- ================= PLAYABILITY ================= -->
+      <!-- ================= COURSE DIFFICULTY ================= -->
+      <section id="courseDifficultySection" class="ff-panel ff-panel--difficulty" style="display:none;">
+        <div class="ff-difficulty">
+          <div class="ff-difficulty-header">
+            <div class="ff-difficulty-title">Course Difficulty</div>
+            <div id="difficultyBadge" class="ff-difficulty-badge">—</div>
+          </div>
+          <div class="ff-difficulty-stats">
+            <div class="ff-difficulty-stat">
+              <span class="ff-difficulty-label">Slope</span>
+              <strong id="slopeValue">—</strong>
+            </div>
+            <div class="ff-difficulty-stat">
+              <span class="ff-difficulty-label">Rating</span>
+              <strong id="ratingValue">—</strong>
+            </div>
+            <div class="ff-difficulty-stat">
+              <span class="ff-difficulty-label">Par</span>
+              <strong id="parValue">—</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PLAYING CONDITIONS ================= -->
       <section class="ff-panel">
         <div class="ff-play">
           <div>
-            <div class="ff-play-title">Playability</div>
+            <div class="ff-play-title">Playing Conditions</div>
             <div class="ff-play-sub">
-              Wind, rain probability & temperature comfort
+              Weather impact on your round
             </div>
           </div>
-          <div id="playabilityScore" class="ff-play-score">--/10</div>
+          <div id="playabilityScore" class="ff-play-score ff-play-score--animated">--/10</div>
         </div>
       </section>
       

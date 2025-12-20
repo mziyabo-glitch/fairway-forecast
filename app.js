@@ -52,6 +52,13 @@
   const infoModalBody = $("infoModalBody");
   const infoModalClose = $("infoModalClose");
 
+  // Course difficulty elements
+  const courseDifficultySection = $("courseDifficultySection");
+  const difficultyBadge = $("difficultyBadge");
+  const slopeValue = $("slopeValue");
+  const ratingValue = $("ratingValue");
+  const parValue = $("parValue");
+
   if (!resultsEl) {
     console.warn("Missing #results. App halted safely.");
     return;
@@ -801,8 +808,95 @@
     return norm;
   }
 
-  /* ---------- PLAYABILITY + VERDICT ---------- */
-  function calculatePlayability(norm) {
+  /* ---------- COURSE DIFFICULTY ---------- */
+  // Calculate course difficulty from slope and rating
+  // Slope: 55-155 (113 is standard), Rating: typically 67-77
+  function calculateCourseDifficulty(course) {
+    if (!course) return null;
+    
+    const slope = typeof course.slope === "number" ? course.slope : null;
+    const rating = typeof course.rating === "number" ? course.rating : null;
+    const par = typeof course.par === "number" ? course.par : 72;
+    
+    if (slope === null && rating === null) return null;
+    
+    let difficultyScore = 50; // Base score (medium)
+    
+    // Slope contribution (0-50 points)
+    // 55 = easiest (0 points), 155 = hardest (50 points), 113 = standard (29 points)
+    if (slope !== null) {
+      const slopeNormalized = clamp((slope - 55) / 100, 0, 1);
+      difficultyScore = slopeNormalized * 50;
+    }
+    
+    // Rating contribution (0-50 points)
+    // Rating above par increases difficulty
+    if (rating !== null) {
+      const ratingDiff = rating - par;
+      // Typical range: -2 to +5 over par
+      const ratingNormalized = clamp((ratingDiff + 2) / 7, 0, 1);
+      if (slope !== null) {
+        // Average with slope
+        difficultyScore = (difficultyScore + ratingNormalized * 50) / 2;
+      } else {
+        difficultyScore = ratingNormalized * 50;
+      }
+    }
+    
+    // Scale to 1-5 difficulty rating
+    const difficultyRating = 1 + (difficultyScore / 50) * 4;
+    
+    return {
+      score: clamp(Math.round(difficultyRating * 10) / 10, 1, 5),
+      slope,
+      rating,
+      par,
+      label: getDifficultyLabel(difficultyRating)
+    };
+  }
+  
+  function getDifficultyLabel(score) {
+    if (score <= 1.5) return { text: "Beginner", emoji: "🟢", class: "easy" };
+    if (score <= 2.5) return { text: "Easy", emoji: "🟢", class: "easy" };
+    if (score <= 3.0) return { text: "Moderate", emoji: "🟡", class: "moderate" };
+    if (score <= 3.5) return { text: "Challenging", emoji: "🟠", class: "challenging" };
+    if (score <= 4.2) return { text: "Difficult", emoji: "🔴", class: "difficult" };
+    return { text: "Championship", emoji: "⚫", class: "championship" };
+  }
+  
+  function renderCourseDifficulty(course) {
+    if (!courseDifficultySection) return;
+    
+    const difficulty = calculateCourseDifficulty(course);
+    
+    if (!difficulty) {
+      courseDifficultySection.style.display = "none";
+      return;
+    }
+    
+    courseDifficultySection.style.display = "block";
+    courseDifficultySection.classList.add("ff-fade-in");
+    
+    if (difficultyBadge) {
+      difficultyBadge.textContent = `${difficulty.label.emoji} ${difficulty.label.text}`;
+      difficultyBadge.className = `ff-difficulty-badge ff-difficulty--${difficulty.label.class}`;
+    }
+    
+    if (slopeValue) {
+      slopeValue.textContent = difficulty.slope !== null ? difficulty.slope : "—";
+    }
+    
+    if (ratingValue) {
+      ratingValue.textContent = difficulty.rating !== null ? difficulty.rating.toFixed(1) : "—";
+    }
+    
+    if (parValue) {
+      parValue.textContent = difficulty.par !== null ? difficulty.par : "—";
+    }
+  }
+
+  /* ---------- PLAYING CONDITIONS (Weather-based) ---------- */
+  function calculatePlayingConditions(norm) {
     const c = norm?.current;
     if (!c) return "--";
 
@@ -811,27 +905,42 @@
     const t = typeof c.temp === "number" ? c.temp : null;
     const pop = typeof c.pop === "number" ? c.pop : 0;
 
-    if (w > 10) score -= 3;
-    else if (w > 6) score -= 2;
-    else if (w > 4) score -= 1;
+    // Wind impact (in m/s for metric, mph for imperial)
+    const windMph = windSpeedMph(w) || 0;
+    if (windMph > 25) score -= 4;
+    else if (windMph > 18) score -= 3;
+    else if (windMph > 12) score -= 2;
+    else if (windMph > 8) score -= 1;
 
-    if (pop >= 0.7) score -= 3;
+    // Rain probability impact
+    if (pop >= 0.8) score -= 4;
+    else if (pop >= 0.6) score -= 3;
     else if (pop >= 0.4) score -= 2;
     else if (pop >= 0.2) score -= 1;
 
+    // Temperature comfort
     if (t !== null) {
       if (units() === "metric") {
-        if (t < 4) score -= 2;
-        else if (t < 8) score -= 1;
-        if (t > 30) score -= 2;
+        if (t < 2) score -= 3;
+        else if (t < 6) score -= 2;
+        else if (t < 10) score -= 1;
+        if (t > 32) score -= 2;
+        else if (t > 28) score -= 1;
       } else {
-        if (t < 40) score -= 2;
-        else if (t < 46) score -= 1;
-        if (t > 86) score -= 2;
+        if (t < 36) score -= 3;
+        else if (t < 42) score -= 2;
+        else if (t < 50) score -= 1;
+        if (t > 90) score -= 2;
+        else if (t > 82) score -= 1;
       }
     }
 
     return clamp(Math.round(score), 0, 10);
+  }
+  
+  // Keep old function name for compatibility
+  function calculatePlayability(norm) {
+    return calculatePlayingConditions(norm);
   }
 
   function bestTimeToday(norm) {
@@ -1218,9 +1327,29 @@
   }
 
   function renderPlayability(norm) {
-    if (!playabilityScoreEl) return;
-    const p = norm ? calculatePlayability(norm) : "--";
-    playabilityScoreEl.textContent = `${p}/10`;
+    // Render playing conditions (weather-based)
+    if (playabilityScoreEl) {
+      const p = norm ? calculatePlayingConditions(norm) : "--";
+      const oldScore = playabilityScoreEl.textContent;
+      playabilityScoreEl.textContent = `${p}/10`;
+      
+      // Add animation class if score changed
+      if (oldScore !== `${p}/10`) {
+        playabilityScoreEl.classList.add("ff-score-updated");
+        setTimeout(() => playabilityScoreEl.classList.remove("ff-score-updated"), 600);
+      }
+      
+      // Update color based on score
+      playabilityScoreEl.classList.remove("ff-score--good", "ff-score--ok", "ff-score--poor");
+      if (typeof p === "number") {
+        if (p >= 7) playabilityScoreEl.classList.add("ff-score--good");
+        else if (p >= 4) playabilityScoreEl.classList.add("ff-score--ok");
+        else playabilityScoreEl.classList.add("ff-score--poor");
+      }
+    }
+    
+    // Render course difficulty (slope/rating based)
+    renderCourseDifficulty(selectedCourse);
   }
 
   /* ---------- EXPLAINER MODAL ---------- */

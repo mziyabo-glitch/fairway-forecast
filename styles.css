@@ -32,7 +32,11 @@
 }
 
 *{ box-sizing:border-box; }
-html, body{ height:100%; }
+html{ 
+  height:100%;
+  scroll-behavior: smooth;
+}
+body{ height:100%; }
 body{
   margin:0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -122,8 +126,14 @@ button, input, select{ font: inherit; }
   border:1px solid var(--line);
   border-radius:var(--r-xl);
   box-shadow:var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.3s ease;
 }
 .ff-panel{ padding:14px; }
+
+.ff-panel:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 16px 44px rgba(6,24,20,.18);
+}
 
 /* Course/location header card – slightly tinted for stronger icon contrast */
 .ff-course-header{
@@ -147,6 +157,64 @@ button, input, select{ font: inherit; }
   color:var(--muted);
   margin-top:4px;
   font-weight:600;
+}
+
+/* Search result items */
+.ff-result{
+  display:block;
+  width:100%;
+  padding:14px;
+  margin-bottom:8px;
+  border-radius:16px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  text-align:left;
+  cursor:pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ff-result:last-child{
+  margin-bottom:0;
+}
+
+.ff-result:hover:not(:disabled){
+  background:var(--surface);
+  border-color:var(--brand);
+  transform:translateY(-2px);
+  box-shadow:0 6px 16px rgba(6,24,20,.12);
+}
+
+.ff-result:active:not(:disabled){
+  transform:translateY(0);
+  box-shadow:0 2px 8px rgba(6,24,20,.1);
+}
+
+.ff-result:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
+.ff-result-main{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.ff-result-title{
+  font-weight:800;
+  font-size:15px;
+  color:var(--text);
+}
+
+.ff-result-sub{
+  font-size:13px;
+  color:var(--muted);
+  font-weight:600;
+}
+
+.ff-result-list{
+  display:flex;
+  flex-direction:column;
 }
 .ff-course-detail-row{
   margin-bottom:10px;
@@ -459,12 +527,14 @@ button, input, select{ font: inherit; }
   background:#fff;
   min-width: 0;
   width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 
 .ff-input:focus{
   border-color:rgba(31,111,92,.45);
   box-shadow:0 0 0 4px rgba(31,111,92,.14);
   outline:none;
+  transform: translateY(-1px);
 }
 
 .ff-btn{
@@ -477,6 +547,21 @@ button, input, select{ font: inherit; }
   padding:12px 14px;
   cursor:pointer;
   max-width: 100%;
+  transition: all 0.2s ease;
+}
+
+.ff-btn:hover:not(:disabled){
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6,24,20,.12);
+}
+
+.ff-btn:active:not(:disabled){
+  transform: translateY(0);
+}
+
+.ff-btn:disabled{
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .ff-btn-primary{
@@ -560,18 +645,36 @@ button, input, select{ font: inherit; }
   font-weight:900;
   font-size:15px;
   cursor:pointer;
-  transition:all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.ff-tab::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.3) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ff-tab:active::after{
+  opacity: 1;
 }
 
 .ff-tab.active{
   background:linear-gradient(180deg,var(--brand),var(--brand-2));
   color:#fff;
   border-color:rgba(31,111,92,.45);
-  box-shadow:0 2px 8px rgba(15,118,110,.2);
+  box-shadow:0 4px 12px rgba(15,118,110,.25);
+  transform: scale(1.02);
 }
+
 .ff-tab:not(.active):hover{
   background:var(--surface-2);
-  border-color:rgba(15,118,110,.2);
+  border-color:rgba(15,118,110,.25);
+  transform: translateY(-1px);
 }
 
 /* ---------- Verdict (Play / No-Play) ---------- */
@@ -644,7 +747,24 @@ button, input, select{ font: inherit; }
   flex-direction:column;
   gap:var(--gap);
 }
-#results > *{ padding:14px; }
+#results > *{ 
+  padding:14px;
+  animation: slideUp 0.35s ease;
+}
+
+/* Loading skeleton animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.ff-loading{
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+  min-height: 20px;
+}
 
 /* Current card layout helpers */
 .ff-current-top{
@@ -816,7 +936,99 @@ button, input, select{ font: inherit; }
   }
 }
 
-/* ---------- Playability footer ---------- */
+/* ---------- Course Difficulty ---------- */
+.ff-panel--difficulty{
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.ff-difficulty{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.ff-difficulty-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.ff-difficulty-title{
+  font-weight:900;
+  font-size:16px;
+}
+
+.ff-difficulty-badge{
+  font-weight:800;
+  font-size:14px;
+  padding:8px 14px;
+  border-radius:20px;
+  transition: all 0.3s ease;
+}
+
+.ff-difficulty--easy{
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.ff-difficulty--moderate{
+  background: rgba(234, 179, 8, 0.15);
+  color: #a16207;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.ff-difficulty--challenging{
+  background: rgba(249, 115, 22, 0.15);
+  color: #c2410c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.ff-difficulty--difficult{
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.ff-difficulty--championship{
+  background: rgba(17, 24, 39, 0.1);
+  color: #1f2937;
+  border: 1px solid rgba(17, 24, 39, 0.25);
+}
+
+.ff-difficulty-stats{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:12px;
+}
+
+.ff-difficulty-stat{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  padding:10px 8px;
+  background:var(--surface);
+  border-radius:14px;
+  border:1px solid var(--line);
+}
+
+.ff-difficulty-label{
+  font-size:11px;
+  font-weight:700;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+
+.ff-difficulty-stat strong{
+  font-size:18px;
+  font-weight:900;
+  color:var(--text);
+}
+
+/* ---------- Playing Conditions (formerly Playability) ---------- */
 .ff-play{
   display:flex;
   justify-content:space-between;
@@ -842,6 +1054,76 @@ button, input, select{ font: inherit; }
   border-radius:18px;
   background:var(--brand-soft);
   border:1px solid rgba(31,111,92,.22);
+  transition: all 0.3s ease, transform 0.2s ease;
+}
+
+.ff-play-score--animated{
+  animation: fadeInScale 0.4s ease;
+}
+
+.ff-score-updated{
+  animation: scoreUpdate 0.6s ease;
+}
+
+.ff-score--good{
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #15803d;
+}
+
+.ff-score--ok{
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.3);
+  color: #a16207;
+}
+
+.ff-score--poor{
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+}
+
+/* ---------- Smooth Animations ---------- */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scoreUpdate {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ff-fade-in {
+  animation: fadeIn 0.4s ease;
+}
+
+.ff-slide-up {
+  animation: slideUp 0.4s ease;
 }
 
 /* ---------- Icon + ghost button contrast tweaks ---------- */
