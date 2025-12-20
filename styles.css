@@ -1028,59 +1028,75 @@ button, input, select{ font: inherit; }
   color:var(--text);
 }
 
-/* ---------- Playing Conditions (formerly Playability) ---------- */
-.ff-play{
+/* ---------- Today's Challenge (combined course + weather) ---------- */
+.ff-panel--challenge{
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.ff-challenge{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.ff-challenge-header{
   display:flex;
   justify-content:space-between;
   align-items:center;
   gap:12px;
 }
-.ff-play-title{
+
+.ff-challenge-title{
   font-weight:900;
   font-size:16px;
 }
-.ff-play-sub{
-  color:var(--muted);
-  font-size:13px;
-  font-weight:700;
-  margin-top:2px;
-}
-.ff-play-score{
-  min-width:86px;
-  text-align:center;
-  font-weight:900;
-  font-size:18px;
-  padding:10px 14px;
-  border-radius:18px;
-  background:var(--brand-soft);
-  border:1px solid rgba(31,111,92,.22);
-  transition: all 0.3s ease, transform 0.2s ease;
+
+.ff-challenge-badge{
+  font-weight:800;
+  font-size:14px;
+  padding:8px 16px;
+  border-radius:20px;
+  transition: all 0.3s ease;
 }
 
-.ff-play-score--animated{
-  animation: fadeInScale 0.4s ease;
+.ff-challenge-reason{
+  font-size:13px;
+  color:var(--muted);
+  font-weight:600;
+}
+
+.ff-challenge--easy{
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.ff-challenge--fair{
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.ff-challenge--moderate{
+  background: rgba(234, 179, 8, 0.15);
+  color: #a16207;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.ff-challenge--challenging{
+  background: rgba(249, 115, 22, 0.15);
+  color: #c2410c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.ff-challenge--tough{
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .ff-score-updated{
-  animation: scoreUpdate 0.6s ease;
-}
-
-.ff-score--good{
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #15803d;
-}
-
-.ff-score--ok{
-  background: rgba(234, 179, 8, 0.15);
-  border-color: rgba(234, 179, 8, 0.3);
-  color: #a16207;
-}
-
-.ff-score--poor{
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #dc2626;
+  animation: scoreUpdate 0.5s ease;
 }
 
 /* ---------- Smooth Animations ---------- */

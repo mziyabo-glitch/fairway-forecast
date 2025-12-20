@@ -32,6 +32,8 @@
   const forecastSlot = $("forecastSlot") || resultsEl;
   const searchResultsSlot = $("searchResultsSlot") || null;
   const playabilityScoreEl = $("playabilityScore");
+  const challengeRating = $("challengeRating");
+  const challengeReason = $("challengeReason");
 
   const tabCurrent = $("tabCurrent");
   const tabHourly = $("tabHourly");
@@ -1121,7 +1123,7 @@
         const tomorrowVerdict = calculateVerdictForDay(norm, tomorrow.dt, tomorrow);
         return { ...tomorrowVerdict, isNighttime: true, isTomorrow: true };
       }
-      return { status: "NO", label: "Nighttime", reason: "Nighttime at course", best: null, isNighttime: true, isTomorrow: false };
+      return { status: "NO", label: "Night time", reason: "Night time at course", best: null, isNighttime: true, isTomorrow: false };
     }
     
     if (sunrise && sunset && now > sunset - 3600) {
@@ -1233,10 +1235,10 @@
       verdictIcon.textContent = "—";
     }
 
-    // Label: Show "Nighttime" clearly when it's nighttime
+    // Label: Show "Night time" clearly when it's night time
     let labelText = "";
     if (isNighttime) {
-      labelText = "Nighttime";
+      labelText = "Night time";
     } else {
       labelText = v.label || "—";
     }
@@ -1326,29 +1328,78 @@
     }
   }
 
+  // Calculate combined challenge rating (course difficulty + weather)
+  function calculateChallengeRating(course, norm) {
+    const weatherScore = norm ? calculatePlayingConditions(norm) : null;
+    const difficulty = calculateCourseDifficulty(course);
+    
+    // Weather contribution (0-5 scale, inverted: good weather = low challenge)
+    let weatherChallenge = 2.5; // Default moderate
+    if (weatherScore !== null && typeof weatherScore === "number") {
+      // 10 = easy (1), 0 = hard (5)
+      weatherChallenge = 1 + ((10 - weatherScore) / 10) * 4;
+    }
+    
+    // Course contribution (1-5 scale from difficulty)
+    let courseChallenge = 3; // Default moderate
+    if (difficulty && typeof difficulty.score === "number") {
+      courseChallenge = difficulty.score;
+    }
+    
+    // Combined score (weighted average: weather 60%, course 40%)
+    const combined = (weatherChallenge * 0.6) + (courseChallenge * 0.4);
+    
+    return {
+      score: clamp(Math.round(combined * 10) / 10, 1, 5),
+      weatherScore,
+      courseScore: difficulty?.score || null,
+      label: getChallengeLabel(combined, weatherScore, difficulty?.score)
+    };
+  }
+  
+  function getChallengeLabel(score, weatherScore, courseScore) {
+    // Determine primary factor
+    let reason = "";
+    if (weatherScore !== null && weatherScore <= 3) {
+      reason = "Tough weather conditions";
+    } else if (weatherScore !== null && weatherScore <= 5) {
+      reason = "Weather may affect play";
+    } else if (courseScore && courseScore >= 4) {
+      reason = "Demanding course layout";
+    } else if (courseScore && courseScore >= 3.5) {
+      reason = "Course requires precision";
+    } else if (weatherScore !== null && weatherScore >= 8) {
+      reason = "Great conditions today";
+    } else {
+      reason = "Good day for golf";
+    }
+    
+    if (score <= 1.8) return { text: "Easy Day", emoji: "😎", class: "easy", reason };
+    if (score <= 2.5) return { text: "Fair Day", emoji: "👍", class: "fair", reason };
+    if (score <= 3.2) return { text: "Moderate", emoji: "⚖️", class: "moderate", reason };
+    if (score <= 4.0) return { text: "Challenging", emoji: "💪", class: "challenging", reason };
+    return { text: "Tough Day", emoji: "🔥", class: "tough", reason };
+  }
+  
   function renderPlayability(norm) {
-    // Render playing conditions (weather-based)
-    if (playabilityScoreEl) {
-      const p = norm ? calculatePlayingConditions(norm) : "--";
-      const oldScore = playabilityScoreEl.textContent;
-      playabilityScoreEl.textContent = `${p}/10`;
-      
-      // Add animation class if score changed
-      if (oldScore !== `${p}/10`) {
-        playabilityScoreEl.classList.add("ff-score-updated");
-        setTimeout(() => playabilityScoreEl.classList.remove("ff-score-updated"), 600);
-      }
-      
-      // Update color based on score
-      playabilityScoreEl.classList.remove("ff-score--good", "ff-score--ok", "ff-score--poor");
-      if (typeof p === "number") {
-        if (p >= 7) playabilityScoreEl.classList.add("ff-score--good");
-        else if (p >= 4) playabilityScoreEl.classList.add("ff-score--ok");
-        else playabilityScoreEl.classList.add("ff-score--poor");
+    // Render combined challenge rating (course + weather)
+    const challenge = calculateChallengeRating(selectedCourse, norm);
+    
+    if (challengeRating) {
+      const newText = `${challenge.label.emoji} ${challenge.label.text}`;
+      if (challengeRating.textContent !== newText) {
+        challengeRating.textContent = newText;
+        challengeRating.className = `ff-challenge-badge ff-challenge--${challenge.label.class}`;
+        challengeRating.classList.add("ff-score-updated");
+        setTimeout(() => challengeRating.classList.remove("ff-score-updated"), 600);
       }
     }
     
-    // Render course difficulty (slope/rating based)
+    if (challengeReason) {
+      challengeReason.textContent = challenge.label.reason;
+    }
+    
+    // Render course difficulty (slope/rating based) - separate section
     renderCourseDifficulty(selectedCourse);
   }
 
@@ -1480,16 +1531,24 @@
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     if (hourly.length === 0) return "";
     
-    // Check if it's nighttime - if so, show tomorrow's windows
+    // Get sunrise/sunset for daylight-only windows
     const sunrise = norm?.sunrise;
     const sunset = norm?.sunset;
     const now = nowSec();
     const isNighttime = sunrise && sunset && now > sunset;
     
+    // Calculate daylight hours from sunrise/sunset
+    const sunriseHour = sunrise ? new Date(sunrise * 1000).getHours() : 6;
+    const sunsetHour = sunset ? new Date(sunset * 1000).getHours() : 19;
+    
+    // Define windows based on actual daylight (sunrise to sunset only)
+    const dayLength = sunsetHour - sunriseHour;
+    const thirdOfDay = Math.floor(dayLength / 3);
+    
     const windows = [
-      { name: "Morning", start: 6, end: 11 },
-      { name: "Midday", start: 11, end: 15 },
-      { name: "Late", start: 15, end: 19 }
+      { name: "Morning", start: sunriseHour, end: sunriseHour + thirdOfDay },
+      { name: "Midday", start: sunriseHour + thirdOfDay, end: sunriseHour + (thirdOfDay * 2) },
+      { name: "Late", start: sunriseHour + (thirdOfDay * 2), end: sunsetHour }
     ];
     
     const windowsData = windows.map(win => {
@@ -1502,7 +1561,7 @@
         const hDayStart = new Date(hourDate);
         hDayStart.setHours(0, 0, 0, 0);
         
-        // If nighttime, filter for tomorrow's hours
+        // If night time, filter for tomorrow's hours
         if (isNighttime) {
           const tomorrowStart = new Date(dayStart);
           tomorrowStart.setDate(tomorrowStart.getDate() + 1);
@@ -1512,6 +1571,7 @@
           if (hDayStart.getTime() !== dayStart.getTime()) return false;
         }
         
+        // Only include daylight hours
         return hour >= win.start && hour < win.end;
       });
       
@@ -1687,7 +1747,7 @@
       bestText ? `<div class="ff-stat"><span>Best time</span><strong>${esc(bestText)}</strong></div>` : "",
     ].filter(Boolean).join("");
 
-    const nighttimeBadge = isNighttime ? `<div class="ff-nighttime-badge">🌙 Nighttime — Showing tomorrow's forecast</div>` : "";
+    const nighttimeBadge = isNighttime ? `<div class="ff-nighttime-badge">🌙 Night time — Showing tomorrow's forecast</div>` : "";
 
     return `<div class="ff-card ff-current">
       ${nighttimeBadge}
