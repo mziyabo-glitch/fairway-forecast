@@ -1,0 +1,9 @@
+# Fairway Forecast - robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://www.fairwayweather.com/sitemap.xml
+
+# Crawl-delay (optional, be nice to servers)
+Crawl-delay: 1

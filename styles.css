@@ -1616,10 +1616,24 @@ button, input, select{ font: inherit; }
 
 /* ---------- Footer ---------- */
 .ff-foot{
-  font-size:12px;
+  font-size:11px;
   color:var(--muted);
   text-align:center;
-  padding:6px 0;
+  padding:12px 0 8px;
+}
+.ff-foot p{
+  margin:0 0 4px;
+}
+.ff-foot-credits{
+  font-size:10px;
+  opacity:0.7;
+}
+.ff-foot a{
+  color:var(--muted);
+  text-decoration:underline;
+}
+.ff-foot a:hover{
+  color:var(--brand);
 }
 
 /* ---------- Ultra small: tighten ---------- */

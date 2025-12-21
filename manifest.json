@@ -1,22 +1,28 @@
 {
-  "name": "Fairway Forecast",
+  "name": "Fairway Forecast - Golf Weather App",
   "short_name": "Fairway",
-  "description": "Golf-first weather forecasts and conditions.",
+  "description": "Golf-first weather app with playability scores, wind impact analysis, and best tee time recommendations.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#F8FAFC",
   "theme_color": "#1F6F78",
+  "categories": ["weather", "sports"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "./icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "./icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
