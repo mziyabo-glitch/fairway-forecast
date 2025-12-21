@@ -1506,9 +1506,6 @@
     if (selectedCourse?.phone) {
       quickActions.push(`<a href="tel:${esc(selectedCourse.phone)}" class="ff-action-btn" aria-label="Call ${name}" title="Call">📞</a>`);
     }
-    if (selectedCourse?.lat && selectedCourse?.lon) {
-      quickActions.push(`<a href="https://maps.google.com/?q=${selectedCourse.lat},${selectedCourse.lon}" target="_blank" class="ff-action-btn" aria-label="Get directions" title="Directions">🗺️</a>`);
-    }
     if (selectedCourse?.website) {
       const websiteUrl = selectedCourse.website.startsWith('http') ? selectedCourse.website : `https://${selectedCourse.website}`;
       quickActions.push(`<a href="${esc(websiteUrl)}" target="_blank" rel="noopener" class="ff-action-btn" aria-label="Visit website" title="Website">🌐</a>`);

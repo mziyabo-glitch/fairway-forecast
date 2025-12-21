@@ -130,9 +130,37 @@ button, input, select{ font: inherit; }
 }
 .ff-panel{ padding:14px; }
 
+/* Compact search panel */
+.ff-panel--search{
+  padding:12px;
+}
+.ff-panel--search .ff-label{
+  font-size:12px;
+  margin-bottom:6px;
+}
+.ff-panel--search .ff-input{
+  padding:10px 12px;
+  font-size:14px;
+}
+.ff-panel--search .ff-btn-primary{
+  margin-top:8px !important;
+  padding:10px 16px;
+  font-size:13px;
+}
+.ff-panel--search .ff-btn-ghost{
+  padding:8px 10px;
+  font-size:16px;
+}
+
 .ff-panel:hover{
   transform: translateY(-1px);
   box-shadow: 0 16px 44px rgba(6,24,20,.18);
+}
+
+/* Disable hover lift on search panel for cleaner feel */
+.ff-panel--search:hover{
+  transform: none;
+  box-shadow: var(--shadow-soft);
 }
 
 /* Course/location header card – slightly tinted for stronger icon contrast */
@@ -513,8 +541,8 @@ button, input, select{ font: inherit; }
 /* IMPORTANT: contain the geo button + prevent overflow */
 .ff-search-row{
   display:grid;
-  grid-template-columns: 1fr auto auto;
-  gap:10px;
+  grid-template-columns: 1fr auto;
+  gap:8px;
   align-items:center;
   width: 100%;
 }
