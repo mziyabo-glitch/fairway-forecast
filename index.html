@@ -5,30 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
   <!-- Primary Meta Tags -->
-  <title>Fairway Forecast – Golf Weather App | Best Tee Time & Playability</title>
-  <meta name="description" content="Free golf weather app with real-time playability scores, wind impact analysis, and best tee time recommendations. Check conditions before your round at any golf course." />
-  <meta name="keywords" content="golf weather, golf forecast, tee time weather, golf playability, golf conditions, wind golf, rain golf, best time to golf, golf course weather, fairway forecast" />
-  <meta name="author" content="Fairway Forecast" />
+  <title>Golf Course Weather & Forecast | Fairway Weather – Tee Time Conditions</title>
+  <meta name="description" content="Golf course weather forecast app. Check wind, rain & playability before your round. Find the best tee time with real-time golf weather conditions for any course worldwide." />
+  <meta name="keywords" content="golf course weather, golf weather forecast, golf weather app, tee time weather, golf playability, golf wind conditions, golf rain forecast, best time to play golf, fairway weather golf, golf forecast today" />
+  <meta name="author" content="Fairway Weather - Golf Course Forecast" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://www.fairwayweather.com/" />
+  
+  <!-- Disambiguation: This is a golf app, not Fairway Kansas weather -->
+  <meta name="geo.region" content="GLOBAL" />
+  <meta name="subject" content="Golf Course Weather Forecasts and Tee Time Planning" />
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.fairwayweather.com/" />
-  <meta property="og:site_name" content="Fairway Forecast" />
-  <meta property="og:title" content="Fairway Forecast – Golf Weather & Playability App" />
-  <meta property="og:description" content="Free golf weather app with real-time playability scores, wind impact analysis, and best tee time recommendations. Know before you tee." />
+  <meta property="og:site_name" content="Fairway Weather - Golf Course Forecast" />
+  <meta property="og:title" content="Golf Course Weather Forecast | Check Conditions Before You Tee Off" />
+  <meta property="og:description" content="Free golf weather app. Check wind, rain & course playability before your round. Real-time golf course weather forecasts worldwide." />
   <meta property="og:image" content="https://www.fairwayweather.com/icons/icon-512.png" />
   <meta property="og:image:width" content="512" />
   <meta property="og:image:height" content="512" />
+  <meta property="og:image:alt" content="Fairway Weather Golf Forecast App" />
   <meta property="og:locale" content="en_US" />
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" content="@fairwayforecast" />
-  <meta name="twitter:title" content="Fairway Forecast – Golf Weather & Playability App" />
-  <meta name="twitter:description" content="Free golf weather app with real-time playability scores, wind impact analysis, and best tee time recommendations." />
+  <meta name="twitter:site" content="@fairwayweather" />
+  <meta name="twitter:title" content="Golf Course Weather Forecast | Fairway Weather" />
+  <meta name="twitter:description" content="Check golf course weather before your round. Wind, rain, playability scores & best tee times for any golf course." />
   <meta name="twitter:image" content="https://www.fairwayweather.com/icons/icon-512.png" />
+  <meta name="twitter:image:alt" content="Fairway Weather Golf Forecast App" />
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.json" />
@@ -43,25 +49,55 @@
   {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "Fairway Forecast",
-    "alternateName": "Fairway Weather",
+    "name": "Fairway Weather - Golf Course Forecast",
+    "alternateName": ["Golf Course Weather App", "Fairway Weather Golf", "Golf Weather Forecast"],
     "url": "https://www.fairwayweather.com",
-    "description": "Golf-first weather app with playability scores, wind impact analysis, and best tee time recommendations for any golf course.",
-    "applicationCategory": "WeatherApplication",
+    "description": "Golf course weather forecast app. Check wind, rain and playability conditions before your round. Find the best tee time with real-time golf weather for any course worldwide.",
+    "applicationCategory": "SportsApplication",
+    "applicationSubCategory": "Golf Weather Forecast",
     "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript",
+    "softwareVersion": "1.0",
+    "keywords": "golf weather, golf course forecast, tee time weather, golf playability, golf conditions",
     "offers": {
       "@type": "Offer",
       "price": "0",
-      "priceCurrency": "USD"
+      "priceCurrency": "USD",
+      "description": "Free golf course weather forecasts"
     },
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",
-      "ratingCount": "150"
+      "ratingCount": "150",
+      "bestRating": "5",
+      "worstRating": "1"
     },
     "author": {
       "@type": "Organization",
-      "name": "Fairway Forecast"
+      "name": "Fairway Weather",
+      "url": "https://www.fairwayweather.com"
+    },
+    "about": {
+      "@type": "Thing",
+      "name": "Golf",
+      "description": "Weather forecasts specifically designed for golfers"
+    }
+  }
+  </script>
+  
+  <!-- Additional Schema: SportsOrganization context -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Fairway Weather - Golf Course Forecast",
+    "alternateName": "Golf Course Weather",
+    "url": "https://www.fairwayweather.com",
+    "description": "Golf weather forecasts for courses worldwide",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.fairwayweather.com/?search={search_term_string}",
+      "query-input": "required name=search_term_string"
     }
   }
   </script>
@@ -106,17 +142,17 @@
         <div class="ff-brand">
           <img
             src="./icons/icon-192.png"
-            alt="Fairway Forecast"
+            alt="Fairway Weather - Golf Course Forecast App"
             class="ff-logo"
           />
           <div class="ff-brand-text">
-            <strong>Fairway Forecast</strong>
-            <span>Know before you tee</span>
+            <h1 class="ff-brand-title">Fairway Weather <span class="ff-brand-sub">Golf Forecast</span></h1>
+            <span class="ff-tagline">Golf course weather – know before you tee</span>
           </div>
         </div>
-        <div class="ff-hero-line">
-          Golf-first weather: best tee-off windows, wind impact, rain timing.
-        </div>
+        <p class="ff-hero-line">
+          <strong>Golf weather forecast:</strong> tee time conditions, wind impact, rain timing & playability scores.
+        </p>
       </header>
 
       <!-- ================= SEARCH ================= -->
@@ -302,8 +338,10 @@
 
     <!-- ================= FOOTER ================= -->
     <footer class="ff-foot">
-      <p>© 2024 Fairway Forecast – Golf Weather App</p>
-      <p class="ff-foot-credits">Weather data © <a href="https://openweathermap.org" target="_blank" rel="noopener">OpenWeather</a> · Course data © GolfCourseAPI</p>
+      <p><strong>Fairway Weather</strong> – Golf Course Weather Forecasts</p>
+      <p class="ff-foot-tagline">Check golf weather conditions before your round. Best tee times & playability for golfers worldwide.</p>
+      <p class="ff-foot-credits">Weather data © <a href="https://openweathermap.org" target="_blank" rel="noopener">OpenWeather</a> · Golf course data © GolfCourseAPI</p>
+      <p class="ff-foot-copy">© 2024 Fairway Weather · Not affiliated with Fairway, Kansas</p>
     </footer>
 
   </main>
