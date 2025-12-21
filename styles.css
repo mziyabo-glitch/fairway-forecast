@@ -608,13 +608,54 @@ button, input, select{ font: inherit; }
   #searchBtn{ grid-area: search; width:100%; }
 }
 
+/* ---------- Advanced Options ---------- */
+.ff-advanced{
+  margin-bottom:8px;
+}
+
+.ff-advanced-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  padding:10px 14px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  font-size:13px;
+  font-weight:700;
+  color:var(--muted);
+  cursor:pointer;
+  transition: all 0.2s ease;
+}
+
+.ff-advanced-toggle:hover{
+  background:var(--surface);
+  border-color:var(--brand);
+  color:var(--text);
+}
+
+.ff-advanced-arrow{
+  font-size:10px;
+  transition: transform 0.2s ease;
+}
+
+.ff-advanced-options{
+  margin-top:10px;
+  padding:12px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:12px;
+  animation: slideUp 0.2s ease;
+}
+
 /* ---------- Course Direction Selector ---------- */
 .ff-course-direction{
-  margin-top:-8px;
-  margin-bottom:8px;
+  margin:0;
 }
 .ff-course-direction .ff-label{
   margin-bottom:8px;
+  font-size:12px;
 }
 .ff-course-direction .ff-select{
   width:100%;

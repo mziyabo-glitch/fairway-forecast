@@ -2106,12 +2106,12 @@
       roundPlayabilitySection.style.display = "none";
     }
     
-    // Show/hide course direction selector
-    const courseDirectionSection = $("courseDirectionSection");
-    if (courseDirectionSection && selectedCourse) {
-      courseDirectionSection.style.display = "block";
-    } else if (courseDirectionSection) {
-      courseDirectionSection.style.display = "none";
+    // Show/hide advanced section (only when course selected)
+    const advancedSection = $("advancedSection");
+    if (advancedSection && selectedCourse) {
+      advancedSection.style.display = "block";
+    } else if (advancedSection) {
+      advancedSection.style.display = "none";
     }
     
     // Update last updated timestamp
@@ -2689,6 +2689,16 @@
   unitsSelect?.addEventListener("change", () => {
     if (!selectedCourse) return;
     loadWeatherForSelected();
+  });
+  
+  // Advanced toggle
+  const advancedToggle = $("advancedToggle");
+  const advancedOptions = $("advancedOptions");
+  const advancedArrow = $("advancedArrow");
+  advancedToggle?.addEventListener("click", () => {
+    const isHidden = advancedOptions?.style.display === "none";
+    if (advancedOptions) advancedOptions.style.display = isHidden ? "block" : "none";
+    if (advancedArrow) advancedArrow.textContent = isHidden ? "▲" : "▼";
   });
   
   // Course direction selector

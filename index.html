@@ -132,20 +132,28 @@
         <button id="tabDaily" class="ff-tab" type="button">Daily</button>
       </nav>
       
-      <!-- ================= COURSE DIRECTION SELECTOR ================= -->
-      <section id="courseDirectionSection" class="ff-course-direction" style="display:none;">
-        <label class="ff-label" for="courseDirectionSelect">Course direction</label>
-        <select id="courseDirectionSelect" class="ff-select">
-          <option value="">Not set</option>
-          <option value="N">N (North)</option>
-          <option value="NE">NE (Northeast)</option>
-          <option value="E">E (East)</option>
-          <option value="SE">SE (Southeast)</option>
-          <option value="S">S (South)</option>
-          <option value="SW">SW (Southwest)</option>
-          <option value="W">W (West)</option>
-          <option value="NW">NW (Northwest)</option>
-        </select>
+      <!-- ================= ADVANCED OPTIONS ================= -->
+      <section id="advancedSection" class="ff-advanced" style="display:none;">
+        <button type="button" id="advancedToggle" class="ff-advanced-toggle">
+          <span>Advanced</span>
+          <span id="advancedArrow" class="ff-advanced-arrow">▼</span>
+        </button>
+        <div id="advancedOptions" class="ff-advanced-options" style="display:none;">
+          <div class="ff-course-direction">
+            <label class="ff-label" for="courseDirectionSelect">Course direction (for wind impact)</label>
+            <select id="courseDirectionSelect" class="ff-select">
+              <option value="">Not set</option>
+              <option value="N">N (North)</option>
+              <option value="NE">NE (Northeast)</option>
+              <option value="E">E (East)</option>
+              <option value="SE">SE (Southeast)</option>
+              <option value="S">S (South)</option>
+              <option value="SW">SW (Southwest)</option>
+              <option value="W">W (West)</option>
+              <option value="NW">NW (Northwest)</option>
+            </select>
+          </div>
+        </div>
       </section>
 
       <!-- ================= DECISION ================= -->
