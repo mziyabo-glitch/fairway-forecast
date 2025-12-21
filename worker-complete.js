@@ -66,14 +66,36 @@ export default {
   },
 };
 
+/* ================= INPUT VALIDATION ================= */
+
+function sanitizeInput(str, maxLength = 100) {
+  if (typeof str !== "string") return "";
+  // Remove potentially dangerous characters, limit length
+  return str
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[<>\"'`;(){}]/g, "");
+}
+
+function isValidCoordinate(lat, lon) {
+  const latNum = parseFloat(lat);
+  const lonNum = parseFloat(lon);
+  return (
+    !isNaN(latNum) && !isNaN(lonNum) &&
+    latNum >= -90 && latNum <= 90 &&
+    lonNum >= -180 && lonNum <= 180
+  );
+}
+
 /* ================= COURSES ================= */
 
 async function handleCourses(request, env, corsHeaders, ctx) {
   const url = new URL(request.url);
-  const search = (url.searchParams.get("search") || "").trim();
+  const rawSearch = url.searchParams.get("search") || "";
+  const search = sanitizeInput(rawSearch, 100);
 
-  if (!search) {
-    return json({ ok: false, error: "Missing 'search' query param" }, 400, corsHeaders);
+  if (!search || search.length < 2) {
+    return json({ ok: false, error: "Search query too short (min 2 chars)" }, 400, corsHeaders);
   }
 
   const key = getGolfCourseKey(env);
@@ -198,6 +220,11 @@ async function handleWeather(request, env, corsHeaders, ctx) {
   if (!lat || !lon) {
     return json({ ok: false, error: "Missing lat/lon" }, 400, corsHeaders);
   }
+  
+  // Validate coordinates
+  if (!isValidCoordinate(lat, lon)) {
+    return json({ ok: false, error: "Invalid coordinates" }, 400, corsHeaders);
+  }
 
   const key = getOpenWeatherKey(env);
   if (!key) {
@@ -295,11 +322,12 @@ async function handleWeather(request, env, corsHeaders, ctx) {
 
 async function handleGeocode(request, env, corsHeaders, ctx) {
   const url = new URL(request.url);
-  const q = (url.searchParams.get("q") || "").trim();
-  const limit = Math.min(parseInt(url.searchParams.get("limit") || "1", 10), 5);
+  const rawQ = url.searchParams.get("q") || "";
+  const q = sanitizeInput(rawQ, 100);
+  const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") || "1", 10), 1), 5);
 
-  if (!q) {
-    return json({ ok: false, error: "Missing 'q' query param" }, 400, corsHeaders);
+  if (!q || q.length < 2) {
+    return json({ ok: false, error: "Query too short (min 2 chars)" }, 400, corsHeaders);
   }
 
   const key = getOpenWeatherKey(env);
@@ -367,12 +395,28 @@ async function handleGeocode(request, env, corsHeaders, ctx) {
 /* ================= HELPERS ================= */
 
 function makeCorsHeaders(request) {
-  const origin = request.headers.get("Origin") || "*";
+  const origin = request.headers.get("Origin") || "";
+  
+  // Allowed origins - restrict to legitimate domains
+  const allowedOrigins = [
+    "https://www.fairwayweather.com",
+    "https://fairwayweather.com",
+    "https://mziyabo-glitch.github.io",
+    "http://localhost:3000",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500"
+  ];
+  
+  // Check if origin is allowed, otherwise don't reflect it
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  
   return {
-    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "GET,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
     Vary: "Origin",
   };
 }

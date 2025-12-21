@@ -66,6 +66,22 @@
   }
   </script>
 
+  <!-- Security -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' https: data:;
+    connect-src 'self' https://fairway-forecast-api.mziyabo.workers.dev https://*.supabase.co https://api.openweathermap.org;
+    frame-ancestors 'none';
+    base-uri 'self';
+    form-action 'self';
+  " />
+
   <!-- Icons -->
   <link rel="icon" href="./icons/favicon.ico" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
