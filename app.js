@@ -900,49 +900,77 @@
   /* ---------- PLAYING CONDITIONS (Weather-based) ---------- */
   function calculatePlayingConditions(norm) {
     const c = norm?.current;
-    if (!c) return "--";
+    if (!c) return { score: "--", factors: {} };
 
     let score = 10;
     const w = typeof c.wind_speed === "number" ? c.wind_speed : 0;
     const t = typeof c.temp === "number" ? c.temp : null;
     const pop = typeof c.pop === "number" ? c.pop : 0;
+    const rainMm = typeof c.rain_mm === "number" ? c.rain_mm : 0;
+    
+    // Track weather factors for labeling
+    const factors = {
+      freezing: false,
+      heavyRain: false,
+      strongWind: false,
+      hotTemp: false,
+      coldTemp: false,
+      rainy: false
+    };
 
     // Wind impact (in m/s for metric, mph for imperial)
     const windMph = windSpeedMph(w) || 0;
-    if (windMph > 25) score -= 4;
-    else if (windMph > 18) score -= 3;
-    else if (windMph > 12) score -= 2;
-    else if (windMph > 8) score -= 1;
+    if (windMph > 25) { score -= 4; factors.strongWind = true; }
+    else if (windMph > 18) { score -= 3; factors.strongWind = true; }
+    else if (windMph > 12) { score -= 2; }
+    else if (windMph > 8) { score -= 1; }
 
-    // Rain probability impact
-    if (pop >= 0.8) score -= 4;
-    else if (pop >= 0.6) score -= 3;
-    else if (pop >= 0.4) score -= 2;
-    else if (pop >= 0.2) score -= 1;
+    // Rain amount impact (mm) - CRITICAL FACTOR
+    if (rainMm > 5) { score -= 4; factors.heavyRain = true; }
+    else if (rainMm > 3) { score -= 3; factors.rainy = true; }
+    else if (rainMm > 1) { score -= 2; factors.rainy = true; }
+    else if (rainMm > 0.5) { score -= 1; }
 
-    // Temperature comfort
+    // Rain probability impact (secondary to actual rain)
+    if (pop >= 0.8 && !factors.heavyRain) { score -= 2; factors.rainy = true; }
+    else if (pop >= 0.6 && !factors.rainy) { score -= 1; factors.rainy = true; }
+
+    // Temperature comfort - FREEZING IS CRITICAL
     if (t !== null) {
       if (units() === "metric") {
-        if (t < 2) score -= 3;
-        else if (t < 6) score -= 2;
-        else if (t < 10) score -= 1;
-        if (t > 32) score -= 2;
-        else if (t > 28) score -= 1;
+        // Below 0°C = freezing = tough conditions
+        if (t < 0) { score -= 5; factors.freezing = true; }
+        else if (t < 5) { score -= 2; factors.coldTemp = true; }
+        else if (t < 10) { score -= 1; factors.coldTemp = true; }
+        // Hot weather
+        if (t > 35) { score -= 3; factors.hotTemp = true; }
+        else if (t > 30) { score -= 2; factors.hotTemp = true; }
+        else if (t > 28) { score -= 1; }
       } else {
-        if (t < 36) score -= 3;
-        else if (t < 42) score -= 2;
-        else if (t < 50) score -= 1;
-        if (t > 90) score -= 2;
-        else if (t > 82) score -= 1;
+        // Below 32°F = freezing = tough conditions
+        if (t < 32) { score -= 5; factors.freezing = true; }
+        else if (t < 41) { score -= 2; factors.coldTemp = true; }
+        else if (t < 50) { score -= 1; factors.coldTemp = true; }
+        // Hot weather
+        if (t > 95) { score -= 3; factors.hotTemp = true; }
+        else if (t > 86) { score -= 2; factors.hotTemp = true; }
+        else if (t > 82) { score -= 1; }
       }
     }
 
-    return clamp(Math.round(score), 0, 10);
+    return { 
+      score: clamp(Math.round(score), 0, 10),
+      factors,
+      temp: t,
+      rainMm,
+      windMph
+    };
   }
   
-  // Keep old function name for compatibility
+  // Keep old function name for compatibility - returns just the score
   function calculatePlayability(norm) {
-    return calculatePlayingConditions(norm);
+    const result = calculatePlayingConditions(norm);
+    return typeof result === "object" ? result.score : result;
   }
 
   function bestTimeToday(norm) {
@@ -1330,7 +1358,9 @@
 
   // Calculate combined challenge rating (course difficulty + weather)
   function calculateChallengeRating(course, norm) {
-    const weatherScore = norm ? calculatePlayingConditions(norm) : null;
+    const weatherResult = norm ? calculatePlayingConditions(norm) : null;
+    const weatherScore = weatherResult && typeof weatherResult === "object" ? weatherResult.score : weatherResult;
+    const weatherFactors = weatherResult && typeof weatherResult === "object" ? weatherResult.factors : {};
     const difficulty = calculateCourseDifficulty(course);
     
     // Weather contribution (0-5 scale, inverted: good weather = low challenge)
@@ -1352,38 +1382,62 @@
     return {
       score: clamp(Math.round(combined * 10) / 10, 1, 5),
       weatherScore,
+      weatherFactors,
       courseScore: difficulty?.score || null,
-      label: getChallengeLabel(combined, weatherScore, difficulty?.score)
+      label: getChallengeLabel(combined, weatherScore, difficulty?.score, weatherFactors)
     };
   }
   
-  function getChallengeLabel(score, weatherScore, courseScore) {
+  function getChallengeLabel(score, weatherScore, courseScore, weatherFactors = {}) {
     // Determine primary factor for the reason
-    let reason = "";
-    const factors = [];
+    const reasonParts = [];
     
-    // Weather factor
-    if (weatherScore !== null) {
-      if (weatherScore >= 8) factors.push("Ideal weather");
-      else if (weatherScore >= 6) factors.push("Good weather");
-      else if (weatherScore >= 4) factors.push("Mixed weather");
-      else factors.push("Tough weather");
+    // Weather factors - be specific about conditions
+    if (weatherFactors.freezing) {
+      reasonParts.push("Freezing temps");
+    } else if (weatherFactors.coldTemp) {
+      reasonParts.push("Cold conditions");
+    } else if (weatherFactors.hotTemp) {
+      reasonParts.push("Hot conditions");
+    }
+    
+    if (weatherFactors.heavyRain) {
+      reasonParts.push("Heavy rain");
+    } else if (weatherFactors.rainy) {
+      reasonParts.push("Wet conditions");
+    }
+    
+    if (weatherFactors.strongWind) {
+      reasonParts.push("Strong wind");
+    }
+    
+    // If no specific weather issues, describe overall weather
+    if (reasonParts.length === 0 && weatherScore !== null) {
+      if (weatherScore >= 8) reasonParts.push("Ideal weather");
+      else if (weatherScore >= 6) reasonParts.push("Good weather");
+      else if (weatherScore >= 4) reasonParts.push("Fair weather");
     }
     
     // Course factor
     if (courseScore !== null) {
-      if (courseScore >= 4) factors.push("Demanding course");
-      else if (courseScore >= 3) factors.push("Moderate course");
-      else factors.push("Forgiving course");
+      if (courseScore >= 4.5) reasonParts.push("Championship course");
+      else if (courseScore >= 4) reasonParts.push("Demanding course");
+      else if (courseScore >= 3) reasonParts.push("Moderate course");
+      else reasonParts.push("Forgiving course");
     }
     
-    reason = factors.join(" • ") || "Good day for golf";
+    const reason = reasonParts.join(" • ") || "Good day for golf";
     
     // Color-coded dots: Green (easy), Amber (medium), Red (hard)
+    // Severe weather conditions force tough rating regardless of score
+    if (weatherFactors.freezing || weatherFactors.heavyRain) {
+      return { text: "Tough", dot: "🔴", class: "hard", reason };
+    }
+    
     if (score <= 2.2) return { text: "Easy", dot: "🟢", class: "easy", reason };
     if (score <= 3.0) return { text: "Moderate", dot: "🟡", class: "moderate", reason };
     if (score <= 3.8) return { text: "Challenging", dot: "🟠", class: "challenging", reason };
-    return { text: "Hard", dot: "🔴", class: "hard", reason };
+    return { text: "Tough", dot: "🔴", class: "hard", reason };
   }
   
   function renderPlayability(norm) {
@@ -2720,14 +2774,19 @@
       "Playability Index",
       `<div style="line-height:1.6;">
         <p><strong>How it's calculated:</strong></p>
-        <p>The Playability Index combines weather conditions and course difficulty.</p>
-        <p style="margin-top:12px;"><strong>Weather (60%):</strong> Wind, rain chance, temperature</p>
-        <p><strong>Course (40%):</strong> Slope rating, course rating vs par</p>
+        <p>Combines weather conditions (60%) and course difficulty (40%).</p>
+        <p style="margin-top:12px;"><strong>Weather factors:</strong></p>
+        <p>• <strong>Freezing (below 0°C/32°F)</strong> – Tough conditions</p>
+        <p>• <strong>Heavy rain (5mm+)</strong> – Tough conditions</p>
+        <p>• Wind speed, rain chance, temperature comfort</p>
+        <p style="margin-top:12px;"><strong>Course factors:</strong></p>
+        <p>• Slope rating (difficulty of course)</p>
+        <p>• Course rating vs par</p>
         <p style="margin-top:14px;"><strong>Rating:</strong></p>
-        <p>🟢 Easy – Great conditions</p>
-        <p>🟡 Moderate – Some challenges</p>
-        <p>🟠 Challenging – Needs focus</p>
-        <p>🔴 Hard – Test your skills</p>
+        <p>🟢 Easy – Great conditions, forgiving course</p>
+        <p>🟡 Moderate – Some challenges expected</p>
+        <p>🟠 Challenging – Needs focus and skill</p>
+        <p>🔴 Tough – Harsh weather or demanding course</p>
       </div>`,
       true
     );
