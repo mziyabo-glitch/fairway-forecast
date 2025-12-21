@@ -62,50 +62,34 @@
 
       <!-- ================= SEARCH ================= -->
       <section class="ff-panel ff-panel--search" aria-label="Search">
-        <label class="ff-label" for="searchInput">
-          Search location or golf course
-        </label>
-
-        <div class="ff-search-row">
+        <div class="ff-search-compact">
           <input
             id="searchInput"
-            class="ff-input"
+            class="ff-input ff-input--compact"
             type="search"
-            placeholder='e.g. Swindon, GB or "golf club"'
+            placeholder="Search course or location..."
             autocomplete="off"
             inputmode="search"
             aria-describedby="searchHelp"
           />
-
           <button
             id="btnGeo"
-            class="ff-btn ff-btn-ghost"
+            class="ff-btn ff-btn-icon"
             type="button"
             title="Use my location"
             aria-label="Use my location"
-          >
-            ⌖
-          </button>
+          >⌖</button>
+          <button
+            id="searchBtn"
+            class="ff-btn ff-btn-primary ff-btn--compact"
+            type="button"
+          >Search</button>
         </div>
-
-        <button
-          id="searchBtn"
-          class="ff-btn ff-btn-primary"
-          type="button"
-          style="margin-top:12px;width:100%;"
-        >
-          Search
-        </button>
-
-        <div id="searchHelp" class="ff-hint">
-          Start typing to see course suggestions
-        </div>
-
-        <div class="ff-units-row">
-          <label class="ff-label" for="unitsSelect">Units</label>
-          <select id="unitsSelect" class="ff-select">
-            <option value="metric">°C / m·s</option>
-            <option value="imperial">°F / mph</option>
+        <div class="ff-search-meta">
+          <span id="searchHelp" class="ff-hint">Type to search</span>
+          <select id="unitsSelect" class="ff-select ff-select--compact">
+            <option value="metric">°C</option>
+            <option value="imperial">°F</option>
           </select>
         </div>
       </section>

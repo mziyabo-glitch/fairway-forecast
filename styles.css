@@ -477,6 +477,70 @@ button, input, select{ font: inherit; }
   margin-bottom:10px;
   display:block;
 }
+
+/* Compact search card */
+.ff-panel--search{
+  padding:12px;
+}
+
+.ff-search-compact{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+.ff-input--compact{
+  flex:1;
+  padding:10px 14px;
+  font-size:15px;
+}
+
+.ff-btn--compact{
+  padding:10px 16px;
+  min-height:42px;
+  font-size:14px;
+}
+
+.ff-btn-icon{
+  width:42px;
+  min-width:42px;
+  height:42px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:var(--surface-2);
+  font-size:18px;
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+
+.ff-btn-icon:hover{
+  background:var(--brand-soft);
+  border-color:var(--brand);
+}
+
+.ff-search-meta{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid rgba(7,21,18,.06);
+}
+
+.ff-search-meta .ff-hint{
+  margin:0;
+  font-size:12px;
+}
+
+.ff-select--compact{
+  padding:6px 10px;
+  min-height:32px;
+  font-size:13px;
+  border-radius:10px;
+}
 /* --- Utility: Hidden class for JS-controlled visibility --- */
 .ff-hidden {
   display: none !important;
@@ -510,41 +574,31 @@ button, input, select{ font: inherit; }
   width:100%;
   text-align:left;
 }
-/* IMPORTANT: contain the geo button + prevent overflow */
-.ff-search-row{
-  display:grid;
-  grid-template-columns: 1fr auto auto;
-  gap:10px;
-  align-items:center;
-  width: 100%;
-}
-
 .ff-input{
   padding:13px 14px;
-  border-radius:16px;
+  border-radius:14px;
   border:1px solid var(--line);
   font-size:16px;
   background:#fff;
   min-width: 0;
   width: 100%;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .ff-input:focus{
   border-color:rgba(31,111,92,.45);
-  box-shadow:0 0 0 4px rgba(31,111,92,.14);
+  box-shadow:0 0 0 3px rgba(31,111,92,.12);
   outline:none;
-  transform: translateY(-1px);
 }
 
 .ff-btn{
-  border-radius:16px;
+  border-radius:14px;
   border:1px solid var(--line);
   background:#fff;
   font-weight:700;
   font-size:15px;
-  min-height:46px;
-  padding:12px 14px;
+  min-height:44px;
+  padding:10px 14px;
   cursor:pointer;
   max-width: 100%;
   transition: all 0.2s ease;
@@ -571,41 +625,39 @@ button, input, select{ font: inherit; }
 }
 
 .ff-btn-ghost{
-  width:46px;
-  min-width:46px;
+  width:44px;
+  min-width:44px;
   padding:0;
   display:grid;
   place-items:center;
-  background:#fff;
+  background:var(--surface-2);
 }
 
-.ff-units-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:12px;
-}
 .ff-select{
-  border-radius:16px;
+  border-radius:12px;
   border:1px solid var(--line);
-  padding:10px 12px;
+  padding:8px 12px;
   font-weight:700;
   background:#fff;
-  min-height:44px;
+  min-height:36px;
 }
 
-/* Mobile: force geo button INSIDE the card by stacking row */
-@media (max-width: 520px){
-  .ff-search-row{
-    grid-template-columns: 1fr 46px;
-    grid-template-areas:
-      "input geo"
-      "search search";
+/* Mobile: stack search on smaller screens */
+@media (max-width: 420px){
+  .ff-search-compact{
+    flex-wrap:wrap;
   }
-  #searchInput{ grid-area: input; }
-  #btnGeo{ grid-area: geo; }
-  #searchBtn{ grid-area: search; width:100%; }
+  .ff-input--compact{
+    flex:1 1 100%;
+    order:1;
+  }
+  .ff-btn-icon{
+    order:2;
+  }
+  .ff-btn--compact{
+    flex:1;
+    order:3;
+  }
 }
 
 /* ---------- Course Direction Selector ---------- */
