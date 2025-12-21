@@ -1675,4 +1675,183 @@ button, input, select{ font: inherit; }
   .ff-tab{ min-height:44px; font-size:14px; }
 }
 
+/* ---------- Scorecard ---------- */
+.ff-panel--scorecard{
+  margin-top:var(--gap);
+}
+
+.ff-scorecard-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.ff-scorecard-title{
+  font-weight:700;
+  font-size:14px;
+}
+
+.ff-scorecard-toggle{
+  background:none;
+  border:none;
+  font-size:12px;
+  color:var(--muted);
+  cursor:pointer;
+  padding:4px 8px;
+  transition:transform 0.2s ease;
+}
+
+.ff-scorecard-toggle.open{
+  transform:rotate(180deg);
+}
+
+.ff-scorecard-body{
+  margin-top:12px;
+  animation:slideUp 0.2s ease;
+}
+
+.ff-scorecard-info{
+  display:flex;
+  justify-content:space-between;
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:12px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--line);
+}
+
+.ff-scorecard-grid{
+  display:grid;
+  grid-template-columns:repeat(9, 1fr);
+  gap:4px;
+  margin-bottom:12px;
+}
+
+.ff-scorecard-hole{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+
+.ff-scorecard-hole-num{
+  font-size:10px;
+  font-weight:600;
+  color:var(--muted);
+}
+
+.ff-scorecard-hole-par{
+  font-size:9px;
+  color:var(--muted);
+  opacity:0.7;
+}
+
+.ff-scorecard-input{
+  width:100%;
+  max-width:32px;
+  height:32px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  text-align:center;
+  font-size:14px;
+  font-weight:600;
+  background:var(--surface-2);
+  color:var(--text);
+  transition:all 0.15s ease;
+}
+
+.ff-scorecard-input:focus{
+  outline:none;
+  border-color:var(--brand);
+  background:var(--surface);
+}
+
+.ff-scorecard-input.birdie{
+  background:#D1FAE5;
+  border-color:#10B981;
+  color:#047857;
+}
+
+.ff-scorecard-input.eagle{
+  background:#A7F3D0;
+  border-color:#059669;
+  color:#065F46;
+}
+
+.ff-scorecard-input.bogey{
+  background:#FEF3C7;
+  border-color:#F59E0B;
+  color:#B45309;
+}
+
+.ff-scorecard-input.double{
+  background:#FEE2E2;
+  border-color:#EF4444;
+  color:#DC2626;
+}
+
+.ff-scorecard-row-label{
+  grid-column:1 / -1;
+  font-size:11px;
+  font-weight:600;
+  color:var(--muted);
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px dashed var(--line);
+}
+
+.ff-scorecard-totals{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:8px;
+  padding:12px;
+  background:var(--surface-2);
+  border-radius:12px;
+  margin-bottom:12px;
+}
+
+.ff-scorecard-total{
+  text-align:center;
+}
+
+.ff-scorecard-total-label{
+  font-size:10px;
+  color:var(--muted);
+  display:block;
+  margin-bottom:2px;
+}
+
+.ff-scorecard-total strong{
+  font-size:16px;
+  font-weight:700;
+}
+
+.ff-scorecard-total--main strong{
+  color:var(--brand);
+  font-size:18px;
+}
+
+.ff-scorecard-actions{
+  display:flex;
+  gap:8px;
+}
+
+.ff-scorecard-actions .ff-btn{
+  flex:1;
+  padding:10px;
+  font-size:13px;
+}
+
+/* Scorecard mobile: 2 rows of holes */
+@media (max-width:400px){
+  .ff-scorecard-grid{
+    grid-template-columns:repeat(5, 1fr);
+  }
+  .ff-scorecard-input{
+    max-width:28px;
+    height:28px;
+    font-size:12px;
+  }
+}
+
 
