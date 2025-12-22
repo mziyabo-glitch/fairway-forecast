@@ -1843,9 +1843,9 @@
     const desc = c?.weather?.[0]?.description || c?.weather?.[0]?.main || "—";
     const ico = iconHtml(c.weather, 2);
     
-    // Get current time display (GMT and local at course)
-    const currentTime = getLocalAndGMTTime(c.dt || now, norm.timezoneOffset);
-    const timeDisplay = currentTime.local && currentTime.gmt ? `Local ${currentTime.local} / GMT ${currentTime.gmt}` : "";
+    // Get current time display (course local and device time)
+    const currentTime = getCourseAndDeviceTime(c.dt || now, norm.timezoneOffset);
+    const timeDisplay = currentTime.course && currentTime.device ? `${currentTime.course} course · ${currentTime.device} you` : "";
 
     const windSpeed = typeof c.wind_speed === "number" ? c.wind_speed : null;
     const windSpeedRounded = windSpeed ? roundNum(windSpeed, 1) : null;
