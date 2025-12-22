@@ -1672,12 +1672,20 @@
     // Get sunrise/sunset for daylight-only windows
     const sunrise = norm?.sunrise;
     const sunset = norm?.sunset;
+    const tzOffset = norm?.timezoneOffset || 0;
     const now = nowSec();
     const isNighttime = sunrise && sunset && now > sunset;
     
-    // Calculate daylight hours from sunrise/sunset
-    const sunriseHour = sunrise ? new Date(sunrise * 1000).getHours() : 6;
-    const sunsetHour = sunset ? new Date(sunset * 1000).getHours() : 19;
+    // Calculate daylight hours in COURSE local time
+    // Convert sunrise/sunset to course local time to get correct hours
+    const getCourseHour = (ts) => {
+      if (!ts) return null;
+      const courseDate = new Date((ts + tzOffset) * 1000);
+      return courseDate.getUTCHours();
+    };
+    
+    const sunriseHour = getCourseHour(sunrise) ?? 6;
+    const sunsetHour = getCourseHour(sunset) ?? 19;
     
     // Define windows based on actual daylight (sunrise to sunset only)
     const dayLength = sunsetHour - sunriseHour;
@@ -1692,25 +1700,28 @@
     const windowsData = windows.map(win => {
       const windowHours = hourly.filter(h => {
         if (!h?.dt) return false;
-        const hourDate = new Date(h.dt * 1000);
-        const hour = hourDate.getHours();
-        const dayStart = new Date(now * 1000);
-        dayStart.setHours(0, 0, 0, 0);
-        const hDayStart = new Date(hourDate);
-        hDayStart.setHours(0, 0, 0, 0);
+        
+        // Get hour in COURSE local time
+        const courseHour = getCourseHour(h.dt);
+        if (courseHour === null) return false;
+        
+        // Check if this hour is for today or tomorrow (in course local time)
+        const nowCourseDate = new Date((now + tzOffset) * 1000);
+        const hCourseDate = new Date((h.dt + tzOffset) * 1000);
+        
+        const nowDay = nowCourseDate.getUTCDate();
+        const hDay = hCourseDate.getUTCDate();
         
         // If night time, filter for tomorrow's hours
         if (isNighttime) {
-          const tomorrowStart = new Date(dayStart);
-          tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-          if (hDayStart.getTime() !== tomorrowStart.getTime()) return false;
+          if (hDay !== nowDay + 1) return false;
         } else {
           // Normal daytime - use today's hours
-          if (hDayStart.getTime() !== dayStart.getTime()) return false;
+          if (hDay !== nowDay) return false;
         }
         
         // Only include daylight hours
-        return hour >= win.start && hour < win.end;
+        return courseHour >= win.start && courseHour < win.end;
       });
       
       if (windowHours.length === 0) return null;
