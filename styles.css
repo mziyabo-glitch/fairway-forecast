@@ -152,24 +152,24 @@ button, input, select{ font: inherit; }
 
 /* Compact search panel */
 .ff-panel--search{
-  padding:12px;
+  padding:10px;
 }
 .ff-panel--search .ff-label{
-  font-size:12px;
-  margin-bottom:6px;
+  font-size:11px;
+  margin-bottom:4px;
 }
 .ff-panel--search .ff-input{
-  padding:10px 12px;
+  padding:8px 10px;
   font-size:14px;
 }
 .ff-panel--search .ff-btn-primary{
-  margin-top:8px !important;
-  padding:10px 16px;
+  margin-top:6px !important;
+  padding:8px 14px;
   font-size:13px;
 }
 .ff-panel--search .ff-btn-ghost{
-  padding:8px 10px;
-  font-size:16px;
+  padding:6px 8px;
+  font-size:14px;
 }
 
 .ff-panel:hover{
@@ -562,7 +562,7 @@ button, input, select{ font: inherit; }
 .ff-search-row{
   display:grid;
   grid-template-columns: 1fr auto;
-  gap:8px;
+  gap:6px;
   align-items:center;
   width: 100%;
 }

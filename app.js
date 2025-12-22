@@ -1207,22 +1207,22 @@
   function updateTimeDisplay(norm) {
     if (!localTimeEl || !gmtTimeEl) return;
     
-    // Get timezone offset from weather data (in seconds)
-    const tzOffset = norm?.timezone_offset || 0;
+    // Get timezone offset from weather data (in seconds) - use timezoneOffset (camelCase)
+    const tzOffset = norm?.timezoneOffset || 0;
     
-    // Current time in UTC
+    // Current UTC time
     const now = new Date();
-    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
-    
-    // Local time at the course location
-    const localTime = new Date(utcMs + (tzOffset * 1000));
-    
-    // Format times
-    const localHours = localTime.getHours().toString().padStart(2, '0');
-    const localMins = localTime.getMinutes().toString().padStart(2, '0');
-    
     const gmtHours = now.getUTCHours().toString().padStart(2, '0');
     const gmtMins = now.getUTCMinutes().toString().padStart(2, '0');
+    
+    // Local time at course = UTC + timezone offset
+    const utcSeconds = Math.floor(now.getTime() / 1000);
+    const localSeconds = utcSeconds + tzOffset;
+    const localDate = new Date(localSeconds * 1000);
+    
+    // Use UTC methods on the adjusted date to avoid double timezone conversion
+    const localHours = localDate.getUTCHours().toString().padStart(2, '0');
+    const localMins = localDate.getUTCMinutes().toString().padStart(2, '0');
     
     localTimeEl.textContent = `🕐 ${localHours}:${localMins} local`;
     gmtTimeEl.textContent = `${gmtHours}:${gmtMins} GMT`;
