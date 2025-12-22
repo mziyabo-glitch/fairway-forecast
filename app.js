@@ -147,6 +147,26 @@
     return typeof pop === "number" ? `${Math.round(pop * 100)}%` : "";
   }
 
+  // Format time at course location (using course timezone offset)
+  // tsSeconds: Unix timestamp in seconds
+  // tzOffset: Course timezone offset in seconds (from weather API)
+  function fmtTimeCourse(tsSeconds, tzOffset = null) {
+    if (!tsSeconds) return "";
+    
+    if (tzOffset !== null && typeof tzOffset === "number") {
+      // Convert to course local time
+      const courseDate = new Date((tsSeconds + tzOffset) * 1000);
+      const h = courseDate.getUTCHours().toString().padStart(2, '0');
+      const m = courseDate.getUTCMinutes().toString().padStart(2, '0');
+      return `${h}:${m}`;
+    }
+    
+    // Fallback to device local time
+    const date = new Date(tsSeconds * 1000);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  
+  // Legacy fmtTime - uses device local time (for backward compatibility)
   function fmtTime(tsSeconds, showGMT = false) {
     if (!tsSeconds) return "";
     const date = new Date(tsSeconds * 1000);
@@ -158,24 +178,27 @@
     return localTime;
   }
   
-  function getLocalAndGMTTime(tsSeconds, timezoneOffset = null) {
-    if (!tsSeconds) return { local: "", gmt: "" };
+  // Get both course local time and device time
+  function getCourseAndDeviceTime(tsSeconds, timezoneOffset = null) {
+    if (!tsSeconds) return { course: "", device: "" };
+    
     const date = new Date(tsSeconds * 1000);
     
-    // GMT time
-    const gmt = date.toUTCString().match(/\d{2}:\d{2}/)?.[0] || "";
+    // Device local time
+    const device = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     
-    // Local time at course location (if timezone offset available)
-    let local = "";
+    // Course local time (using timezone offset)
+    let course = "";
     if (timezoneOffset !== null && typeof timezoneOffset === "number") {
       const courseDate = new Date((tsSeconds + timezoneOffset) * 1000);
-      local = courseDate.toUTCString().match(/\d{2}:\d{2}/)?.[0] || "";
+      const h = courseDate.getUTCHours().toString().padStart(2, '0');
+      const m = courseDate.getUTCMinutes().toString().padStart(2, '0');
+      course = `${h}:${m}`;
     } else {
-      // Fallback to browser local time
-      local = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      course = device; // Fallback to device time
     }
     
-    return { local, gmt };
+    return { course, device };
   }
 
   function fmtDay(tsSeconds) {
@@ -1210,22 +1233,21 @@
     // Get timezone offset from weather data (in seconds) - use timezoneOffset (camelCase)
     const tzOffset = norm?.timezoneOffset || 0;
     
-    // Current UTC time
     const now = new Date();
-    const gmtHours = now.getUTCHours().toString().padStart(2, '0');
-    const gmtMins = now.getUTCMinutes().toString().padStart(2, '0');
     
-    // Local time at course = UTC + timezone offset
+    // Course local time = UTC + course timezone offset
     const utcSeconds = Math.floor(now.getTime() / 1000);
-    const localSeconds = utcSeconds + tzOffset;
-    const localDate = new Date(localSeconds * 1000);
+    const courseSeconds = utcSeconds + tzOffset;
+    const courseDate = new Date(courseSeconds * 1000);
+    const courseHours = courseDate.getUTCHours().toString().padStart(2, '0');
+    const courseMins = courseDate.getUTCMinutes().toString().padStart(2, '0');
     
-    // Use UTC methods on the adjusted date to avoid double timezone conversion
-    const localHours = localDate.getUTCHours().toString().padStart(2, '0');
-    const localMins = localDate.getUTCMinutes().toString().padStart(2, '0');
+    // Device local time (user's location)
+    const deviceHours = now.getHours().toString().padStart(2, '0');
+    const deviceMins = now.getMinutes().toString().padStart(2, '0');
     
-    localTimeEl.textContent = `🕐 ${localHours}:${localMins} local`;
-    gmtTimeEl.textContent = `${gmtHours}:${gmtMins} GMT`;
+    localTimeEl.textContent = `🕐 ${courseHours}:${courseMins} course`;
+    gmtTimeEl.textContent = `${deviceHours}:${deviceMins} you`;
   }
   
   // Start time update interval
@@ -1335,11 +1357,12 @@
       verdictReason.textContent = v.reason || "—";
     }
     
-    // Best time: Show tomorrow's best time if nighttime
+    // Best time: Show tomorrow's best time if nighttime (in course local time)
+    const tzOffset = norm?.timezoneOffset || null;
     if (isNighttime && tomorrowData?.best && typeof tomorrowData.best.dt === "number") {
-      verdictBestTime.textContent = fmtTime(tomorrowData.best.dt);
+      verdictBestTime.textContent = fmtTimeCourse(tomorrowData.best.dt, tzOffset);
     } else if (v.best && typeof v.best.dt === "number") {
-      verdictBestTime.textContent = fmtTime(v.best.dt);
+      verdictBestTime.textContent = fmtTimeCourse(v.best.dt, tzOffset);
     } else {
       verdictBestTime.textContent = "—";
     }
@@ -1836,20 +1859,21 @@
     // Get sunrise/sunset times (for tomorrow if nighttime)
     let sunriseTime = "";
     let sunsetTime = "";
+    const tzOff = norm?.timezoneOffset || null;
     if (isNighttime && isTomorrow) {
       // Use tomorrow's sunrise/sunset - estimate or use next day's data
       const daily = Array.isArray(norm?.daily) ? norm.daily : [];
       const tomorrow = daily.length > 0 ? daily[0] : null;
       // Note: Daily data might not have sunrise/sunset, so we'll show current day's for reference
-      sunriseTime = norm.sunrise ? fmtTime(norm.sunrise) : "";
-      sunsetTime = norm.sunset ? fmtTime(norm.sunset) : "";
+      sunriseTime = norm.sunrise ? fmtTimeCourse(norm.sunrise, tzOff) : "";
+      sunsetTime = norm.sunset ? fmtTimeCourse(norm.sunset, tzOff) : "";
     } else {
-      sunriseTime = norm.sunrise ? fmtTime(norm.sunrise) : "";
-      sunsetTime = norm.sunset ? fmtTime(norm.sunset) : "";
+      sunriseTime = norm.sunrise ? fmtTimeCourse(norm.sunrise, tzOff) : "";
+      sunsetTime = norm.sunset ? fmtTimeCourse(norm.sunset, tzOff) : "";
     }
 
     const best = isNighttime ? null : bestTimeToday(norm);
-    const bestText = best?.dt ? fmtTime(best.dt) : "";
+    const bestText = best?.dt ? fmtTimeCourse(best.dt, tzOff) : "";
 
     const stats = [
       timeDisplay ? `<div class="ff-stat"><span>Time</span><strong>${esc(timeDisplay)}</strong></div>` : "",
@@ -1883,13 +1907,14 @@
 
     const best = bestTimeToday(norm);
     const bestDt = best?.dt || null;
+    const tzOff = norm?.timezoneOffset || null;
 
     // Prepare data for mini charts
     const windValues = hourly.map(h => typeof h.wind_speed === "number" ? h.wind_speed : 0);
     const rainValues = hourly.map(h => typeof h.rain_mm === "number" ? h.rain_mm : 0);
 
     const cards = hourly.slice(0, 16).map((h) => {
-      const time = h?.dt ? fmtTime(h.dt) : "";
+      const time = h?.dt ? fmtTimeCourse(h.dt, tzOff) : "";
       const t = typeof h.temp === "number" ? `${Math.round(h.temp)}${tempUnit()}` : "";
       const popValue = typeof h.pop === "number" ? h.pop : 0;
       const rainProb = pct(popValue);
@@ -2288,7 +2313,8 @@
         
         const verdict = calculateVerdictForDay(lastNorm, dayDt, dayData);
         const dayName = dayData?.dt ? fmtDay(dayData.dt) : "Selected day";
-        const bestTime = verdict.best && typeof verdict.best.dt === "number" ? fmtTime(verdict.best.dt) : "—";
+        const tzOff = lastNorm?.timezoneOffset || null;
+        const bestTime = verdict.best && typeof verdict.best.dt === "number" ? fmtTimeCourse(verdict.best.dt, tzOff) : "—";
         
         // Show prediction in modal
         const verdictIcon = verdict.status === "PLAY" ? "✅" : verdict.status === "MAYBE" ? "⚠️" : "⛔";
