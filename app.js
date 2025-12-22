@@ -2662,23 +2662,33 @@
     nearbyCourses = []; // Clear nearby courses
 
     try {
+      console.log("[Weather] Fetching for:", selectedCourse.lat, selectedCourse.lon);
       const raw = await fetchWeather(selectedCourse.lat, selectedCourse.lon);
+      console.log("[Weather] Raw data received:", raw?.ok, raw?.current ? "has current" : "no current");
+      
       lastNorm = normalizeWeather(raw);
-      lastWeatherUpdate = Date.now(); // Track when weather was last updated
+      console.log("[Weather] Normalized:", lastNorm?.current ? "has current" : "no current");
+      lastWeatherUpdate = Date.now();
 
-      renderVerdictCard(lastNorm);
-      renderPlayability(lastNorm);
-      clearSearchResults(); // Clear search results before rendering
-      renderAll();
+      try {
+        renderVerdictCard(lastNorm);
+        renderPlayability(lastNorm);
+        clearSearchResults();
+        renderAll();
+        console.log("[Weather] Render complete");
+      } catch (renderErr) {
+        console.error("[Weather] Render error:", renderErr);
+        throw renderErr;
+      }
       
       // Fetch nearby courses in background
       if (Number.isFinite(selectedCourse.lat) && Number.isFinite(selectedCourse.lon)) {
         nearbyCourses = await fetchNearbyCourses(selectedCourse.lat, selectedCourse.lon);
-        renderAll(); // Re-render to show nearby courses
+        renderAll();
       }
     } catch (err) {
-      console.error("Weather error:", err);
-      if (err?.name === "AbortError") {
+      console.error("[Weather] Error:", err?.name, err?.message, err);
+      if (err?.name === "AbortError" || err?.name === "TimeoutError") {
         showError("Weather request timed out.", "Try again.");
       } else if (err?.status === 429) {
         showError("Weather provider rate limited.", "Wait a moment and try again.");
