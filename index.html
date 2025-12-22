@@ -40,9 +40,9 @@
   <!-- Styles -->
   <link rel="stylesheet" href="./styles.css" />
 
-  <!-- Content Security Policy (allows Cloudflare Insights) -->
+  <!-- Content Security Policy (allows Cloudflare Insights and Supabase) -->
   <!-- Note: frame-ancestors and X-Frame-Options cannot be set via meta tags, only HTTP headers -->
-  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://fairway-forecast-api.mziyabo.workers.dev https://api.openweathermap.org; img-src 'self' data: https:; connect-src 'self' https://fairway-forecast-api.mziyabo.workers.dev https://api.openweathermap.org https://static.cloudflareinsights.com https://cloudflareinsights.com;" />
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://fairway-forecast-api.mziyabo.workers.dev https://api.openweathermap.org; img-src 'self' data: https:; connect-src 'self' https://fairway-forecast-api.mziyabo.workers.dev https://api.openweathermap.org https://static.cloudflareinsights.com https://cloudflareinsights.com https://*.supabase.co;" />
 </head>
 
 <body>
