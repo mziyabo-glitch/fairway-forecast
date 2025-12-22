@@ -48,6 +48,8 @@
   const verdictReason = $("verdictReason");
   const verdictBestTime = $("verdictBestTime");
   const verdictQuickStats = $("verdictQuickStats");
+  const localTimeEl = $("localTime");
+  const gmtTimeEl = $("gmtTime");
 
   const infoModal = $("infoModal");
   const infoModalTitle = $("infoModalTitle");
@@ -1201,8 +1203,49 @@
     return { status: "NO", label: "No-play recommended", reason: best ? "Poor overall conditions" : "Rain likely throughout daylight", best, isNighttime: false };
   }
 
+  // Update time display on verdict card
+  function updateTimeDisplay(norm) {
+    if (!localTimeEl || !gmtTimeEl) return;
+    
+    // Get timezone offset from weather data (in seconds)
+    const tzOffset = norm?.timezone_offset || 0;
+    
+    // Current time in UTC
+    const now = new Date();
+    const utcMs = now.getTime() + (now.getTimezoneOffset() * 60000);
+    
+    // Local time at the course location
+    const localTime = new Date(utcMs + (tzOffset * 1000));
+    
+    // Format times
+    const localHours = localTime.getHours().toString().padStart(2, '0');
+    const localMins = localTime.getMinutes().toString().padStart(2, '0');
+    
+    const gmtHours = now.getUTCHours().toString().padStart(2, '0');
+    const gmtMins = now.getUTCMinutes().toString().padStart(2, '0');
+    
+    localTimeEl.textContent = `🕐 ${localHours}:${localMins} local`;
+    gmtTimeEl.textContent = `${gmtHours}:${gmtMins} GMT`;
+  }
+  
+  // Start time update interval
+  let timeUpdateInterval = null;
+  function startTimeUpdates(norm) {
+    // Clear existing interval
+    if (timeUpdateInterval) clearInterval(timeUpdateInterval);
+    
+    // Update immediately
+    updateTimeDisplay(norm);
+    
+    // Update every minute
+    timeUpdateInterval = setInterval(() => updateTimeDisplay(norm), 60000);
+  }
+
   function renderVerdictCard(norm) {
     if (!verdictCard || !verdictLabel || !verdictReason || !verdictIcon || !verdictBestTime) return;
+    
+    // Start time updates
+    startTimeUpdates(norm);
 
     const v = norm ? calculateVerdict(norm) : { status: "NEUTRAL", label: "—", reason: "—", best: null, isNighttime: false };
     const c = norm?.current;
