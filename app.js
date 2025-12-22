@@ -2212,7 +2212,6 @@
         
         selectedCourse = c;
         nearbyCourses = []; // Clear nearby courses when switching
-        initScorecard(c); // Initialize scorecard for this course
         await loadWeatherForSelected();
         // Fetch new nearby courses after loading weather
         if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) {
@@ -2452,7 +2451,6 @@
           return;
         }
         selectedCourse = c;
-        initScorecard(c); // Initialize scorecard for this course
         clearSearchResults();
         loadWeatherForSelected();
       });
@@ -2628,8 +2626,6 @@
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error("Invalid coordinates");
 
           selectedCourse = { id: null, name: "Your location", city: "", state: "", country: "", lat, lon };
-          // Hide scorecard for geolocation (not a specific course)
-          if (scorecardSection) scorecardSection.style.display = "none";
           loadWeatherForSelected();
         } catch (e) {
           showError("Could not use your location.", e?.message || "Unknown error");
@@ -2802,227 +2798,6 @@
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeInfoModal();
-  });
-
-  /* ---------- SCORECARD ---------- */
-  const scorecardSection = $("scorecardSection");
-  const scorecardToggle = $("scorecardToggle");
-  const scorecardBody = $("scorecardBody");
-  const scorecardGrid = $("scorecardGrid");
-  const scorecardCourseName = $("scorecardCourseName");
-  const scorecardDate = $("scorecardDate");
-  const scoreFront = $("scoreFront");
-  const scoreBack = $("scoreBack");
-  const scoreTotal = $("scoreTotal");
-  const scoreVsPar = $("scoreVsPar");
-  const scorecardReset = $("scorecardReset");
-  const scorecardSave = $("scorecardSave");
-  
-  let scorecardScores = Array(18).fill(null);
-  let scorecardPars = Array(18).fill(4); // Default par 4 for all holes
-  
-  function initScorecard(course) {
-    if (!scorecardSection || !scorecardGrid) return;
-    
-    // Show scorecard section
-    scorecardSection.style.display = "block";
-    
-    // Set course name and date
-    if (scorecardCourseName) {
-      scorecardCourseName.textContent = course?.name || "Golf Course";
-    }
-    if (scorecardDate) {
-      scorecardDate.textContent = new Date().toLocaleDateString();
-    }
-    
-    // Determine holes (default 18)
-    const holes = course?.holes || 18;
-    const coursePar = course?.par || (holes === 9 ? 36 : 72);
-    
-    // Calculate default pars (try to distribute evenly)
-    const parPerHole = Math.round(coursePar / holes);
-    scorecardPars = Array(holes).fill(parPerHole);
-    scorecardScores = Array(holes).fill(null);
-    
-    // Load saved scores if any
-    const savedKey = `scorecard_${course?.id || 'default'}`;
-    const saved = localStorage.getItem(savedKey);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed.scores)) scorecardScores = parsed.scores;
-        if (Array.isArray(parsed.pars)) scorecardPars = parsed.pars;
-      } catch (e) {}
-    }
-    
-    renderScorecard(holes);
-  }
-  
-  function renderScorecard(holes = 18) {
-    if (!scorecardGrid) return;
-    
-    const isNine = holes <= 9;
-    let html = "";
-    
-    // Front 9 (or all 9 for 9-hole course)
-    const front = isNine ? holes : 9;
-    for (let i = 0; i < front; i++) {
-      const val = scorecardScores[i];
-      const par = scorecardPars[i];
-      const scoreClass = getScoreClass(val, par);
-      html += `
-        <div class="ff-scorecard-hole">
-          <span class="ff-scorecard-hole-num">${i + 1}</span>
-          <input type="number" 
-                 class="ff-scorecard-input ${scoreClass}" 
-                 data-hole="${i}" 
-                 value="${val !== null ? val : ''}" 
-                 min="1" 
-                 max="15"
-                 inputmode="numeric"
-                 aria-label="Hole ${i + 1} score">
-          <span class="ff-scorecard-hole-par">P${par}</span>
-        </div>
-      `;
-    }
-    
-    // Back 9 (only for 18-hole courses)
-    if (!isNine) {
-      html += `<div class="ff-scorecard-row-label">Back 9</div>`;
-      for (let i = 9; i < 18; i++) {
-        const val = scorecardScores[i];
-        const par = scorecardPars[i];
-        const scoreClass = getScoreClass(val, par);
-        html += `
-          <div class="ff-scorecard-hole">
-            <span class="ff-scorecard-hole-num">${i + 1}</span>
-            <input type="number" 
-                   class="ff-scorecard-input ${scoreClass}" 
-                   data-hole="${i}" 
-                   value="${val !== null ? val : ''}" 
-                   min="1" 
-                   max="15"
-                   inputmode="numeric"
-                   aria-label="Hole ${i + 1} score">
-            <span class="ff-scorecard-hole-par">P${par}</span>
-          </div>
-        `;
-      }
-    }
-    
-    scorecardGrid.innerHTML = html;
-    
-    // Add event listeners to inputs
-    scorecardGrid.querySelectorAll(".ff-scorecard-input").forEach(input => {
-      input.addEventListener("input", handleScoreInput);
-      input.addEventListener("blur", handleScoreInput);
-    });
-    
-    updateScorecardTotals();
-  }
-  
-  function getScoreClass(score, par) {
-    if (score === null || score === undefined) return "";
-    const diff = score - par;
-    if (diff <= -2) return "eagle";
-    if (diff === -1) return "birdie";
-    if (diff === 1) return "bogey";
-    if (diff >= 2) return "double";
-    return ""; // Par
-  }
-  
-  function handleScoreInput(e) {
-    const hole = parseInt(e.target.dataset.hole, 10);
-    const val = e.target.value.trim();
-    
-    if (val === "") {
-      scorecardScores[hole] = null;
-    } else {
-      const num = parseInt(val, 10);
-      if (!isNaN(num) && num >= 1 && num <= 15) {
-        scorecardScores[hole] = num;
-      }
-    }
-    
-    // Update class for color
-    const par = scorecardPars[hole];
-    e.target.className = `ff-scorecard-input ${getScoreClass(scorecardScores[hole], par)}`;
-    
-    updateScorecardTotals();
-  }
-  
-  function updateScorecardTotals() {
-    const holes = scorecardScores.length;
-    const isNine = holes <= 9;
-    
-    // Front 9
-    const frontScores = scorecardScores.slice(0, isNine ? holes : 9).filter(s => s !== null);
-    const frontTotal = frontScores.reduce((a, b) => a + b, 0);
-    const frontPar = scorecardPars.slice(0, isNine ? holes : 9).reduce((a, b) => a + b, 0);
-    
-    // Back 9
-    const backScores = isNine ? [] : scorecardScores.slice(9, 18).filter(s => s !== null);
-    const backTotal = backScores.reduce((a, b) => a + b, 0);
-    const backPar = isNine ? 0 : scorecardPars.slice(9, 18).reduce((a, b) => a + b, 0);
-    
-    // Totals
-    const total = frontTotal + backTotal;
-    const totalPar = frontPar + backPar;
-    const holesPlayed = frontScores.length + backScores.length;
-    const parForPlayed = scorecardPars.slice(0, holesPlayed).reduce((a, b) => a + b, 0);
-    const vsPar = holesPlayed > 0 ? total - parForPlayed : 0;
-    
-    if (scoreFront) scoreFront.textContent = frontScores.length > 0 ? frontTotal : "—";
-    if (scoreBack) scoreBack.textContent = backScores.length > 0 ? backTotal : "—";
-    if (scoreTotal) scoreTotal.textContent = holesPlayed > 0 ? total : "—";
-    if (scoreVsPar) {
-      if (holesPlayed > 0) {
-        const prefix = vsPar > 0 ? "+" : "";
-        scoreVsPar.textContent = `${prefix}${vsPar}`;
-        scoreVsPar.style.color = vsPar < 0 ? "#10B981" : vsPar > 0 ? "#EF4444" : "inherit";
-      } else {
-        scoreVsPar.textContent = "—";
-        scoreVsPar.style.color = "inherit";
-      }
-    }
-  }
-  
-  // Toggle scorecard
-  scorecardToggle?.addEventListener("click", () => {
-    const isHidden = scorecardBody?.style.display === "none";
-    if (scorecardBody) scorecardBody.style.display = isHidden ? "block" : "none";
-    if (scorecardToggle) scorecardToggle.classList.toggle("open", isHidden);
-  });
-  
-  // Reset scorecard
-  scorecardReset?.addEventListener("click", () => {
-    if (!confirm("Reset all scores?")) return;
-    scorecardScores = scorecardScores.map(() => null);
-    renderScorecard(scorecardScores.length);
-  });
-  
-  // Save scorecard
-  scorecardSave?.addEventListener("click", () => {
-    const key = `scorecard_${selectedCourse?.id || 'default'}`;
-    const data = {
-      scores: scorecardScores,
-      pars: scorecardPars,
-      course: selectedCourse?.name || "Unknown",
-      date: new Date().toISOString()
-    };
-    localStorage.setItem(key, JSON.stringify(data));
-    
-    // Also save to history
-    const historyKey = "scorecard_history";
-    let history = [];
-    try {
-      history = JSON.parse(localStorage.getItem(historyKey) || "[]");
-    } catch (e) {}
-    history.unshift(data);
-    history = history.slice(0, 20); // Keep last 20 rounds
-    localStorage.setItem(historyKey, JSON.stringify(history));
-    
-    alert("Round saved!");
   });
 
   /* ---------- INIT ---------- */
