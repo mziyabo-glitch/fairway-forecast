@@ -395,7 +395,7 @@ async function handleGeocode(request, env, corsHeaders, ctx) {
 /* ================= HELPERS ================= */
 
 function makeCorsHeaders(request) {
-  const origin = request.headers.get("Origin") || "";
+  const origin = request.headers.get("Origin") || "*";
   
   // Allowed origins - restrict to legitimate domains
   const allowedOrigins = [
@@ -404,11 +404,12 @@ function makeCorsHeaders(request) {
     "https://mziyabo-glitch.github.io",
     "http://localhost:3000",
     "http://localhost:5500",
-    "http://127.0.0.1:5500"
+    "http://127.0.0.1:5500",
+    "null" // For local file access
   ];
   
-  // Check if origin is allowed, otherwise don't reflect it
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  // Check if origin is allowed, otherwise allow all (for API access)
+  const allowedOrigin = allowedOrigins.includes(origin) ? origin : "*";
   
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
