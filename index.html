@@ -226,6 +226,55 @@
         <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
         <button id="tabDaily" class="ff-tab" type="button">Daily</button>
       </nav>
+
+      <!-- ================= TEE-TIME DECISION STRIP ================= -->
+      <section id="teeTimeStripSection" class="ff-tee-time-strip" style="display:none;" aria-label="Tee time decision">
+        <div class="ff-tee-strip-card">
+          <!-- Top row: Status + Time selector -->
+          <div class="ff-tee-strip-header">
+            <div class="ff-tee-strip-status" id="teeTimeStatus">
+              <span class="ff-tee-status-icon" id="teeTimeIcon" aria-hidden="true">⏳</span>
+              <span class="ff-tee-status-label" id="teeTimeLabel">Select tee time</span>
+            </div>
+            <div class="ff-tee-time-selector" role="group" aria-label="Select tee time">
+              <label for="teeTimeSelect" class="ff-sr-only">Tee time</label>
+              <select id="teeTimeSelect" class="ff-tee-select" aria-describedby="teeTimeDesc">
+                <!-- Options populated by JS -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Metrics row -->
+          <div class="ff-tee-strip-metrics" id="teeTimeMetrics" aria-live="polite">
+            <div class="ff-tee-metric">
+              <span class="ff-tee-metric-icon" aria-hidden="true">🌧️</span>
+              <span class="ff-tee-metric-label">Rain</span>
+              <strong class="ff-tee-metric-value" id="teeMetricRain">—</strong>
+            </div>
+            <div class="ff-tee-metric">
+              <span class="ff-tee-metric-icon" aria-hidden="true">💨</span>
+              <span class="ff-tee-metric-label">Wind</span>
+              <strong class="ff-tee-metric-value" id="teeMetricWind">—</strong>
+            </div>
+            <div class="ff-tee-metric">
+              <span class="ff-tee-metric-icon" aria-hidden="true">🌡️</span>
+              <span class="ff-tee-metric-label">Temp</span>
+              <strong class="ff-tee-metric-value" id="teeMetricTemp">—</strong>
+            </div>
+            <div class="ff-tee-metric">
+              <span class="ff-tee-metric-icon" aria-hidden="true">💥</span>
+              <span class="ff-tee-metric-label">Gusts</span>
+              <strong class="ff-tee-metric-value" id="teeMetricGust">—</strong>
+            </div>
+          </div>
+
+          <!-- Summary text -->
+          <p class="ff-tee-strip-summary" id="teeTimeSummary" aria-live="polite">
+            Select a tee time to see conditions for your round.
+          </p>
+          <span id="teeTimeDesc" class="ff-sr-only">Shows weather conditions for a 4-hour round starting at the selected time</span>
+        </div>
+      </section>
       
       <!-- ================= ADVANCED OPTIONS ================= -->
       <section id="advancedSection" class="ff-advanced" style="display:none;">

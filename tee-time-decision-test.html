@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tee-Time Decision Strip - Test Scenarios</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #E4EEE9;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1, h2 { color: #071512; }
+    .scenario {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(6,24,20,.12);
+    }
+    .scenario h3 {
+      margin-top: 0;
+      color: #0F766E;
+    }
+    .input-data, .output-data {
+      background: #f5f5f5;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 12px 0;
+      font-family: monospace;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+    .output-data { background: #e8f5e9; }
+    .output-data.risky { background: #fff8e1; }
+    .output-data.no-chance { background: #ffebee; }
+    .status-play { color: #15803d; font-weight: bold; }
+    .status-risky { color: #a16207; font-weight: bold; }
+    .status-no-chance { color: #dc2626; font-weight: bold; }
+    pre { margin: 0; white-space: pre-wrap; }
+    .result { margin-top: 10px; padding: 10px; border-left: 4px solid #0F766E; }
+    .result.risky { border-left-color: #f59e0b; }
+    .result.no-chance { border-left-color: #dc2626; }
+  </style>
+</head>
+<body>
+  <h1>🏌️ Tee-Time Decision Strip - Test Scenarios</h1>
+  <p>This page demonstrates the Tee-Time Decision Strip component with 3 example forecast scenarios.</p>
+
+  <div class="scenario">
+    <h3>Scenario 1: PLAY - Perfect Conditions</h3>
+    <p>A beautiful day with minimal rain chance and light winds.</p>
+    
+    <div class="input-data">
+      <strong>Input Forecast (4-hour window from 09:00):</strong>
+      <pre>
+[
+  { timeISO: "2026-01-01T09:00:00Z", tempC: 18, feelsLikeC: 17, windMph: 8, gustMph: 12, precipProbPct: 5, precipMm: 0 },
+  { timeISO: "2026-01-01T10:00:00Z", tempC: 19, feelsLikeC: 18, windMph: 10, gustMph: 14, precipProbPct: 10, precipMm: 0 },
+  { timeISO: "2026-01-01T11:00:00Z", tempC: 20, feelsLikeC: 19, windMph: 9, gustMph: 13, precipProbPct: 8, precipMm: 0 },
+  { timeISO: "2026-01-01T12:00:00Z", tempC: 21, feelsLikeC: 20, windMph: 7, gustMph: 11, precipProbPct: 5, precipMm: 0 }
+]
+      </pre>
+    </div>
+    
+    <div class="output-data">
+      <strong>Expected Output:</strong>
+      <div class="result">
+        <p><span class="status-play">✅ PLAY</span></p>
+        <p><strong>Metrics:</strong></p>
+        <ul>
+          <li>Rain: 10% (max probability)</li>
+          <li>Wind: 9 mph (average)</li>
+          <li>Temp: 20°C (average)</li>
+          <li>Gusts: 14 mph (max)</li>
+        </ul>
+        <p><strong>Summary:</strong> "Dry window likely. Light winds."</p>
+        <p><strong>Reasons:</strong> None (all conditions good)</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>Scenario 2: RISKY - Marginal Conditions</h3>
+    <p>Showers possible with gusty winds. Playable but challenging.</p>
+    
+    <div class="input-data">
+      <strong>Input Forecast (4-hour window from 14:00):</strong>
+      <pre>
+[
+  { timeISO: "2026-01-01T14:00:00Z", tempC: 15, feelsLikeC: 13, windMph: 16, gustMph: 26, precipProbPct: 45, precipMm: 0.2 },
+  { timeISO: "2026-01-01T15:00:00Z", tempC: 14, feelsLikeC: 11, windMph: 19, gustMph: 28, precipProbPct: 55, precipMm: 0.5 },
+  { timeISO: "2026-01-01T16:00:00Z", tempC: 14, feelsLikeC: 10, windMph: 20, gustMph: 30, precipProbPct: 60, precipMm: 0.6 },
+  { timeISO: "2026-01-01T17:00:00Z", tempC: 13, feelsLikeC: 9, windMph: 18, gustMph: 27, precipProbPct: 50, precipMm: 0.3 }
+]
+      </pre>
+    </div>
+    
+    <div class="output-data risky">
+      <strong>Expected Output:</strong>
+      <div class="result risky">
+        <p><span class="status-risky">⚠️ RISKY</span></p>
+        <p><strong>Metrics:</strong></p>
+        <ul>
+          <li>Rain: 60% (max probability)</li>
+          <li>Wind: 18 mph (average)</li>
+          <li>Temp: 14°C (average)</li>
+          <li>Gusts: 30 mph (max)</li>
+        </ul>
+        <p><strong>Summary:</strong> "Showers possible. Gusty crosswinds."</p>
+        <p><strong>Reasons:</strong></p>
+        <ul>
+          <li>Rain chance 60%</li>
+          <li>Gusty winds (up to 30mph)</li>
+          <li>Strong sustained wind (~18mph)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>Scenario 3: NO CHANCE - Severe Weather</h3>
+    <p>Heavy persistent rain with dangerous gusts. Not playable.</p>
+    
+    <div class="input-data">
+      <strong>Input Forecast (4-hour window from 10:00):</strong>
+      <pre>
+[
+  { timeISO: "2026-01-01T10:00:00Z", tempC: 8, feelsLikeC: 3, windMph: 28, gustMph: 42, precipProbPct: 90, precipMm: 2.5 },
+  { timeISO: "2026-01-01T11:00:00Z", tempC: 7, feelsLikeC: 2, windMph: 30, gustMph: 45, precipProbPct: 95, precipMm: 3.0 },
+  { timeISO: "2026-01-01T12:00:00Z", tempC: 7, feelsLikeC: 1, windMph: 32, gustMph: 48, precipProbPct: 92, precipMm: 2.8 },
+  { timeISO: "2026-01-01T13:00:00Z", tempC: 8, feelsLikeC: 3, windMph: 26, gustMph: 38, precipProbPct: 85, precipMm: 1.5 }
+]
+      </pre>
+    </div>
+    
+    <div class="output-data no-chance">
+      <strong>Expected Output:</strong>
+      <div class="result no-chance">
+        <p><span class="status-no-chance">⛔ NO CHANCE</span></p>
+        <p><strong>Metrics:</strong></p>
+        <ul>
+          <li>Rain: 95% (max probability)</li>
+          <li>Wind: 29 mph (average)</li>
+          <li>Temp: 8°C (average)</li>
+          <li>Gusts: 48 mph (max)</li>
+        </ul>
+        <p><strong>Summary:</strong> "Persistent rain. Strong gusts—expect disruption."</p>
+        <p><strong>Reasons:</strong></p>
+        <ul>
+          <li>Heavy rain expected (~9.8mm)</li>
+          <li>Dangerous gusts (up to 48mph)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h2>Decision Logic Reference</h2>
+  <div class="scenario">
+    <h3>Thresholds (Easy to Tweak)</h3>
+    <div class="input-data">
+      <pre>
+// NO CHANCE if any of:
+- totalPrecipMm >= 4.0
+- maxPrecipProb >= 80 AND totalPrecipMm >= 1.5
+- maxGust >= 35 mph
+
+// RISKY if not NO CHANCE and any of:
+- totalPrecipMm between 1.5 and 4.0
+- maxPrecipProb between 50 and 79
+- maxGust between 25 and 34 mph
+- avgWind >= 18 mph
+
+// PLAY otherwise
+      </pre>
+    </div>
+  </div>
+
+  <h2>Usage Example</h2>
+  <div class="scenario">
+    <h3>JavaScript API</h3>
+    <div class="input-data">
+      <pre>
+// The helper function is available in app.js:
+// calculateTeeTimeDecision(hourlyForecast, teeTimeUnix, timezoneOffset)
+
+// Example usage:
+const forecast = [
+  { dt: 1735725600, temp: 18, pop: 0.05, wind_speed: 3.6, rain_mm: 0 },
+  { dt: 1735729200, temp: 19, pop: 0.10, wind_speed: 4.5, rain_mm: 0 },
+  // ... more hourly data
+];
+
+const teeTime = 1735725600; // Unix timestamp
+const tzOffset = 0; // Timezone offset in seconds
+
+const result = calculateTeeTimeDecision(forecast, teeTime, tzOffset);
+
+// result = {
+//   status: "PLAY",           // "PLAY" | "RISKY" | "NO_CHANCE"
+//   statusLabel: "PLAY",      // Display label
+//   icon: "✅",               // Emoji icon
+//   metrics: {
+//     maxPrecipProb: 10,      // Max rain probability (%)
+//     totalPrecipMm: 0,       // Total precipitation (mm)
+//     avgWind: 9,             // Average wind (mph)
+//     maxGust: 14,            // Max gust (mph)
+//     avgTemp: 19,            // Average temp (°C or °F)
+//     feelsLike: 18           // Feels like temp
+//   },
+//   reasons: [],              // Array of reason strings
+//   summary: "Dry window likely. Light winds."
+// }
+      </pre>
+    </div>
+  </div>
+
+  <h2>Integration Notes</h2>
+  <div class="scenario">
+    <p>The Tee-Time Decision Strip is automatically rendered when:</p>
+    <ul>
+      <li>A location/course is selected and weather data is loaded</li>
+      <li>The component appears below the forecast tabs</li>
+      <li>The time selector shows available tee times during daylight hours</li>
+      <li>Selecting a new time instantly updates all metrics and the decision</li>
+    </ul>
+    
+    <p><strong>Accessibility features:</strong></p>
+    <ul>
+      <li>ARIA labels on the time selector</li>
+      <li>Screen reader descriptions for the decision</li>
+      <li>Color is not the only indicator (icons + text included)</li>
+      <li>Metric labels are always visible</li>
+    </ul>
+    
+    <p><strong>Mobile-first design:</strong></p>
+    <ul>
+      <li>Touch-friendly 44px minimum tap targets</li>
+      <li>Responsive grid layout for metrics</li>
+      <li>Stacked layout on narrow screens</li>
+      <li>Screenshot-friendly compact design</li>
+    </ul>
+  </div>
+
+  <script>
+    // Test the decision logic with mock data
+    console.log("🏌️ Tee-Time Decision Strip Test Scenarios");
+    console.log("=========================================");
+    console.log("");
+    console.log("These scenarios demonstrate the expected behavior.");
+    console.log("Open the main app (index.html) to see the component in action.");
+  </script>
+</body>
+</html>
