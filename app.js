@@ -1160,6 +1160,461 @@
     return { status: "NO", label: "No-play recommended", reason: best ? "Poor overall conditions" : "Rain likely throughout daylight", best };
   }
 
+  /* =========================================================
+     TEE-TIME DECISION STRIP
+     Computes PLAY / RISKY / NO CHANCE for a selected tee time
+     ========================================================= */
+
+  // Thresholds (easy to tweak)
+  const TEE_TIME_THRESHOLDS = {
+    // NO CHANCE thresholds
+    noChance: {
+      totalPrecipMm: 4.0,
+      precipProbAndRainMm: { prob: 80, mm: 1.5 },
+      maxGust: 35, // mph
+    },
+    // RISKY thresholds
+    risky: {
+      totalPrecipMmMin: 1.5,
+      totalPrecipMmMax: 4.0,
+      precipProbMin: 50,
+      precipProbMax: 79,
+      maxGustMin: 25,
+      maxGustMax: 34,
+      avgWind: 18, // mph
+    }
+  };
+
+  /**
+   * Calculate tee-time decision for a 4-hour window
+   * @param {Array} hourlyForecast - Array of hourly forecast data
+   * @param {number} teeTimeUnix - Unix timestamp (seconds) of tee time
+   * @param {number} timezoneOffset - Timezone offset in seconds
+   * @returns {Object} Decision result with status, metrics, reasons, and summary
+   */
+  function calculateTeeTimeDecision(hourlyForecast, teeTimeUnix, timezoneOffset = 0) {
+    const WINDOW_HOURS = 4;
+    const windowEnd = teeTimeUnix + (WINDOW_HOURS * 3600);
+
+    // Filter hourly data within the tee time window
+    const windowData = (hourlyForecast || []).filter(h => {
+      const dt = h?.dt;
+      return typeof dt === "number" && dt >= teeTimeUnix && dt < windowEnd;
+    });
+
+    // Default result if no data
+    if (windowData.length === 0) {
+      return {
+        status: "UNKNOWN",
+        statusLabel: "No Data",
+        icon: "❓",
+        metrics: {
+          maxPrecipProb: null,
+          totalPrecipMm: null,
+          avgWind: null,
+          maxGust: null,
+          avgTemp: null,
+          feelsLike: null
+        },
+        reasons: [],
+        summary: "No forecast data available for this time window."
+      };
+    }
+
+    // Calculate metrics from window data
+    const precipProbs = windowData
+      .map(h => typeof h.pop === "number" ? Math.round(h.pop * 100) : null)
+      .filter(v => v !== null);
+    const precipMms = windowData
+      .map(h => typeof h.rain_mm === "number" ? h.rain_mm : 0);
+    const windSpeeds = windowData
+      .map(h => {
+        if (typeof h.wind_speed !== "number") return null;
+        // Convert to mph if in m/s
+        return units() === "metric" ? h.wind_speed * 2.237 : h.wind_speed;
+      })
+      .filter(v => v !== null);
+    const gustSpeeds = windowData
+      .map(h => {
+        // Try wind_gust first, then check for gust in wind object
+        const gust = h?.wind_gust ?? h?.gust;
+        if (typeof gust !== "number") return null;
+        return units() === "metric" ? gust * 2.237 : gust;
+      })
+      .filter(v => v !== null);
+    const temps = windowData
+      .map(h => typeof h.temp === "number" ? h.temp : null)
+      .filter(v => v !== null);
+    const feelsLikes = windowData
+      .map(h => typeof h.feels_like === "number" ? h.feels_like : null)
+      .filter(v => v !== null);
+
+    // Compute aggregates
+    const maxPrecipProb = precipProbs.length > 0 ? Math.max(...precipProbs) : 0;
+    const totalPrecipMm = precipMms.reduce((sum, v) => sum + v, 0);
+    const avgWind = windSpeeds.length > 0
+      ? windSpeeds.reduce((sum, v) => sum + v, 0) / windSpeeds.length
+      : 0;
+    const maxGust = gustSpeeds.length > 0 ? Math.max(...gustSpeeds) : avgWind * 1.3; // Estimate gusts if not available
+    const avgTemp = temps.length > 0
+      ? temps.reduce((sum, v) => sum + v, 0) / temps.length
+      : null;
+    const avgFeelsLike = feelsLikes.length > 0
+      ? feelsLikes.reduce((sum, v) => sum + v, 0) / feelsLikes.length
+      : avgTemp;
+
+    const metrics = {
+      maxPrecipProb: Math.round(maxPrecipProb),
+      totalPrecipMm: Math.round(totalPrecipMm * 10) / 10,
+      avgWind: Math.round(avgWind),
+      maxGust: Math.round(maxGust),
+      avgTemp: avgTemp !== null ? Math.round(avgTemp) : null,
+      feelsLike: avgFeelsLike !== null ? Math.round(avgFeelsLike) : null
+    };
+
+    // Decision logic
+    const T = TEE_TIME_THRESHOLDS;
+    const reasons = [];
+    let status = "PLAY";
+
+    // Check NO CHANCE conditions
+    if (totalPrecipMm >= T.noChance.totalPrecipMm) {
+      status = "NO_CHANCE";
+      reasons.push(`Heavy rain expected (~${metrics.totalPrecipMm}mm)`);
+    } else if (maxPrecipProb >= T.noChance.precipProbAndRainMm.prob && 
+               totalPrecipMm >= T.noChance.precipProbAndRainMm.mm) {
+      status = "NO_CHANCE";
+      reasons.push(`Rain very likely (${metrics.maxPrecipProb}%) with ~${metrics.totalPrecipMm}mm expected`);
+    } else if (maxGust >= T.noChance.maxGust) {
+      status = "NO_CHANCE";
+      reasons.push(`Dangerous gusts (up to ${metrics.maxGust}mph)`);
+    }
+
+    // Check RISKY conditions (if not already NO CHANCE)
+    if (status !== "NO_CHANCE") {
+      if (totalPrecipMm >= T.risky.totalPrecipMmMin && totalPrecipMm < T.risky.totalPrecipMmMax) {
+        status = "RISKY";
+        reasons.push(`~${metrics.totalPrecipMm}mm rain expected`);
+      }
+      if (maxPrecipProb >= T.risky.precipProbMin && maxPrecipProb <= T.risky.precipProbMax) {
+        status = "RISKY";
+        if (!reasons.some(r => r.includes("rain"))) {
+          reasons.push(`Rain chance ${metrics.maxPrecipProb}%`);
+        }
+      }
+      if (maxGust >= T.risky.maxGustMin && maxGust <= T.risky.maxGustMax) {
+        status = "RISKY";
+        reasons.push(`Gusty winds (up to ${metrics.maxGust}mph)`);
+      }
+      if (avgWind >= T.risky.avgWind) {
+        status = "RISKY";
+        if (!reasons.some(r => r.includes("wind") || r.includes("gust"))) {
+          reasons.push(`Strong sustained wind (~${metrics.avgWind}mph)`);
+        }
+      }
+    }
+
+    // Build human-readable summary
+    let summary = "";
+    if (status === "PLAY") {
+      const parts = [];
+      if (maxPrecipProb < 20) {
+        parts.push("Dry window likely");
+      } else if (maxPrecipProb < 40) {
+        parts.push("Mostly dry");
+      }
+      if (avgWind < 10) {
+        parts.push("Light winds");
+      } else if (avgWind < 15) {
+        parts.push("Moderate breeze");
+      } else {
+        parts.push("Breezy");
+      }
+      summary = parts.join(". ") + ".";
+    } else if (status === "RISKY") {
+      const parts = [];
+      if (maxPrecipProb >= 50 || totalPrecipMm >= 1) {
+        parts.push("Showers possible");
+      }
+      if (maxGust >= 25 || avgWind >= 18) {
+        parts.push("Gusty crosswinds");
+      }
+      if (parts.length === 0) {
+        parts.push("Marginal conditions");
+      }
+      summary = parts.join(". ") + ".";
+    } else { // NO_CHANCE
+      const parts = [];
+      if (totalPrecipMm >= 4 || maxPrecipProb >= 80) {
+        parts.push("Persistent rain");
+      }
+      if (maxGust >= 35) {
+        parts.push("Strong gusts—expect disruption");
+      }
+      if (parts.length === 0) {
+        parts.push("Poor conditions for golf");
+      }
+      summary = parts.join(". ") + ".";
+    }
+
+    // Map status to display values
+    const statusMap = {
+      PLAY: { label: "PLAY", icon: "✅" },
+      RISKY: { label: "RISKY", icon: "⚠️" },
+      NO_CHANCE: { label: "NO CHANCE", icon: "⛔" },
+      UNKNOWN: { label: "—", icon: "❓" }
+    };
+    const display = statusMap[status] || statusMap.UNKNOWN;
+
+    return {
+      status,
+      statusLabel: display.label,
+      icon: display.icon,
+      metrics,
+      reasons,
+      summary
+    };
+  }
+
+  /**
+   * Generate available tee time options based on forecast data
+   * @param {Object} norm - Normalized weather data
+   * @returns {Array} Array of {value: unixTimestamp, label: "HH:MM"}
+   */
+  function generateTeeTimeOptions(norm) {
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    const sunrise = norm?.sunrise;
+    const sunset = norm?.sunset;
+    const tzOffset = norm?.timezoneOffset || 0;
+
+    if (hourly.length === 0) return [];
+
+    const options = [];
+    const now = nowSec();
+    
+    // Get min/max timestamps from hourly data
+    const timestamps = hourly.map(h => h.dt).filter(dt => typeof dt === "number");
+    if (timestamps.length === 0) return [];
+    
+    const minDt = Math.min(...timestamps);
+    const maxDt = Math.max(...timestamps);
+
+    // Generate options every 30 minutes during daylight hours
+    // Start from sunrise + 1h (or now, whichever is later)
+    const today = new Date(now * 1000);
+    today.setHours(0, 0, 0, 0);
+    const todayStart = Math.floor(today.getTime() / 1000);
+
+    for (let day = 0; day < 5; day++) {
+      const dayStart = todayStart + (day * 86400);
+      
+      // Estimate sunrise/sunset for this day
+      const estSunrise = sunrise ? (sunrise + (day * 86400)) : (dayStart + 6 * 3600);
+      const estSunset = sunset ? (sunset + (day * 86400)) : (dayStart + 20 * 3600);
+      
+      // Start from 1 hour after sunrise, end 4 hours before sunset (need 4h window)
+      const dayPlayStart = estSunrise + 3600;
+      const dayPlayEnd = estSunset - (4 * 3600);
+
+      // Generate 30-min slots
+      for (let slot = dayPlayStart; slot <= dayPlayEnd; slot += 1800) {
+        // Skip if in the past
+        if (slot < now) continue;
+        
+        // Skip if outside forecast range
+        if (slot < minDt || slot > maxDt) continue;
+
+        // Format the time in course local timezone
+        const courseDate = new Date((slot + tzOffset) * 1000);
+        const hours = courseDate.getUTCHours().toString().padStart(2, '0');
+        const mins = courseDate.getUTCMinutes().toString().padStart(2, '0');
+        
+        // Get day label
+        const slotDate = new Date(slot * 1000);
+        const isToday = slotDate.toDateString() === new Date().toDateString();
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const isTomorrow = slotDate.toDateString() === tomorrow.toDateString();
+        
+        let dayLabel = slotDate.toLocaleDateString([], { weekday: "short" });
+        if (isToday) dayLabel = "Today";
+        if (isTomorrow) dayLabel = "Tomorrow";
+
+        options.push({
+          value: slot,
+          label: `${dayLabel} ${hours}:${mins}`
+        });
+      }
+    }
+
+    return options;
+  }
+
+  // State for tee time strip
+  let selectedTeeTime = null;
+
+  /**
+   * Render the Tee-Time Decision Strip
+   * @param {Object} norm - Normalized weather data
+   */
+  function renderTeeTimeStrip(norm) {
+    const section = $("teeTimeStripSection");
+    const statusEl = $("teeTimeStatus");
+    const iconEl = $("teeTimeIcon");
+    const labelEl = $("teeTimeLabel");
+    const selectEl = $("teeTimeSelect");
+    const summaryEl = $("teeTimeSummary");
+    const rainMetric = $("teeMetricRain");
+    const windMetric = $("teeMetricWind");
+    const tempMetric = $("teeMetricTemp");
+    const gustMetric = $("teeMetricGust");
+
+    if (!section || !selectEl) return;
+
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    
+    // Hide if no hourly data
+    if (hourly.length === 0) {
+      section.style.display = "none";
+      return;
+    }
+
+    // Show the section
+    section.style.display = "block";
+
+    // Generate tee time options
+    const options = generateTeeTimeOptions(norm);
+    
+    if (options.length === 0) {
+      section.style.display = "none";
+      return;
+    }
+
+    // Populate select if empty or different
+    const currentOptions = Array.from(selectEl.options).map(o => o.value).join(",");
+    const newOptions = options.map(o => o.value).join(",");
+    
+    if (currentOptions !== newOptions) {
+      selectEl.innerHTML = options.map(opt => 
+        `<option value="${opt.value}">${esc(opt.label)}</option>`
+      ).join("");
+      
+      // Set default to first available option (or last selected if still valid)
+      if (selectedTeeTime && options.some(o => o.value === selectedTeeTime)) {
+        selectEl.value = selectedTeeTime;
+      } else {
+        selectedTeeTime = options[0]?.value || null;
+        selectEl.value = selectedTeeTime;
+      }
+    }
+
+    // Calculate decision for selected tee time
+    if (!selectedTeeTime || !options.some(o => o.value === selectedTeeTime)) {
+      selectedTeeTime = options[0]?.value || null;
+    }
+
+    const decision = calculateTeeTimeDecision(hourly, selectedTeeTime, norm?.timezoneOffset || 0);
+
+    // Update status pill
+    statusEl.classList.remove(
+      "ff-tee-strip-status--play",
+      "ff-tee-strip-status--risky", 
+      "ff-tee-strip-status--no-chance"
+    );
+    
+    if (decision.status === "PLAY") {
+      statusEl.classList.add("ff-tee-strip-status--play");
+    } else if (decision.status === "RISKY") {
+      statusEl.classList.add("ff-tee-strip-status--risky");
+    } else if (decision.status === "NO_CHANCE") {
+      statusEl.classList.add("ff-tee-strip-status--no-chance");
+    }
+
+    if (iconEl) iconEl.textContent = decision.icon;
+    if (labelEl) labelEl.textContent = decision.statusLabel;
+
+    // Update metrics
+    const metricsContainer = $("teeTimeMetrics");
+    const metricEls = metricsContainer?.querySelectorAll(".ff-tee-metric");
+    
+    // Rain metric
+    if (rainMetric) {
+      rainMetric.textContent = decision.metrics.maxPrecipProb !== null 
+        ? `${decision.metrics.maxPrecipProb}%` 
+        : "—";
+      const rainParent = rainMetric.closest(".ff-tee-metric");
+      if (rainParent) {
+        rainParent.classList.remove("ff-tee-metric--warning", "ff-tee-metric--danger");
+        if (decision.metrics.maxPrecipProb >= 80) {
+          rainParent.classList.add("ff-tee-metric--danger");
+        } else if (decision.metrics.maxPrecipProb >= 50) {
+          rainParent.classList.add("ff-tee-metric--warning");
+        }
+      }
+    }
+
+    // Wind metric
+    if (windMetric) {
+      windMetric.textContent = decision.metrics.avgWind !== null 
+        ? `${decision.metrics.avgWind} mph` 
+        : "—";
+      const windParent = windMetric.closest(".ff-tee-metric");
+      if (windParent) {
+        windParent.classList.remove("ff-tee-metric--warning", "ff-tee-metric--danger");
+        if (decision.metrics.avgWind >= 25) {
+          windParent.classList.add("ff-tee-metric--danger");
+        } else if (decision.metrics.avgWind >= 18) {
+          windParent.classList.add("ff-tee-metric--warning");
+        }
+      }
+    }
+
+    // Temperature metric
+    if (tempMetric) {
+      tempMetric.textContent = decision.metrics.avgTemp !== null 
+        ? `${decision.metrics.avgTemp}${tempUnit()}` 
+        : "—";
+    }
+
+    // Gust metric
+    if (gustMetric) {
+      gustMetric.textContent = decision.metrics.maxGust !== null 
+        ? `${decision.metrics.maxGust} mph` 
+        : "—";
+      const gustParent = gustMetric.closest(".ff-tee-metric");
+      if (gustParent) {
+        gustParent.classList.remove("ff-tee-metric--warning", "ff-tee-metric--danger");
+        if (decision.metrics.maxGust >= 35) {
+          gustParent.classList.add("ff-tee-metric--danger");
+        } else if (decision.metrics.maxGust >= 25) {
+          gustParent.classList.add("ff-tee-metric--warning");
+        }
+      }
+    }
+
+    // Update summary
+    if (summaryEl) {
+      summaryEl.textContent = decision.summary;
+    }
+
+    // Add pulse animation on change
+    statusEl.classList.add("ff-tee-status-updated");
+    setTimeout(() => statusEl.classList.remove("ff-tee-status-updated"), 400);
+  }
+
+  // Wire up tee time selector
+  function wireTeeTimeSelector() {
+    const selectEl = $("teeTimeSelect");
+    if (!selectEl) return;
+
+    selectEl.addEventListener("change", () => {
+      selectedTeeTime = Number(selectEl.value);
+      if (lastNorm) {
+        renderTeeTimeStrip(lastNorm);
+      }
+    });
+  }
+
   function calculateVerdict(norm) {
     if (!norm?.current) return { status: "NO", label: "No-play recommended", reason: "Weather data unavailable", best: null, isNighttime: false };
 
@@ -2271,6 +2726,11 @@
     wireHeaderButtons();
     wireDailyRows();
     wireNearbyCourses();
+    
+    // Render Tee-Time Decision Strip
+    if (lastNorm) {
+      renderTeeTimeStrip(lastNorm);
+    }
   }
   
   function wireNearbyCourses() {
@@ -2673,6 +3133,7 @@
       try {
         renderVerdictCard(lastNorm);
         renderPlayability(lastNorm);
+        renderTeeTimeStrip(lastNorm);
         clearSearchResults();
         renderAll();
         console.log("[Weather] Render complete");
@@ -2895,6 +3356,7 @@
     console.log("🚀 [Init] Starting Fairway Forecast...");
     renderVerdictCard(null);
     renderPlayability(null);
+    wireTeeTimeSelector();
     renderAll();
     console.log("✅ [Init] Fairway Forecast ready!");
     
