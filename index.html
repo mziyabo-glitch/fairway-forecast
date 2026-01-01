@@ -230,14 +230,25 @@
       <!-- ================= TEE-TIME DECISION STRIP ================= -->
       <section id="teeTimeStripSection" class="ff-tee-time-strip" style="display:none;" aria-label="Tee time decision">
         <div class="ff-tee-strip-card">
-          <!-- Top row: Status + Time selector -->
+          <!-- Top row: Status pill + Date chips -->
           <div class="ff-tee-strip-header">
             <div class="ff-tee-strip-status" id="teeTimeStatus">
               <span class="ff-tee-status-icon" id="teeTimeIcon" aria-hidden="true">⏳</span>
               <span class="ff-tee-status-label" id="teeTimeLabel">Select tee time</span>
             </div>
+            <!-- Date chip selector -->
+            <div class="ff-tee-date-chips" id="teeDateChips" role="group" aria-label="Select date">
+              <!-- Date chips populated by JS -->
+            </div>
+          </div>
+
+          <!-- Time selector row -->
+          <div class="ff-tee-time-row">
+            <label class="ff-tee-time-label">
+              <span class="ff-tee-time-icon" aria-hidden="true">🕐</span>
+              Tee Time
+            </label>
             <div class="ff-tee-time-selector" role="group" aria-label="Select tee time">
-              <label for="teeTimeSelect" class="ff-sr-only">Tee time</label>
               <select id="teeTimeSelect" class="ff-tee-select" aria-describedby="teeTimeDesc">
                 <!-- Options populated by JS -->
               </select>
@@ -270,9 +281,9 @@
 
           <!-- Summary text -->
           <p class="ff-tee-strip-summary" id="teeTimeSummary" aria-live="polite">
-            Select a tee time to see conditions for your round.
+            Select a tee time to see conditions for your 3-hour round.
           </p>
-          <span id="teeTimeDesc" class="ff-sr-only">Shows weather conditions for a 4-hour round starting at the selected time</span>
+          <span id="teeTimeDesc" class="ff-sr-only">Shows weather conditions for a 3-hour round starting at the selected time. Only daylight tee times are available.</span>
         </div>
       </section>
       

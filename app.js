@@ -1163,7 +1163,14 @@
   /* =========================================================
      TEE-TIME DECISION STRIP
      Computes PLAY / RISKY / NO CHANCE for a selected tee time
+     Supports date + time selection with daylight enforcement
      ========================================================= */
+
+  // Round duration in hours (3-hour round)
+  const ROUND_DURATION_HOURS = 3;
+
+  // Fallback daylight window (08:00 - 17:00) if sunrise/sunset unavailable
+  const FALLBACK_DAYLIGHT = { startHour: 8, endHour: 17 };
 
   // Thresholds (easy to tweak)
   const TEE_TIME_THRESHOLDS = {
@@ -1186,14 +1193,180 @@
   };
 
   /**
-   * Calculate tee-time decision for a 4-hour window
+   * Get the number of distinct forecast days available
+   * @param {Object} norm - Normalized weather data
+   * @returns {number} Number of days with forecast data (max 7)
+   */
+  function getForecastDaysAvailable(norm) {
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    if (hourly.length === 0) return 0;
+
+    const timestamps = hourly.map(h => h?.dt).filter(dt => typeof dt === "number");
+    if (timestamps.length === 0) return 0;
+
+    const minDt = Math.min(...timestamps);
+    const maxDt = Math.max(...timestamps);
+    
+    // Calculate distinct days
+    const days = new Set();
+    for (const dt of timestamps) {
+      const date = new Date(dt * 1000);
+      days.add(date.toDateString());
+    }
+    
+    return Math.min(days.size, 7);
+  }
+
+  /**
+   * Get daylight window for a specific date
+   * Uses sunrise/sunset if available, otherwise fallback to 08:00-17:00
+   * @param {Date} date - The date to get daylight for
+   * @param {Object} norm - Normalized weather data with sunrise/sunset
+   * @returns {Object} { sunrise: unixSeconds, sunset: unixSeconds }
+   */
+  function getDaylightWindowForDate(date, norm) {
+    const tzOffset = norm?.timezoneOffset || 0;
+    const baseSunrise = norm?.sunrise;
+    const baseSunset = norm?.sunset;
+    
+    // Get start of the target date
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+    const targetDayStart = Math.floor(targetDate.getTime() / 1000);
+    
+    // Get start of the base date (sunrise/sunset day)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStart = Math.floor(today.getTime() / 1000);
+    
+    // Calculate day offset from today
+    const dayOffset = Math.round((targetDayStart - todayStart) / 86400);
+    
+    let sunrise, sunset;
+    
+    if (typeof baseSunrise === "number" && typeof baseSunset === "number") {
+      // Estimate sunrise/sunset for future days (shift by day offset)
+      sunrise = baseSunrise + (dayOffset * 86400);
+      sunset = baseSunset + (dayOffset * 86400);
+    } else {
+      // Fallback: use 08:00-17:00 local time
+      sunrise = targetDayStart + (FALLBACK_DAYLIGHT.startHour * 3600);
+      sunset = targetDayStart + (FALLBACK_DAYLIGHT.endHour * 3600);
+    }
+    
+    return { sunrise, sunset };
+  }
+
+  /**
+   * Get valid tee times for a specific date (daylight only, 3h round must fit)
+   * @param {Date} date - The date to generate times for
+   * @param {Object} norm - Normalized weather data
+   * @param {number} stepMinutes - Step size in minutes (30 or 60)
+   * @returns {Array} Array of { value: unixSeconds, label: "HH:MM" }
+   */
+  function getValidTeeTimesForDate(date, norm, stepMinutes = 30) {
+    const tzOffset = norm?.timezoneOffset || 0;
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    
+    // Get forecast time range
+    const timestamps = hourly.map(h => h?.dt).filter(dt => typeof dt === "number");
+    if (timestamps.length === 0) return [];
+    
+    const forecastMin = Math.min(...timestamps);
+    const forecastMax = Math.max(...timestamps);
+    
+    // Get daylight window
+    const { sunrise, sunset } = getDaylightWindowForDate(date, norm);
+    
+    // Valid tee time range:
+    // - Start: sunrise + 30min (allow early birds)
+    // - End: sunset - ROUND_DURATION_HOURS (round must finish before sunset)
+    const playStart = sunrise + (30 * 60); // 30 min after sunrise
+    const playEnd = sunset - (ROUND_DURATION_HOURS * 3600); // 3h before sunset
+    
+    const now = nowSec();
+    const options = [];
+    const stepSeconds = stepMinutes * 60;
+    
+    for (let slot = playStart; slot <= playEnd; slot += stepSeconds) {
+      // Skip if in the past
+      if (slot < now) continue;
+      
+      // Skip if outside forecast range
+      if (slot < forecastMin || slot > forecastMax) continue;
+      
+      // Verify the full round is within daylight
+      const roundEnd = slot + (ROUND_DURATION_HOURS * 3600);
+      if (roundEnd > sunset) continue;
+      
+      // Format time in course local timezone
+      const courseDate = new Date((slot + tzOffset) * 1000);
+      const hours = courseDate.getUTCHours().toString().padStart(2, '0');
+      const mins = courseDate.getUTCMinutes().toString().padStart(2, '0');
+      
+      options.push({
+        value: slot,
+        label: `${hours}:${mins}`
+      });
+    }
+    
+    return options;
+  }
+
+  /**
+   * Get available dates for tee time selection
+   * @param {Object} norm - Normalized weather data
+   * @returns {Array} Array of { date: Date, label: "Today"/"Tomorrow"/"Sat 6", hasValidTimes: boolean }
+   */
+  function getAvailableDates(norm) {
+    const numDays = getForecastDaysAvailable(norm);
+    if (numDays === 0) return [];
+    
+    const dates = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let i = 0; i < numDays; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + i);
+      
+      // Check if this date has any valid tee times
+      const validTimes = getValidTeeTimesForDate(date, norm);
+      
+      // Generate label
+      let label;
+      if (i === 0) {
+        label = "Today";
+      } else if (i === 1) {
+        label = "Tomorrow";
+      } else {
+        const dayName = date.toLocaleDateString([], { weekday: "short" });
+        const dayNum = date.getDate();
+        label = `${dayName} ${dayNum}`;
+      }
+      
+      dates.push({
+        date,
+        dateKey: date.toDateString(),
+        label,
+        dayLabel: i === 0 ? "Today" : i === 1 ? "Tmrw" : date.toLocaleDateString([], { weekday: "short" }),
+        dateLabel: date.getDate().toString(),
+        hasValidTimes: validTimes.length > 0
+      });
+    }
+    
+    return dates;
+  }
+
+  /**
+   * Calculate tee-time decision for a 3-hour round window
    * @param {Array} hourlyForecast - Array of hourly forecast data
    * @param {number} teeTimeUnix - Unix timestamp (seconds) of tee time
-   * @param {number} timezoneOffset - Timezone offset in seconds
+   * @param {number} windowHours - Duration of round in hours (default 3)
    * @returns {Object} Decision result with status, metrics, reasons, and summary
    */
-  function calculateTeeTimeDecision(hourlyForecast, teeTimeUnix, timezoneOffset = 0) {
-    const WINDOW_HOURS = 4;
+  function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours = ROUND_DURATION_HOURS) {
+    const WINDOW_HOURS = windowHours;
     const windowEnd = teeTimeUnix + (WINDOW_HOURS * 3600);
 
     // Filter hourly data within the tee time window
@@ -1376,82 +1549,97 @@
     };
   }
 
-  /**
-   * Generate available tee time options based on forecast data
-   * @param {Object} norm - Normalized weather data
-   * @returns {Array} Array of {value: unixTimestamp, label: "HH:MM"}
-   */
-  function generateTeeTimeOptions(norm) {
-    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
-    const sunrise = norm?.sunrise;
-    const sunset = norm?.sunset;
-    const tzOffset = norm?.timezoneOffset || 0;
-
-    if (hourly.length === 0) return [];
-
-    const options = [];
-    const now = nowSec();
-    
-    // Get min/max timestamps from hourly data
-    const timestamps = hourly.map(h => h.dt).filter(dt => typeof dt === "number");
-    if (timestamps.length === 0) return [];
-    
-    const minDt = Math.min(...timestamps);
-    const maxDt = Math.max(...timestamps);
-
-    // Generate options every 30 minutes during daylight hours
-    // Start from sunrise + 1h (or now, whichever is later)
-    const today = new Date(now * 1000);
-    today.setHours(0, 0, 0, 0);
-    const todayStart = Math.floor(today.getTime() / 1000);
-
-    for (let day = 0; day < 5; day++) {
-      const dayStart = todayStart + (day * 86400);
-      
-      // Estimate sunrise/sunset for this day
-      const estSunrise = sunrise ? (sunrise + (day * 86400)) : (dayStart + 6 * 3600);
-      const estSunset = sunset ? (sunset + (day * 86400)) : (dayStart + 20 * 3600);
-      
-      // Start from 1 hour after sunrise, end 4 hours before sunset (need 4h window)
-      const dayPlayStart = estSunrise + 3600;
-      const dayPlayEnd = estSunset - (4 * 3600);
-
-      // Generate 30-min slots
-      for (let slot = dayPlayStart; slot <= dayPlayEnd; slot += 1800) {
-        // Skip if in the past
-        if (slot < now) continue;
-        
-        // Skip if outside forecast range
-        if (slot < minDt || slot > maxDt) continue;
-
-        // Format the time in course local timezone
-        const courseDate = new Date((slot + tzOffset) * 1000);
-        const hours = courseDate.getUTCHours().toString().padStart(2, '0');
-        const mins = courseDate.getUTCMinutes().toString().padStart(2, '0');
-        
-        // Get day label
-        const slotDate = new Date(slot * 1000);
-        const isToday = slotDate.toDateString() === new Date().toDateString();
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const isTomorrow = slotDate.toDateString() === tomorrow.toDateString();
-        
-        let dayLabel = slotDate.toLocaleDateString([], { weekday: "short" });
-        if (isToday) dayLabel = "Today";
-        if (isTomorrow) dayLabel = "Tomorrow";
-
-        options.push({
-          value: slot,
-          label: `${dayLabel} ${hours}:${mins}`
-        });
-      }
-    }
-
-    return options;
+  // Alias for backward compatibility
+  function calculateTeeTimeDecision(hourlyForecast, teeTimeUnix, timezoneOffset = 0) {
+    return computeTeeTimeDecision(hourlyForecast, teeTimeUnix, ROUND_DURATION_HOURS);
   }
 
   // State for tee time strip
   let selectedTeeTime = null;
+  let selectedTeeDate = null; // Date object
+
+  /**
+   * Render date chips for date selection
+   * @param {Object} norm - Normalized weather data
+   */
+  function renderDateChips(norm) {
+    const container = $("teeDateChips");
+    if (!container) return;
+
+    const availableDates = getAvailableDates(norm);
+    
+    if (availableDates.length === 0) {
+      container.innerHTML = "";
+      return;
+    }
+
+    // Set default selected date if not set or invalid
+    if (!selectedTeeDate || !availableDates.some(d => d.dateKey === selectedTeeDate.toDateString())) {
+      // Find first date with valid tee times
+      const firstValid = availableDates.find(d => d.hasValidTimes);
+      selectedTeeDate = firstValid ? firstValid.date : availableDates[0].date;
+    }
+
+    const chipsHtml = availableDates.map(d => {
+      const isSelected = d.dateKey === selectedTeeDate?.toDateString();
+      const isDisabled = !d.hasValidTimes;
+      
+      return `<button type="button" 
+        class="ff-tee-date-chip ${isSelected ? 'active' : ''} ${isDisabled ? 'disabled' : ''}"
+        data-date="${d.dateKey}"
+        ${isDisabled ? 'disabled' : ''}
+        aria-pressed="${isSelected}"
+        aria-label="${d.label}${isDisabled ? ' (no available times)' : ''}">
+        <span class="ff-tee-date-chip-day">${esc(d.dayLabel)}</span>
+        <span class="ff-tee-date-chip-date">${esc(d.dateLabel)}</span>
+      </button>`;
+    }).join("");
+
+    container.innerHTML = chipsHtml;
+
+    // Wire up date chip clicks
+    container.querySelectorAll(".ff-tee-date-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        const dateKey = chip.getAttribute("data-date");
+        const dateInfo = availableDates.find(d => d.dateKey === dateKey);
+        if (dateInfo && dateInfo.hasValidTimes) {
+          selectedTeeDate = dateInfo.date;
+          renderTeeTimeStrip(norm);
+        }
+      });
+    });
+  }
+
+  /**
+   * Find the nearest valid tee time when switching dates
+   * @param {Array} options - Available tee time options
+   * @param {number} preferredTime - Previously selected time (unix seconds)
+   * @returns {number|null} Best matching time or first available
+   */
+  function findNearestValidTime(options, preferredTime) {
+    if (options.length === 0) return null;
+    if (!preferredTime) return options[0]?.value || null;
+
+    // Extract hour:minute from preferred time
+    const prefDate = new Date(preferredTime * 1000);
+    const prefMinutes = prefDate.getHours() * 60 + prefDate.getMinutes();
+
+    let closest = options[0];
+    let closestDiff = Infinity;
+
+    for (const opt of options) {
+      const optDate = new Date(opt.value * 1000);
+      const optMinutes = optDate.getHours() * 60 + optDate.getMinutes();
+      const diff = Math.abs(optMinutes - prefMinutes);
+      
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closest = opt;
+      }
+    }
+
+    return closest?.value || options[0]?.value || null;
+  }
 
   /**
    * Render the Tee-Time Decision Strip
@@ -1469,7 +1657,7 @@
     const tempMetric = $("teeMetricTemp");
     const gustMetric = $("teeMetricGust");
 
-    if (!section || !selectEl) return;
+    if (!section) return;
 
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     
@@ -1479,65 +1667,94 @@
       return;
     }
 
-    // Show the section
-    section.style.display = "block";
-
-    // Generate tee time options
-    const options = generateTeeTimeOptions(norm);
-    
-    if (options.length === 0) {
+    // Get available dates
+    const availableDates = getAvailableDates(norm);
+    if (availableDates.length === 0 || !availableDates.some(d => d.hasValidTimes)) {
       section.style.display = "none";
       return;
     }
 
-    // Populate select if empty or different
-    const currentOptions = Array.from(selectEl.options).map(o => o.value).join(",");
-    const newOptions = options.map(o => o.value).join(",");
+    // Show the section
+    section.style.display = "block";
+
+    // Render date chips
+    renderDateChips(norm);
+
+    // Ensure selected date is valid
+    if (!selectedTeeDate || !availableDates.some(d => d.dateKey === selectedTeeDate.toDateString() && d.hasValidTimes)) {
+      const firstValid = availableDates.find(d => d.hasValidTimes);
+      selectedTeeDate = firstValid ? firstValid.date : null;
+    }
+
+    if (!selectedTeeDate) {
+      section.style.display = "none";
+      return;
+    }
+
+    // Get valid tee times for selected date
+    const timeOptions = getValidTeeTimesForDate(selectedTeeDate, norm);
     
-    if (currentOptions !== newOptions) {
-      selectEl.innerHTML = options.map(opt => 
-        `<option value="${opt.value}">${esc(opt.label)}</option>`
-      ).join("");
+    if (timeOptions.length === 0) {
+      if (selectEl) selectEl.innerHTML = '<option value="">No times available</option>';
+      return;
+    }
+
+    // Update time selector
+    if (selectEl) {
+      const currentOptions = Array.from(selectEl.options).map(o => o.value).join(",");
+      const newOptions = timeOptions.map(o => o.value).join(",");
       
-      // Set default to first available option (or last selected if still valid)
-      if (selectedTeeTime && options.some(o => o.value === selectedTeeTime)) {
-        selectEl.value = selectedTeeTime;
-      } else {
-        selectedTeeTime = options[0]?.value || null;
-        selectEl.value = selectedTeeTime;
+      if (currentOptions !== newOptions) {
+        selectEl.innerHTML = timeOptions.map(opt => 
+          `<option value="${opt.value}">${esc(opt.label)}</option>`
+        ).join("");
+        
+        // Find nearest valid time if current selection is invalid
+        if (selectedTeeTime && timeOptions.some(o => o.value === selectedTeeTime)) {
+          selectEl.value = selectedTeeTime;
+        } else {
+          selectedTeeTime = findNearestValidTime(timeOptions, selectedTeeTime);
+          selectEl.value = selectedTeeTime;
+        }
       }
     }
 
-    // Calculate decision for selected tee time
-    if (!selectedTeeTime || !options.some(o => o.value === selectedTeeTime)) {
-      selectedTeeTime = options[0]?.value || null;
+    // Ensure selected time is valid
+    if (!selectedTeeTime || !timeOptions.some(o => o.value === selectedTeeTime)) {
+      selectedTeeTime = timeOptions[0]?.value || null;
+      if (selectEl) selectEl.value = selectedTeeTime;
     }
 
-    const decision = calculateTeeTimeDecision(hourly, selectedTeeTime, norm?.timezoneOffset || 0);
+    if (!selectedTeeTime) return;
+
+    // Calculate decision for selected tee time (3-hour window)
+    const decision = computeTeeTimeDecision(hourly, selectedTeeTime, ROUND_DURATION_HOURS);
 
     // Update status pill
-    statusEl.classList.remove(
-      "ff-tee-strip-status--play",
-      "ff-tee-strip-status--risky", 
-      "ff-tee-strip-status--no-chance"
-    );
-    
-    if (decision.status === "PLAY") {
-      statusEl.classList.add("ff-tee-strip-status--play");
-    } else if (decision.status === "RISKY") {
-      statusEl.classList.add("ff-tee-strip-status--risky");
-    } else if (decision.status === "NO_CHANCE") {
-      statusEl.classList.add("ff-tee-strip-status--no-chance");
+    if (statusEl) {
+      statusEl.classList.remove(
+        "ff-tee-strip-status--play",
+        "ff-tee-strip-status--risky", 
+        "ff-tee-strip-status--no-chance"
+      );
+      
+      if (decision.status === "PLAY") {
+        statusEl.classList.add("ff-tee-strip-status--play");
+      } else if (decision.status === "RISKY") {
+        statusEl.classList.add("ff-tee-strip-status--risky");
+      } else if (decision.status === "NO_CHANCE") {
+        statusEl.classList.add("ff-tee-strip-status--no-chance");
+      }
+
+      // Add pulse animation on change
+      statusEl.classList.add("ff-tee-status-updated");
+      setTimeout(() => statusEl.classList.remove("ff-tee-status-updated"), 400);
     }
 
     if (iconEl) iconEl.textContent = decision.icon;
     if (labelEl) labelEl.textContent = decision.statusLabel;
 
     // Update metrics
-    const metricsContainer = $("teeTimeMetrics");
-    const metricEls = metricsContainer?.querySelectorAll(".ff-tee-metric");
-    
-    // Rain metric
     if (rainMetric) {
       rainMetric.textContent = decision.metrics.maxPrecipProb !== null 
         ? `${decision.metrics.maxPrecipProb}%` 
@@ -1553,7 +1770,6 @@
       }
     }
 
-    // Wind metric
     if (windMetric) {
       windMetric.textContent = decision.metrics.avgWind !== null 
         ? `${decision.metrics.avgWind} mph` 
@@ -1569,14 +1785,12 @@
       }
     }
 
-    // Temperature metric
     if (tempMetric) {
       tempMetric.textContent = decision.metrics.avgTemp !== null 
         ? `${decision.metrics.avgTemp}${tempUnit()}` 
         : "—";
     }
 
-    // Gust metric
     if (gustMetric) {
       gustMetric.textContent = decision.metrics.maxGust !== null 
         ? `${decision.metrics.maxGust} mph` 
@@ -1596,10 +1810,6 @@
     if (summaryEl) {
       summaryEl.textContent = decision.summary;
     }
-
-    // Add pulse animation on change
-    statusEl.classList.add("ff-tee-status-updated");
-    setTimeout(() => statusEl.classList.remove("ff-tee-status-updated"), 400);
   }
 
   // Wire up tee time selector

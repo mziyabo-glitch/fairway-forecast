@@ -1811,6 +1811,109 @@ button, input, select{ font: inherit; }
   border-color: rgba(239, 68, 68, 0.35);
 }
 
+/* Date chips row */
+.ff-tee-date-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.ff-tee-date-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.ff-tee-date-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 52px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.ff-tee-date-chip:hover {
+  background: var(--surface);
+  border-color: var(--brand);
+  color: var(--text);
+  transform: translateY(-1px);
+}
+
+.ff-tee-date-chip.active {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: #fff;
+  border-color: var(--brand);
+  box-shadow: 0 2px 8px rgba(15,118,110,.25);
+}
+
+.ff-tee-date-chip-day {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  opacity: 0.8;
+}
+
+.ff-tee-date-chip-date {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.ff-tee-date-chip.active .ff-tee-date-chip-day,
+.ff-tee-date-chip.active .ff-tee-date-chip-date {
+  opacity: 1;
+}
+
+/* Disabled date chip (no valid tee times) */
+.ff-tee-date-chip:disabled,
+.ff-tee-date-chip.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Time selector row */
+.ff-tee-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+.ff-tee-time-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ff-tee-time-icon {
+  font-size: 16px;
+}
+
 /* Time selector */
 .ff-tee-time-selector {
   flex-shrink: 0;
@@ -1944,6 +2047,27 @@ button, input, select{ font: inherit; }
   
   .ff-tee-strip-status {
     justify-content: center;
+  }
+  
+  .ff-tee-date-chips {
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  
+  .ff-tee-date-chip {
+    min-width: 48px;
+    padding: 5px 8px;
+  }
+  
+  .ff-tee-time-row {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  
+  .ff-tee-time-selector {
+    width: 100%;
   }
   
   .ff-tee-select {
