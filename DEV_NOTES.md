@@ -8,6 +8,22 @@ This document describes the static OSM-based course dataset implementation for G
 
 The `/dev` folder contains a standalone version of Fairway Forecast that uses **static JSON datasets** instead of API-based course search. This allows the app to work on GitHub Pages without any backend dependencies.
 
+### DEV Deployment Status
+
+- **DEV is live**: Updates in this repo deploy to the GitHub Pages path `/dev` (e.g. `fairwayweather.com/dev`).
+- **Production untouched**: Production files at the repo root are not modified as part of DEV-only deployments.
+
+### Countries available in DEV
+
+United Kingdom (GB), Ireland (IE), USA (US), Canada (CA), Australia (AU), New Zealand (NZ), South Africa (ZA), Zimbabwe (ZW),
+France (FR), Germany (DE), Spain (ES), Portugal (PT), Netherlands (NL),
+Sweden (SE), Denmark (DK), Norway (NO), Finland (FI),
+Italy (IT), Switzerland (CH), Austria (AT),
+UAE (AE), Morocco (MA), Turkey (TR),
+Japan (JP), South Korea (KR),
+Mexico (MX), Belgium (BE), Czechia (CZ), Poland (PL), Greece (GR),
+Thailand (TH), Malaysia (MY), Singapore (SG), India (IN), China (CN).
+
 ### Data Attribution
 
 **Course data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), licensed under ODbL.**
@@ -26,22 +42,49 @@ OSM attribution is displayed:
   styles.css              # With country selector styles
 
 /data/courses/            # Static course datasets
-  gb.json                 # UK courses
-  fr.json                 # France courses
-  de.json                 # Germany courses
-  se.json                 # Sweden courses
-  za.json                 # South Africa courses
-  au.json                 # Australia courses
+  gb.json                 # United Kingdom (GB)
+  ie.json                 # Ireland (IE)
+  fr.json                 # France (FR)
+  de.json                 # Germany (DE)
+  es.json                 # Spain (ES)
+  pt.json                 # Portugal (PT)
+  nl.json                 # Netherlands (NL)
+  se.json                 # Sweden (SE)
+  dk.json                 # Denmark (DK)
+  no.json                 # Norway (NO)
+  fi.json                 # Finland (FI)
+  it.json                 # Italy (IT)
+  ch.json                 # Switzerland (CH)
+  at.json                 # Austria (AT)
+  ae.json                 # UAE (AE)
+  ma.json                 # Morocco (MA)
+  tr.json                 # Turkey (TR)
+  jp.json                 # Japan (JP)
+  kr.json                 # South Korea (KR)
+  ca.json                 # Canada (CA)
+  nz.json                 # New Zealand (NZ)
+  mx.json                 # Mexico (MX)
+  be.json                 # Belgium (BE)
+  cz.json                 # Czechia (CZ)
+  pl.json                 # Poland (PL)
+  gr.json                 # Greece (GR)
+  th.json                 # Thailand (TH)
+  my.json                 # Malaysia (MY)
+  sg.json                 # Singapore (SG)
+  in.json                 # India (IN)
+  cn.json                 # China (CN)
+  za.json                 # South Africa (ZA)
+  zw.json                 # Zimbabwe (ZW)
   us_index.json           # US state list with course counts
   us/
     CA.json               # California courses
     FL.json               # Florida courses
     TX.json               # Texas courses (TBD)
     ...                   # One file per state
-  custom.json             # Manual course additions (merged at runtime)
 
 /scripts/
   build_courses.py        # OSM data extraction script
+  generate_dev_sample_datasets.mjs  # Lightweight DEV sample dataset generator
 
 /.github/workflows/
   build-courses.yml       # Weekly dataset refresh action
@@ -102,19 +145,20 @@ The `build-courses.yml` workflow:
 - Caches OSM downloads between runs
 - Commits changes to `data/courses/`
 
-### Adding Missing Courses
+### DEV Sample Datasets (for quick testing)
 
-Users can request missing courses via GitHub Issues. The "Can't find your course?" link creates a prefilled issue.
+For DEV-only deployments (especially when a full Geofabrik rebuild is impractical), you can generate small, real OSM-backed datasets using Nominatim lookups:
 
-Alternatively, add courses to `data/courses/custom.json`:
-
-```json
-[
-  ["My Local Course", 51.5, -0.1, "GB"]
-]
+```bash
+node scripts/generate_dev_sample_datasets.mjs
 ```
 
-Custom courses are merged with the main dataset at runtime.
+These datasets are intentionally small (a handful of known courses per country) and are meant to validate:
+- Country switching
+- Search UX
+- Course selection → forecast fetch flow
+
+They are **not** intended to be “complete coverage” datasets.
 
 ### Promotion Checklist
 
@@ -158,6 +202,7 @@ Before promoting `/dev` to production:
 2. **Freshness**: Datasets are rebuilt weekly; new OSM courses may take up to 7 days to appear
 3. **Coverage**: Only courses tagged as `leisure=golf_course` or `golf=course` in OSM
 4. **Coordinates**: For polygon geometries, we use a representative point (first node), not true centroid
+5. **DEV-only sample datasets**: Some non-core country datasets may contain only a small sample set (by design) unless replaced with full extracts.
 
 ### Troubleshooting
 
