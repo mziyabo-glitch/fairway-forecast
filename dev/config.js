@@ -31,15 +31,61 @@ window.APP_CONFIG = {
   // Dataset paths (relative to /dev/)
   DATASET_BASE_PATH: "../data/courses",
 
-  // Supported countries with their labels
+  // Supported countries with their labels - EXPANDED COVERAGE
+  // Organized by region for better UX
   COUNTRIES: [
+    // British Isles
     { code: "gb", name: "United Kingdom", flag: "🇬🇧" },
+    { code: "ie", name: "Ireland", flag: "🇮🇪" },
+    
+    // North America
     { code: "us", name: "United States", flag: "🇺🇸" },
+    { code: "ca", name: "Canada", flag: "🇨🇦" },
+    { code: "mx", name: "Mexico", flag: "🇲🇽" },
+    
+    // Oceania
     { code: "au", name: "Australia", flag: "🇦🇺" },
+    { code: "nz", name: "New Zealand", flag: "🇳🇿" },
+    
+    // Africa
     { code: "za", name: "South Africa", flag: "🇿🇦" },
+    { code: "zw", name: "Zimbabwe", flag: "🇿🇼" },
+    { code: "ma", name: "Morocco", flag: "🇲🇦" },
+    
+    // Western Europe
     { code: "fr", name: "France", flag: "🇫🇷" },
-    { code: "se", name: "Sweden", flag: "🇸🇪" },
     { code: "de", name: "Germany", flag: "🇩🇪" },
+    { code: "es", name: "Spain", flag: "🇪🇸" },
+    { code: "pt", name: "Portugal", flag: "🇵🇹" },
+    { code: "nl", name: "Netherlands", flag: "🇳🇱" },
+    { code: "be", name: "Belgium", flag: "🇧🇪" },
+    { code: "it", name: "Italy", flag: "🇮🇹" },
+    { code: "ch", name: "Switzerland", flag: "🇨🇭" },
+    { code: "at", name: "Austria", flag: "🇦🇹" },
+    
+    // Scandinavia
+    { code: "se", name: "Sweden", flag: "🇸🇪" },
+    { code: "dk", name: "Denmark", flag: "🇩🇰" },
+    { code: "no", name: "Norway", flag: "🇳🇴" },
+    { code: "fi", name: "Finland", flag: "🇫🇮" },
+    
+    // Central/Eastern Europe
+    { code: "cz", name: "Czechia", flag: "🇨🇿" },
+    { code: "pl", name: "Poland", flag: "🇵🇱" },
+    { code: "gr", name: "Greece", flag: "🇬🇷" },
+    
+    // Middle East / Turkey
+    { code: "ae", name: "United Arab Emirates", flag: "🇦🇪" },
+    { code: "tr", name: "Turkey", flag: "🇹🇷" },
+    
+    // Asia
+    { code: "jp", name: "Japan", flag: "🇯🇵" },
+    { code: "kr", name: "South Korea", flag: "🇰🇷" },
+    { code: "th", name: "Thailand", flag: "🇹🇭" },
+    { code: "my", name: "Malaysia", flag: "🇲🇾" },
+    { code: "sg", name: "Singapore", flag: "🇸🇬" },
+    { code: "in", name: "India", flag: "🇮🇳" },
+    { code: "cn", name: "China", flag: "🇨🇳" },
   ],
 
   // Default country (UK)
