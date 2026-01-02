@@ -108,7 +108,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'unsafe-inline';
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' https: data:;
@@ -130,73 +130,168 @@
     rel="stylesheet"
   />
 
+  <!-- Fuse.js for fuzzy search -->
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+
   <!-- Styles -->
   <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
-  <main class="ff-wrap">
+<main class="ff-wrap">
     <section class="ff-shell">
       <!-- ================= HEADER ================= -->
-      <header class="ff-header">
-        <div class="ff-brand">
-          <img
-            src="./icons/icon-192.png"
-            alt="Fairway Weather - Golf Course Forecast App"
-            class="ff-logo"
-          />
-          <div class="ff-brand-text">
-            <h1 class="ff-brand-title">Fairway Weather <span class="ff-brand-sub">Golf Forecast</span></h1>
-            <span class="ff-tagline">Golf course weather – know before you tee</span>
+      <header class="ff-topbar" aria-label="App header">
+        <div class="ff-topbar-left">
+          <img src="./icons/icon-192.png" alt="Fairway Weather" class="ff-topbar-logo" />
+          <div class="ff-topbar-text">
+            <div class="ff-topbar-title">
+              Fairway Weather <span class="ff-topbar-badge">Golf</span>
+            </div>
+            <div class="ff-topbar-tagline">Know before you tee.</div>
           </div>
         </div>
-        <p class="ff-hero-line">
-          <strong>Golf weather forecast:</strong> tee time conditions, wind impact, rain timing & playability scores.
-        </p>
       </header>
 
-      <!-- ================= SEARCH ================= -->
-      <section class="ff-panel ff-panel--search" aria-label="Search">
-        <label class="ff-label" for="searchInput">
-          Search location or golf course
-        </label>
-
-        <div class="ff-search-row">
-          <input
-            id="searchInput"
-            class="ff-input"
-            type="search"
-            placeholder='e.g. Swindon, GB or "golf club"'
-            autocomplete="off"
-            inputmode="search"
-            aria-describedby="searchHelp"
-          />
-
-          <button
-            id="btnGeo"
-            class="ff-btn ff-btn-ghost"
-            type="button"
-            title="Use my location"
-            aria-label="Use my location"
-          >
-            ⌖
-          </button>
+      <!-- ================= ROUND SELECTION TOOL (PRIMARY) ================= -->
+      <section class="ff-panel ff-round-tool" aria-label="Round Selection Tool">
+        <div class="ff-round-tool-head">
+          <div class="ff-round-tool-title">Round Selection</div>
+          <div class="ff-round-tool-sub">Choose course → pick a tee time window → get a quick verdict.</div>
         </div>
 
-        <button
-          id="searchBtn"
-          class="ff-btn ff-btn-primary"
-          type="button"
-          style="width:100%;"
-        >
-          Search
-        </button>
+        <!-- Step 1: Country / State -->
+        <div class="ff-round-step">
+          <div class="ff-round-step-label">Step 1 · Country / Region</div>
+          <select id="countrySelect" class="ff-select ff-select-country" aria-describedby="countryHelp">
+            <!-- Options populated by JS -->
+          </select>
 
-        <div id="searchHelp" class="ff-hint">
-          Start typing to see course suggestions
+          <div id="stateSelectRow" class="ff-state-row" style="display: none;">
+            <div class="ff-round-step-label" style="margin-top:10px;">State</div>
+            <select id="stateSelect" class="ff-select ff-select-state">
+              <option value="">Select a state...</option>
+              <!-- Options populated by JS -->
+            </select>
+          </div>
+
+          <div id="countryHelp" class="ff-hint ff-osm-attribution">
+            Course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
+          </div>
         </div>
 
-        <div class="ff-units-row">
+        <!-- Step 2: Course search -->
+        <div class="ff-round-step">
+          <div class="ff-round-step-label">Step 2 · Course</div>
+          <div class="ff-search-row">
+            <input
+              id="searchInput"
+              class="ff-input"
+              type="search"
+              placeholder='Type course name...'
+              autocomplete="off"
+              inputmode="search"
+              aria-describedby="searchHelp"
+            />
+            <button id="btnGeo" class="ff-btn ff-btn-ghost" type="button" title="Use my location" aria-label="Use my location">
+              ⌖
+            </button>
+          </div>
+
+          <div id="searchHelp" class="ff-hint">
+            Start typing to see course suggestions
+          </div>
+
+          <!-- Results inline -->
+          <section id="searchResultsSlot" class="ff-search-results" aria-live="polite" aria-label="Search results"></section>
+        </div>
+
+        <!-- Step 3: Round options -->
+        <div class="ff-round-step">
+          <div class="ff-round-step-label">Step 3 · Round</div>
+          <div class="ff-round-presets" role="group" aria-label="Round presets">
+            <button type="button" class="ff-chip" id="roundPreset18">18 holes (~4h)</button>
+            <button type="button" class="ff-chip" id="roundPreset9">9 holes (~2h)</button>
+            <button type="button" class="ff-chip" id="roundPresetSociety">Society tee sheet</button>
+          </div>
+          <div class="ff-round-micro">Tee times are generated every 8 minutes.</div>
+
+          <div id="societyControls" class="ff-society" style="display:none;">
+            <label class="ff-label" for="societyGroups">Groups</label>
+            <input id="societyGroups" class="ff-input" type="number" min="2" max="60" step="1" value="12" />
+            <div class="ff-hint">Generates an 8‑minute tee sheet starting from your selected tee time.</div>
+          </div>
+        </div>
+
+        <!-- Step 4: Tee time strip + verdict -->
+        <div class="ff-round-step">
+          <div class="ff-round-step-label">Step 4 · Tee time & verdict</div>
+
+          <section id="teeTimeStripSection" class="ff-tee-time-strip" style="display:none;" aria-label="Tee time decision">
+            <div class="ff-tee-strip-card">
+              <div class="ff-tee-eyebrow">Your tee time</div>
+              <div class="ff-tee-strip-header">
+                <div class="ff-tee-strip-status" id="teeTimeStatus">
+                  <span class="ff-tee-status-icon" id="teeTimeIcon" aria-hidden="true">⏳</span>
+                  <span class="ff-tee-status-label" id="teeTimeLabel">Select tee time</span>
+                </div>
+                <div class="ff-tee-selected-time" id="teeSelectedTime" aria-live="polite">
+                  <span id="teeSelectedLabel"></span>
+                </div>
+              </div>
+
+              <div class="ff-tee-date-row">
+                <div class="ff-tee-date-chips" id="teeDateChips" role="group" aria-label="Select date"></div>
+              </div>
+
+              <div class="ff-tee-time-row">
+                <label class="ff-tee-time-label">
+                  <span class="ff-tee-time-icon" aria-hidden="true">🕐</span>
+                  Time
+                </label>
+                <div class="ff-tee-time-selector" role="group" aria-label="Select tee time">
+                  <select id="teeTimeSelect" class="ff-tee-select" aria-describedby="teeTimeDesc"></select>
+                </div>
+              </div>
+
+              <div class="ff-tee-applied-msg" id="teeAppliedMsg" style="display:none;">
+                Applied from Round Planner
+              </div>
+
+              <div class="ff-tee-strip-metrics" id="teeTimeMetrics" aria-live="polite">
+                <div class="ff-tee-metric">
+                  <span class="ff-tee-metric-icon" aria-hidden="true">🌧️</span>
+                  <span class="ff-tee-metric-label">Rain</span>
+                  <strong class="ff-tee-metric-value" id="teeMetricRain">—</strong>
+                </div>
+                <div class="ff-tee-metric">
+                  <span class="ff-tee-metric-icon" aria-hidden="true">💨</span>
+                  <span class="ff-tee-metric-label">Wind</span>
+                  <strong class="ff-tee-metric-value" id="teeMetricWind">—</strong>
+                </div>
+                <div class="ff-tee-metric">
+                  <span class="ff-tee-metric-icon" aria-hidden="true">🌡️</span>
+                  <span class="ff-tee-metric-label">Temp</span>
+                  <strong class="ff-tee-metric-value" id="teeMetricTemp">—</strong>
+                </div>
+                <div class="ff-tee-metric">
+                  <span class="ff-tee-metric-icon" aria-hidden="true">💥</span>
+                  <span class="ff-tee-metric-label">Gusts</span>
+                  <strong class="ff-tee-metric-value" id="teeMetricGust">—</strong>
+                </div>
+              </div>
+
+              <p class="ff-tee-strip-summary" id="teeTimeSummary" aria-live="polite">
+                Select a tee time to see conditions for your round.
+              </p>
+              <span id="teeTimeDesc" class="ff-sr-only">Shows weather conditions for your round starting at the selected time.</span>
+            </div>
+          </section>
+
+          <div id="teeSheetSlot" class="ff-tee-sheet" style="display:none;"></div>
+        </div>
+
+        <div class="ff-units-row" style="margin-top: 6px;">
           <label class="ff-label" for="unitsSelect">Units</label>
           <select id="unitsSelect" class="ff-select">
             <option value="metric">°C / m·s</option>
@@ -205,12 +300,7 @@
         </div>
       </section>
 
-      <!-- ✅ NEW: SEARCH RESULTS SLOT (shows “Select a result” directly under search) -->
-      <section id="searchResultsSlot" class="ff-search-results" aria-live="polite" aria-label="Search results">
-        <!-- app.js renders the “Select a result” card/list here -->
-      </section>
-
-      <!-- ================= LOCATION (moved up, just under search) ================= -->
+      <!-- ================= LOCATION ================= -->
       <section aria-label="Location">
         <div class="ff-section-label">Location</div>
         <div id="locationSlot"></div>
@@ -227,82 +317,9 @@
         <button id="tabDaily" class="ff-tab" type="button">Daily</button>
       </nav>
 
-      <!-- ================= TEE-TIME DECISION STRIP ================= -->
-      <section id="teeTimeStripSection" class="ff-tee-time-strip" style="display:none;" aria-label="Tee time decision">
-        <div class="ff-tee-strip-card">
-          <!-- Eyebrow label -->
-          <div class="ff-tee-eyebrow">Your tee time</div>
-          
-          <!-- Top row: Status pill + Selected time display -->
-          <div class="ff-tee-strip-header">
-            <div class="ff-tee-strip-status" id="teeTimeStatus">
-              <span class="ff-tee-status-icon" id="teeTimeIcon" aria-hidden="true">⏳</span>
-              <span class="ff-tee-status-label" id="teeTimeLabel">Select tee time</span>
-            </div>
-            <!-- Selected tee time display -->
-            <div class="ff-tee-selected-time" id="teeSelectedTime" aria-live="polite">
-              <span id="teeSelectedLabel"></span>
-            </div>
-          </div>
-
-          <!-- Date chip selector -->
-          <div class="ff-tee-date-row">
-            <div class="ff-tee-date-chips" id="teeDateChips" role="group" aria-label="Select date">
-              <!-- Date chips populated by JS -->
-            </div>
-          </div>
-
-          <!-- Time selector row -->
-          <div class="ff-tee-time-row">
-            <label class="ff-tee-time-label">
-              <span class="ff-tee-time-icon" aria-hidden="true">🕐</span>
-              Time
-            </label>
-            <div class="ff-tee-time-selector" role="group" aria-label="Select tee time">
-              <select id="teeTimeSelect" class="ff-tee-select" aria-describedby="teeTimeDesc">
-                <!-- Options populated by JS -->
-              </select>
-            </div>
-          </div>
-          
-          <!-- Applied confirmation (hidden by default) -->
-          <div class="ff-tee-applied-msg" id="teeAppliedMsg" style="display:none;">
-            Applied from Round Planner
-          </div>
-
-          <!-- Metrics row -->
-          <div class="ff-tee-strip-metrics" id="teeTimeMetrics" aria-live="polite">
-            <div class="ff-tee-metric">
-              <span class="ff-tee-metric-icon" aria-hidden="true">🌧️</span>
-              <span class="ff-tee-metric-label">Rain</span>
-              <strong class="ff-tee-metric-value" id="teeMetricRain">—</strong>
-            </div>
-            <div class="ff-tee-metric">
-              <span class="ff-tee-metric-icon" aria-hidden="true">💨</span>
-              <span class="ff-tee-metric-label">Wind</span>
-              <strong class="ff-tee-metric-value" id="teeMetricWind">—</strong>
-            </div>
-            <div class="ff-tee-metric">
-              <span class="ff-tee-metric-icon" aria-hidden="true">🌡️</span>
-              <span class="ff-tee-metric-label">Temp</span>
-              <strong class="ff-tee-metric-value" id="teeMetricTemp">—</strong>
-            </div>
-            <div class="ff-tee-metric">
-              <span class="ff-tee-metric-icon" aria-hidden="true">💥</span>
-              <span class="ff-tee-metric-label">Gusts</span>
-              <strong class="ff-tee-metric-value" id="teeMetricGust">—</strong>
-            </div>
-          </div>
-
-          <!-- Summary text -->
-          <p class="ff-tee-strip-summary" id="teeTimeSummary" aria-live="polite">
-            Select a tee time to see conditions for your 3-hour round.
-          </p>
-          <span id="teeTimeDesc" class="ff-sr-only">Shows weather conditions for a 3-hour round starting at the selected time. Only daylight tee times are available.</span>
-        </div>
-      </section>
+      <!-- Tee-time strip moved into Round Selection Tool above -->
       
-      <!-- ================= ADVANCED OPTIONS (Feature-flagged - hidden by default) ================= -->
+      <!-- ================= ADVANCED OPTIONS (Feature-flagged) ================= -->
       <section id="advancedSection" class="ff-advanced ff-feature-advanced-wind" style="display:none;">
         <button type="button" id="advancedToggle" class="ff-advanced-toggle">
           <span>Advanced</span>
@@ -326,7 +343,7 @@
         </div>
       </section>
 
-      <!-- ================= PREMIUM TEASER (shown when premium features disabled) ================= -->
+      <!-- ================= PREMIUM TEASER ================= -->
       <section id="premiumTeaserSection" class="ff-premium-teaser" style="display:none;">
         <div class="ff-premium-card">
           <div class="ff-premium-header">
@@ -349,15 +366,11 @@
         </div>
       </section>
 
-      <!-- ================= ROUND PLANNER (Feature-flagged - hidden by default) ================= -->
+      <!-- ================= ROUND PLANNER (Feature-flagged) ================= -->
       <section aria-label="Round planner" id="roundPlannerSection">
         <div class="ff-section-label">Round Planner</div>
 
-        <section
-          id="verdictCard"
-          class="ff-panel ff-verdict ff-verdict--neutral"
-          aria-live="polite"
-        >
+        <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
           <div class="ff-planner-subtitle">Best daylight tee time. Tap to apply.</div>
           
           <div class="ff-verdict-main">
@@ -383,7 +396,6 @@
                 <strong id="verdictBestTime">—</strong>
               </div>
               
-              <!-- Apply to tee time button -->
               <button type="button" id="applyPlannerBtn" class="ff-btn ff-btn-apply" style="display:none;">
                 Apply to my tee time
               </button>
@@ -452,7 +464,20 @@
     <footer class="ff-foot">
       <p><strong>Fairway Weather</strong> – Golf Course Weather Forecasts</p>
       <p class="ff-foot-tagline">Check golf weather conditions before your round. Best tee times & playability for golfers worldwide.</p>
-      <p class="ff-foot-credits">Weather data © <a href="https://openweathermap.org" target="_blank" rel="noopener">OpenWeather</a> · Golf course data © GolfCourseAPI</p>
+      <p class="ff-foot-credits">Weather data © <a href="https://openweathermap.org" target="_blank" rel="noopener">OpenWeather</a></p>
+      <p class="ff-foot-credits ff-osm-attribution">Course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p>
+      <div class="ff-support">
+        <a
+          class="ff-support-btn"
+          href="https://buymeacoffee.com/godskid"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Support Fairway Forecast on Buy Me a Coffee"
+        >
+          Support ☕
+        </a>
+        <div class="ff-support-note">If this forecast saved you a wasted trip, consider buying a coffee.</div>
+</div>
       <p class="ff-foot-copy">© 2024 Fairway Weather · Not affiliated with Fairway, Kansas</p>
     </footer>
 

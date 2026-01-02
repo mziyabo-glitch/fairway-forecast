@@ -61,6 +61,7 @@ Only use this if production `app.js` already supports static datasets.
   - [ ] Selecting a course loads forecast correctly
   - [ ] OSM attribution visible
   - [ ] “Support ☕” link placement matches approved DEV styling (optional)
+  - [ ] If Fuse.js is loaded from a CDN, ensure CSP allows it (e.g. `script-src` includes `https://cdn.jsdelivr.net`)
 
 ## Step 4 — Post-promotion
 

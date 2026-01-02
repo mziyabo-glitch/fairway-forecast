@@ -1,37 +1,37 @@
 // config.js
 // Loaded BEFORE app.js (see index.html)
+//
+// Production config (promoted from /dev):
+// - Static OSM datasets (no Supabase / no external course APIs)
+// - Weather via Cloudflare Worker
 
 window.APP_CONFIG = {
   // --- Weather (use Cloudflare Worker so keys are not exposed) ---
-  // Your worker base URL (NO trailing slash)
-  // Example from your screenshots:
   WORKER_BASE_URL: "https://fairway-forecast-api.mziyabo.workers.dev",
 
-  // --- Supabase (anon key is OK to be public; service_role is NOT) ---
-  // IMPORTANT: your earlier URL had a typo and caused ERR_NAME_NOT_RESOLVED / NXDOMAIN.
-  // Correct project ref: bdxgjkhfdrqrcetvdnvw
-  SUPABASE_URL: "https://bdxgjkhfdrqrcetvdnvw.supabase.co",
-
-  // Paste your *anon* key here (NOT service_role).
-  SUPABASE_ANON_KEY:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkeGdqa2hmZHJxcmNldnRkbnZ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1MzQ3ODQsImV4cCI6MjA4MTExMDc4NH0.MAGy3DXobwiGQTgznEnLRtLYdrB6bS48MsYpLqjRdgs",
-
-  // --- Courses table/columns ---
-  COURSES_TABLE: "uk_golf_courses",
-  COURSE_COLS: {
-    name: "name",
-    lat: "latitude",
-    lon: "longitude",
-    country: "country",
-  },
+  // --- Static datasets (OSM) ---
+  USE_LOCAL_DATASETS: true,
+  FEATURE_STATIC_DATASETS: true, // legacy flag (kept for compatibility)
+  DATASET_BASE_PATH: "data/courses",
 
   // --- App defaults ---
   DEFAULT_UNITS: "metric", // "metric" (°C) or "imperial" (°F)
 
   // --- Feature flags ---
-  // Advanced wind features (gale detection, etc.) - hide until complete
   FEATURE_ADVANCED_WIND: false,
-  
-  // Round Planner (best daylight tee time recommendation) - Premium feature
   FEATURE_ROUND_PLANNER: false,
+
+  // Countries are populated from data/courses/index.json at runtime.
+  // (Fallback list is intentionally minimal.)
+  COUNTRIES: [
+    { code: "gb", name: "United Kingdom", flag: "🇬🇧" },
+    { code: "fr", name: "France", flag: "🇫🇷" },
+    { code: "de", name: "Germany", flag: "🇩🇪" },
+    { code: "es", name: "Spain", flag: "🇪🇸" },
+    { code: "us", name: "United States", flag: "🇺🇸" },
+    { code: "au", name: "Australia", flag: "🇦🇺" },
+    { code: "za", name: "South Africa", flag: "🇿🇦" },
+  ],
+
+  DEFAULT_COUNTRY: "gb",
 };

@@ -1,10 +1,10 @@
 /* =====================================================
-   Fairway Forecast – app.js (FULL, hardened)
-   Fixes:
-   - Search stuck on "Loading..."
-   - Search results not clickable / not rendering
-   - Weather icons not showing (uses OpenWeather icon CDN)
-   - Safe DOM checks + crash-safe rendering
+   Fairway Forecast – app.js (PRODUCTION BUILD)
+
+   This version uses static OSM-based course datasets
+   for GitHub Pages deployment.
+
+   Data © OpenStreetMap contributors (ODbL)
    ===================================================== */
 
 (() => {
@@ -13,14 +13,35 @@
   /* ---------- CONFIG ---------- */
   const APP = window.APP_CONFIG || {};
   const API_BASE = APP.WORKER_BASE_URL || "https://fairway-forecast-api.mziyabo.workers.dev";
-  const SUPABASE_URL = APP.SUPABASE_URL || "";
-  const SUPABASE_ANON_KEY = APP.SUPABASE_ANON_KEY || "";
-  const COURSES_TABLE = APP.COURSES_TABLE || "uk_golf_courses";
-  const COURSE_COLS = APP.COURSE_COLS || { name: "name", lat: "latitude", lon: "longitude", country: "country" };
   const MAX_RESULTS = 12;
 
   const COURSE_CACHE_TTL_MS = 10 * 60 * 1000;
   const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
+
+  /* ---------- STATIC DATASET CONFIG ---------- */
+  // Static datasets only (no Supabase / no external course APIs).
+  const USE_LOCAL_DATASETS = APP.USE_LOCAL_DATASETS !== false;
+  const USE_STATIC_DATASETS = USE_LOCAL_DATASETS && APP.FEATURE_STATIC_DATASETS !== false;
+  const DATASET_BASE_PATH = APP.DATASET_BASE_PATH || "data/courses";
+  let COUNTRIES = APP.COUNTRIES || [
+    { code: "gb", name: "United Kingdom", flag: "🇬🇧" },
+    { code: "us", name: "United States", flag: "🇺🇸" },
+    { code: "au", name: "Australia", flag: "🇦🇺" },
+    { code: "za", name: "South Africa", flag: "🇿🇦" },
+    { code: "fr", name: "France", flag: "🇫🇷" },
+    { code: "se", name: "Sweden", flag: "🇸🇪" },
+    { code: "de", name: "Germany", flag: "🇩🇪" },
+  ];
+  const DEFAULT_COUNTRY = APP.DEFAULT_COUNTRY || "gb";
+
+  // Dataset cache
+  const datasetCache = new Map();
+  let currentCountry = localStorage.getItem("ff_country") || DEFAULT_COUNTRY;
+  let currentState = localStorage.getItem("ff_state") || "";
+  let currentFuse = null; // Fuse.js instance for current dataset
+  let usStates = []; // US states index
+  let currentDocs = []; // current dataset as objects (for nearby search)
+  let coursesIndex = null; // data/courses/index.json cache
 
   /* ---------- DOM ---------- */
   const $ = (id) => document.getElementById(id);
@@ -34,6 +55,12 @@
   const playabilityScoreEl = $("playabilityScore");
   const challengeRating = $("challengeRating");
   const challengeReason = $("challengeReason");
+  
+  // Country/State selectors (dev only)
+  const countrySelect = $("countrySelect");
+  const stateSelect = $("stateSelect");
+  const stateSelectRow = $("stateSelectRow");
+  // DEV NOTE: Course-request UI is intentionally disabled in DEV.
 
   const tabCurrent = $("tabCurrent");
   const tabHourly = $("tabHourly");
@@ -41,6 +68,14 @@
 
   const geoBtn = $("btnGeo") || $("geoBtn");
   const unitsSelect = $("unitsSelect") || $("units");
+
+  // Round Selection Tool controls (DEV)
+  const roundPreset18 = $("roundPreset18");
+  const roundPreset9 = $("roundPreset9");
+  const roundPresetSociety = $("roundPresetSociety");
+  const societyControls = $("societyControls");
+  const societyGroups = $("societyGroups");
+  const teeSheetSlot = $("teeSheetSlot");
 
   const verdictCard = $("verdictCard");
   const verdictIcon = $("verdictIcon");
@@ -143,8 +178,105 @@
     return R * c;
   }
 
+  function iso2ToFlagEmoji(code) {
+    const c = String(code || "").trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(c)) return "";
+    const A = 0x1f1e6;
+    const cc = c.charCodeAt(0) - 65;
+    const dd = c.charCodeAt(1) - 65;
+    return String.fromCodePoint(A + cc, A + dd);
+  }
+
+  async function loadCoursesIndex() {
+    if (coursesIndex) return coursesIndex;
+    const url = `${DATASET_BASE_PATH}/index.json`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || typeof data !== "object") return null;
+      coursesIndex = data;
+      return coursesIndex;
+    } catch {
+      return null;
+    }
+  }
+
+  async function maybeHydrateCountriesFromIndex() {
+    if (!USE_LOCAL_DATASETS) return;
+    const idx = await loadCoursesIndex();
+    const list = Array.isArray(idx?.countries) ? idx.countries : null;
+    if (!list) return;
+
+    const mapped = [];
+    for (const c of list) {
+      const code = String(c?.code || "").toUpperCase();
+      const name = String(c?.name || "").trim();
+      if (!code || !name) continue;
+      if (code === "US") {
+        mapped.push({ code: "us", name, flag: iso2ToFlagEmoji("US") });
+      } else {
+        mapped.push({ code: code.toLowerCase(), name, flag: iso2ToFlagEmoji(code) });
+      }
+    }
+
+    if (mapped.length > 0) COUNTRIES = mapped;
+  }
+
   function pct(pop) {
     return typeof pop === "number" ? `${Math.round(pop * 100)}%` : "";
+  }
+
+  function setRoundMode(mode) {
+    roundMode = mode;
+    if (mode === "9") roundDurationHours = 2;
+    else roundDurationHours = 4; // 18 + society default
+
+    // UI state
+    const setActive = (btn, active) => {
+      if (!btn) return;
+      btn.classList.toggle("active", active);
+    };
+    setActive(roundPreset18, mode === "18");
+    setActive(roundPreset9, mode === "9");
+    setActive(roundPresetSociety, mode === "society");
+
+    if (societyControls) societyControls.style.display = mode === "society" ? "block" : "none";
+
+    // Re-render tee strip and tee sheet if available
+    if (lastNorm) renderTeeTimeStrip(lastNorm);
+  }
+
+  function renderTeeSheet(norm) {
+    if (!teeSheetSlot) return;
+    if (roundMode !== "society" || !selectedTeeTime || !norm) {
+      teeSheetSlot.style.display = "none";
+      teeSheetSlot.innerHTML = "";
+      return;
+    }
+
+    const groups = Math.max(2, Math.min(60, Number(societyGroups?.value || 12)));
+    const tzOff = norm?.timezoneOffset || null;
+
+    const slots = [];
+    for (let i = 0; i < groups; i++) {
+      const t = selectedTeeTime + (i * 8 * 60);
+      slots.push(t);
+    }
+
+    const chips = slots
+      .slice(0, 48) // keep rendering light on mobile
+      .map((t, idx) => `<div class="ff-tee-sheet-slot">${idx + 1}. ${esc(fmtTimeCourse(t, tzOff))}</div>`)
+      .join("");
+
+    const more = slots.length > 48 ? `<div class="ff-hint" style="margin-top:8px;">Showing first 48 tee times.</div>` : "";
+
+    teeSheetSlot.innerHTML = `
+      <div class="ff-tee-sheet-title">Society tee sheet · ${groups} groups · 8‑min spacing</div>
+      <div class="ff-tee-sheet-grid">${chips}</div>
+      ${more}
+    `;
+    teeSheetSlot.style.display = "block";
   }
 
   // Format time at course location (using course timezone offset)
@@ -467,6 +599,280 @@
     map.set(key, { t: Date.now(), data });
   }
 
+  /* ---------- STATIC DATASET FUNCTIONS ---------- */
+
+  /**
+   * Load a dataset JSON file
+   * @param {string} path - Path relative to DATASET_BASE_PATH
+   * @returns {Promise<Array>} Array of courses [name, lat, lon, region]
+   */
+  async function loadDataset(path) {
+    const fullPath = `${DATASET_BASE_PATH}/${path}`;
+    
+    // Check cache first
+    if (datasetCache.has(fullPath)) {
+      console.log(`📂 [Dataset] Using cached: ${path}`);
+      return datasetCache.get(fullPath);
+    }
+
+    console.log(`📂 [Dataset] Loading: ${fullPath}`);
+    
+    try {
+      const res = await fetch(fullPath);
+      if (!res.ok) {
+        console.warn(`📂 [Dataset] Failed to load ${path}: ${res.status}`);
+        return [];
+      }
+      
+      const data = await res.json();
+      
+      // Cache the result
+      datasetCache.set(fullPath, data);
+      console.log(`📂 [Dataset] Loaded ${data.length} courses from ${path}`);
+      
+      return data;
+    } catch (err) {
+      console.error(`📂 [Dataset] Error loading ${path}:`, err);
+      return [];
+    }
+  }
+
+  /**
+   * Load the US states index
+   * @returns {Promise<Array>} Array of state objects { code, name, count }
+   */
+  async function loadUSStatesIndex() {
+    if (usStates.length > 0) return usStates;
+    
+    try {
+      const data = await loadDataset("us_index.json");
+      // New schema: { updated, states: [...], total }
+      if (data && typeof data === "object" && Array.isArray(data.states)) {
+        usStates = data.states;
+      } else {
+        // Backward compat: older schema was an array
+        usStates = Array.isArray(data) ? data : [];
+      }
+      return usStates;
+    } catch (err) {
+      console.warn(`📂 [Dataset] Failed to load US states index`);
+      return [];
+    }
+  }
+
+  /**
+   * Load courses for the current country/state selection
+   * @returns {Promise<Array>} Array of courses [name, lat, lon, region]
+   */
+  async function loadCurrentDataset() {
+    let courses = [];
+    
+    if (currentCountry === "us") {
+      // Load specific US state
+      if (currentState) {
+        courses = await loadDataset(`us/${currentState}.json`);
+      }
+    } else {
+      // Load country dataset
+      courses = await loadDataset(`${currentCountry}.json`);
+    }
+    
+    return courses;
+  }
+
+  /**
+   * Initialize Fuse.js for the current dataset
+   * @param {Array} courses - Array of courses [name, lat, lon, region]
+   */
+  function initFuseSearch(courses) {
+    if (!window.Fuse) {
+      console.warn("⚠️ Fuse.js not loaded - search will be basic");
+      currentFuse = null;
+      return;
+    }
+    
+    // Transform to objects for Fuse
+    const docs = courses.map((c, idx) => ({
+      idx,
+      name: c[0] || "",
+      lat: c[1],
+      lon: c[2],
+      region: c[3] || ""
+    }));
+    currentDocs = docs;
+    
+    currentFuse = new Fuse(docs, {
+      keys: ["name"],
+      threshold: 0.35, // Fuzzy matching tolerance
+      distance: 200,
+      minMatchCharLength: 2,
+      includeScore: true,
+      shouldSort: true,
+    });
+    
+    console.log(`🔍 [Fuse] Initialized with ${docs.length} courses`);
+  }
+
+  /**
+   * Search courses using Fuse.js
+   * @param {string} query - Search query
+   * @param {number} limit - Max results
+   * @returns {Array} Array of matching courses as normalized objects
+   */
+  function searchCoursesStatic(query, limit = MAX_RESULTS) {
+    const q = (query || "").trim().toLowerCase();
+    if (!q) return [];
+    
+    if (!currentFuse) {
+      console.warn("⚠️ Fuse not initialized");
+      return [];
+    }
+    
+    const results = currentFuse.search(q, { limit });
+    
+    return results.map(r => ({
+      id: `static-${r.item.idx}`,
+      name: r.item.name,
+      lat: r.item.lat,
+      lon: r.item.lon,
+      country: currentCountry.toUpperCase(),
+      state: r.item.region,
+      city: r.item.region,
+      source: "osm",
+      score: r.score
+    }));
+  }
+
+  /**
+   * Initialize country/state selectors
+   */
+  async function initCountryStateSelectors() {
+    if (!countrySelect) return;
+    
+    // Prefer the dynamic catalog if available (data/courses/index.json)
+    await maybeHydrateCountriesFromIndex();
+
+    // Populate country dropdown
+    countrySelect.innerHTML = COUNTRIES.map(c => 
+      `<option value="${c.code}" ${c.code === currentCountry ? "selected" : ""}>${c.flag} ${c.name}</option>`
+    ).join("");
+    
+    // Country change handler
+    countrySelect.addEventListener("change", async (e) => {
+      currentCountry = e.target.value;
+      currentState = "";
+      localStorage.setItem("ff_country", currentCountry);
+      localStorage.setItem("ff_state", "");
+      
+      // Show/hide state selector for US
+      if (currentCountry === "us") {
+        await populateUSStates();
+        setStateSelectorVisible(true);
+      } else {
+        setStateSelectorVisible(false);
+        await refreshDataset();
+      }
+      
+    });
+    
+    // State change handler
+    if (stateSelect) {
+      stateSelect.addEventListener("change", async (e) => {
+        currentState = e.target.value;
+        localStorage.setItem("ff_state", currentState);
+        
+        if (currentState) {
+          await refreshDataset();
+        }
+      });
+    }
+    
+    // Initial setup
+    if (currentCountry === "us") {
+      populateUSStates().then(() => {
+        setStateSelectorVisible(true);
+        if (currentState) {
+          stateSelect.value = currentState;
+          refreshDataset();
+        }
+      });
+    } else {
+      setStateSelectorVisible(false);
+      refreshDataset();
+    }
+    
+  }
+
+  /**
+   * Populate US states dropdown
+   */
+  async function populateUSStates() {
+    if (!stateSelect) return;
+    
+    stateSelect.innerHTML = '<option value="">Select a state...</option>';
+    
+    const states = await loadUSStatesIndex();
+    
+    for (const state of states) {
+      const opt = document.createElement("option");
+      opt.value = state.code;
+      opt.textContent = `${state.name} (${state.count} courses)`;
+      if (state.code === currentState) opt.selected = true;
+      stateSelect.appendChild(opt);
+    }
+  }
+
+  /**
+   * Refresh the current dataset and reinitialize Fuse
+   */
+  async function refreshDataset() {
+    // Show loading state
+    if (searchInput) {
+      searchInput.placeholder = "Loading courses...";
+      searchInput.disabled = true;
+    }
+    if (searchBtn) searchBtn.disabled = true;
+    
+    try {
+      if (searchResultsSlot) {
+        searchResultsSlot.classList.remove("ff-hidden");
+        searchResultsSlot.innerHTML = `<div class="ff-card"><div class="ff-inline-status"><span class="ff-spinner" aria-hidden="true"></span>Loading courses…</div></div>`;
+      }
+      const courses = await loadCurrentDataset();
+      initFuseSearch(courses);
+      
+      // Update placeholder
+      const countryName = COUNTRIES.find(c => c.code === currentCountry)?.name || currentCountry.toUpperCase();
+      const regionName = currentCountry === "us" && currentState 
+        ? usStates.find(s => s.code === currentState)?.name || currentState
+        : countryName;
+      
+      if (searchInput) {
+        searchInput.placeholder = `Search ${courses.length.toLocaleString()} courses in ${regionName}...`;
+        searchInput.disabled = false;
+      }
+      if (searchBtn) searchBtn.disabled = false;
+      clearSearchResults();
+      
+    } catch (err) {
+      console.error("Failed to load dataset:", err);
+      if (searchInput) {
+        searchInput.placeholder = "Failed to load courses";
+        searchInput.disabled = false;
+      }
+      if (searchBtn) searchBtn.disabled = false;
+    }
+  }
+
+  function setStateSelectorVisible(visible) {
+    if (!stateSelectRow || !stateSelect) return;
+    stateSelectRow.style.display = visible ? "block" : "none";
+    if (!visible) {
+      stateSelect.value = "";
+      stateSelect.innerHTML = "";
+    }
+  }
+
   /* ---------- API ---------- */
   async function apiGet(path) {
     const url = `${API_BASE}${path}`;
@@ -510,58 +916,7 @@
     }
   }
 
-  async function fetchCoursesSupabase(query) {
-    const q = (query || "").trim();
-    if (!q || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.log("🔍 [Supabase] Skipped - missing query or config");
-      return [];
-    }
-
-    const table = COURSES_TABLE;
-    const cols = COURSE_COLS;
-
-    console.log(`🔍 [Supabase] Searching for: "${q}"`);
-
-    // Simple ilike on name for now; schema only has name/lat/lon/country
-    const pattern = `*${q.replace(/[%*]/g, "").trim()}*`;
-    const searchParam = encodeURIComponent(`name.ilike.${pattern}`);
-
-    const url = `${SUPABASE_URL}/rest/v1/${encodeURIComponent(table)}?select=*&${searchParam}`;
-
-    try {
-      const res = await fetch(url, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      });
-      if (!res.ok) {
-        console.warn("🔍 [Supabase] Search failed", res.status, await res.text().catch(() => ""));
-        return [];
-      }
-      const rows = await res.json();
-      if (!Array.isArray(rows) || !rows.length) {
-        console.log(`🔍 [Supabase] No results found`);
-        return [];
-      }
-
-      console.log(`✅ [Supabase] Found ${rows.length} course(s)`);
-
-      // Map Supabase columns into the shape normalizeCourse expects
-      return rows.map((row) => ({
-        id: row.id ?? null,
-        name: row[cols.name] ?? row.name ?? "Course",
-        lat: typeof row[cols.lat] === "number" ? row[cols.lat] : null,
-        lon: typeof row[cols.lon] === "number" ? row[cols.lon] : null,
-        country: row[cols.country] ?? row.country ?? "",
-        city: "",
-        state: "",
-      }));
-    } catch (err) {
-      console.warn("🔍 [Supabase] Search error", err);
-      return [];
-    }
-  }
+  // Supabase is intentionally not used in DEV.
 
   /* ---------- GEOCODING (City/Town lookup) ---------- */
   async function geocodeCity(query) {
@@ -608,128 +963,54 @@
       return [];
     }
 
-    const cacheKey = q.toLowerCase();
-    const cached = cacheGet(memCache.courses, cacheKey, COURSE_CACHE_TTL_MS);
-    if (cached) {
-      console.log(`🔍 [Cache] Found cached results for: "${q}"`);
-      return cached;
+    // DEV local datasets only: never call Supabase or external golf-course APIs.
+    if (!USE_STATIC_DATASETS) return [];
+
+    if (!currentFuse) {
+      // Dataset might not be loaded yet (e.g. user typed immediately after switching)
+      await refreshDataset();
     }
 
-    console.log(`🔍 [Search] Starting search for: "${q}"`);
-
-    const enc = encodeURIComponent(q);
-
-    let list = [];
-    let source = "unknown";
-    let apiError = null;
-    
-    try {
-      console.log(`🌐 [GolfAPI] Calling primary API: /courses?search=${enc}`);
-      const data = await apiGet(`/courses?search=${enc}`);
-      console.log(`📦 [GolfAPI] Response received:`, data);
-      list = Array.isArray(data?.courses) ? data.courses : [];
-      source = "GolfAPI";
-      if (list.length > 0) {
-        console.log(`✅ [GolfAPI] Found ${list.length} course(s)`);
-      } else {
-        console.log(`⚠️ [GolfAPI] No results found`);
-      }
-    } catch (err) {
-      apiError = err;
-      console.error("❌ [GolfAPI] Primary API failed:", err);
-      console.error("   Error details:", {
-        message: err?.message,
-        status: err?.status,
-        name: err?.name
-      });
-      
-      // If rate limited, don't try fallback - just throw
-      if (err?.status === 429 || err?.name === "RateLimitError") {
-        console.warn("   ⚠️ Rate limit detected (429) - not trying fallback");
-        throw err;
-      }
-      
-      list = [];
-      source = "GolfAPI (failed)";
-    }
-
-    // Fallback to Supabase when no primary matches (only if not rate limited)
-    if ((!Array.isArray(list) || list.length === 0) && (!apiError || apiError?.status !== 429)) {
-      console.log(`🔄 [Fallback] Trying Supabase...`);
-      try {
-        const supa = await fetchCoursesSupabase(q);
-        if (supa.length > 0) {
-          list = supa;
-          source = "Supabase";
-          console.log(`✅ [Fallback] Using ${supa.length} result(s) from Supabase`);
-        } else {
-          console.log(`❌ [Fallback] Supabase also returned no results`);
-        }
-      } catch (fallbackErr) {
-        console.error("❌ [Fallback] Supabase also failed:", fallbackErr);
-      }
-    }
-
-    console.log(`📊 [Search] Final result: ${list.length} course(s) from ${source}`);
-
-    // Cache successful results (even if empty, but not errors)
-    if (source !== "unknown" && (!apiError || apiError?.status !== 429)) {
-      cacheSet(memCache.courses, cacheKey, list);
-    }
-
-    return list;
+    console.log(`🔍 [Static] Searching for: "${q}"`);
+    const results = searchCoursesStatic(q);
+    console.log(`📊 [Static] Found ${results.length} course(s)`);
+    return results;
   }
 
   async function fetchNearbyCourses(lat, lon, radiusKm = 10, maxResults = 5) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-    
-    try {
-      // Search for courses in the area - use city name or broad search
-      // We'll search for "golf" in the area and filter by distance
-      const searchTerms = ["golf", "golf course", "golf club"];
-      const allCourses = [];
-      
-      for (const term of searchTerms) {
-        try {
-          const data = await apiGet(`/courses?search=${encodeURIComponent(term)}`);
-          const courses = Array.isArray(data?.courses) ? data.courses : [];
-          allCourses.push(...courses);
-        } catch (err) {
-          console.warn(`[Nearby] Search failed for "${term}"`, err);
-        }
-      }
-      
-      // Filter by distance and remove duplicates
-      const nearby = [];
-      const seenIds = new Set();
-      const currentCourseId = selectedCourse?.id;
-      
-      for (const course of allCourses) {
-        const courseLat = course?.lat || course?.location?.latitude;
-        const courseLon = course?.lon || course?.location?.longitude;
-        const courseId = course?.id;
-        
-        // Skip if no coordinates or already seen or is current course
-        if (!Number.isFinite(courseLat) || !Number.isFinite(courseLon)) continue;
-        if (courseId && (seenIds.has(courseId) || courseId === currentCourseId)) continue;
-        
-        const distance = calculateDistance(lat, lon, courseLat, courseLon);
-        if (distance !== null && distance <= radiusKm) {
-          seenIds.add(courseId);
-          nearby.push({
-            ...course,
-            distance: distance
-          });
-        }
-      }
-      
-      // Sort by distance and limit results
-      nearby.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
-      return nearby.slice(0, maxResults);
-    } catch (err) {
-      console.warn("[Nearby] Failed to fetch nearby courses", err);
-      return [];
+
+    if (!USE_STATIC_DATASETS || currentDocs.length === 0) return [];
+
+    const nearby = [];
+    const currentCourseId = selectedCourse?.id;
+
+    for (const d of currentDocs) {
+      const dLat = Number(d.lat);
+      const dLon = Number(d.lon);
+      if (!Number.isFinite(dLat) || !Number.isFinite(dLon)) continue;
+
+      const distance = calculateDistance(lat, lon, dLat, dLon);
+      if (distance === null || distance > radiusKm) continue;
+
+      const id = `static-${d.idx}`;
+      if (currentCourseId && id === currentCourseId) continue;
+
+      nearby.push({
+        id,
+        name: d.name,
+        lat: dLat,
+        lon: dLon,
+        country: currentCountry.toUpperCase(),
+        state: d.region,
+        city: d.region,
+        source: "osm",
+        distance,
+      });
     }
+
+    nearby.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    return nearby.slice(0, maxResults);
   }
 
   async function fetchWeather(lat, lon) {
@@ -1205,7 +1486,8 @@
      ========================================================= */
 
   // Round duration in hours (3-hour round)
-  const ROUND_DURATION_HOURS = 3;
+  let roundDurationHours = 4; // default: 18 holes (~4h)
+  let roundMode = "18"; // "18" | "9" | "society"
 
   // Fallback daylight window (08:00 - 17:00) if sunrise/sunset unavailable
   const FALLBACK_DAYLIGHT = { startHour: 8, endHour: 17 };
@@ -1302,7 +1584,7 @@
    * @param {number} stepMinutes - Step size in minutes (30 or 60)
    * @returns {Array} Array of { value: unixSeconds, label: "HH:MM" }
    */
-  function getValidTeeTimesForDate(date, norm, stepMinutes = 30) {
+  function getValidTeeTimesForDate(date, norm, stepMinutes = 8) {
     const tzOffset = norm?.timezoneOffset || 0;
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     
@@ -1318,9 +1600,9 @@
     
     // Valid tee time range:
     // - Start: sunrise + 30min (allow early birds)
-    // - End: sunset - ROUND_DURATION_HOURS (round must finish before sunset)
+    // - End: sunset - roundDurationHours (round must finish before sunset)
     const playStart = sunrise + (30 * 60); // 30 min after sunrise
-    const playEnd = sunset - (ROUND_DURATION_HOURS * 3600); // 3h before sunset
+    const playEnd = sunset - (roundDurationHours * 3600);
     
     const now = nowSec();
     const options = [];
@@ -1334,7 +1616,7 @@
       if (slot < forecastMin || slot > forecastMax) continue;
       
       // Verify the full round is within daylight
-      const roundEnd = slot + (ROUND_DURATION_HOURS * 3600);
+      const roundEnd = slot + (roundDurationHours * 3600);
       if (roundEnd > sunset) continue;
       
       // Format time in course local timezone
@@ -1403,7 +1685,7 @@
    * @param {number} windowHours - Duration of round in hours (default 3)
    * @returns {Object} Decision result with status, metrics, reasons, and summary
    */
-  function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours = ROUND_DURATION_HOURS) {
+  function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours = roundDurationHours) {
     const WINDOW_HOURS = windowHours;
     const windowEnd = teeTimeUnix + (WINDOW_HOURS * 3600);
 
@@ -1483,26 +1765,59 @@
       feelsLike: avgFeelsLike !== null ? Math.round(avgFeelsLike) : null
     };
 
+    const toGroup = (id) => (typeof id === "number" ? Math.floor(id / 100) : null);
+
     // Decision logic
     const T = TEE_TIME_THRESHOLDS;
     const reasons = [];
-    let status = "PLAY";
+    let status = "PLAY"; // PLAY | RISKY | DELAY | AVOID
+
+    // Extra signals for golf-readable verdicts
+    const signals = (() => {
+      let thunder = false;
+      let snow = false;
+      for (const h of windowData) {
+        const w0 = Array.isArray(h?.weather) ? h.weather[0] : null;
+        const id = typeof w0?.id === "number" ? w0.id : null;
+        const g = toGroup(id);
+        if (g === 2) thunder = true; // 2xx thunderstorm
+        if (g === 6) snow = true; // 6xx snow
+      }
+      const rainRateMmHr = WINDOW_HOURS > 0 ? (totalPrecipMm / WINDOW_HOURS) : 0;
+      const gustDelta = (Number.isFinite(maxGust) && Number.isFinite(avgWind)) ? (maxGust - avgWind) : null;
+      return {
+        thunder,
+        snow,
+        rainRateMmHr,
+        gustDelta,
+      };
+    })();
 
     // Check NO CHANCE conditions
     if (totalPrecipMm >= T.noChance.totalPrecipMm) {
-      status = "NO_CHANCE";
+      status = "DELAY";
       reasons.push(`Heavy rain expected (~${metrics.totalPrecipMm}mm)`);
     } else if (maxPrecipProb >= T.noChance.precipProbAndRainMm.prob && 
                totalPrecipMm >= T.noChance.precipProbAndRainMm.mm) {
-      status = "NO_CHANCE";
+      status = "DELAY";
       reasons.push(`Rain very likely (${metrics.maxPrecipProb}%) with ~${metrics.totalPrecipMm}mm expected`);
     } else if (maxGust >= T.noChance.maxGust) {
-      status = "NO_CHANCE";
+      status = "AVOID";
       reasons.push(`Dangerous gusts (up to ${metrics.maxGust}mph)`);
     }
 
-    // Check RISKY conditions (if not already NO CHANCE)
-    if (status !== "NO_CHANCE") {
+    // Thunder/snow override
+    if (signals.thunder) {
+      status = "AVOID";
+      reasons.unshift("Thunderstorm risk");
+    }
+    if (signals.snow) {
+      status = "AVOID";
+      reasons.unshift("Snow/sleet risk");
+    }
+
+    // Check RISKY conditions (if not already AVOID/DELAY)
+    if (status === "PLAY") {
       if (totalPrecipMm >= T.risky.totalPrecipMmMin && totalPrecipMm < T.risky.totalPrecipMmMax) {
         status = "RISKY";
         reasons.push(`~${metrics.totalPrecipMm}mm rain expected`);
@@ -1525,54 +1840,71 @@
       }
     }
 
-    // Build human-readable summary
-    let summary = "";
+    // Descriptive label + short golfer message (tasteful emoji)
+    const isCold = avgTemp !== null && avgTemp <= 6;
+    const isLightRain = signals.rainRateMmHr >= 0.8 || maxPrecipProb >= 55 || totalPrecipMm >= 2.0;
+    const isHeavyRain = signals.rainRateMmHr >= 3.0 || totalPrecipMm >= 8.0 || maxPrecipProb >= 80;
+    const isWindy = avgWind >= 18 || maxGust >= 28 || (signals.gustDelta !== null && signals.gustDelta >= 12);
+
+    let label = "";
+    let message = "";
+
     if (status === "PLAY") {
-      const parts = [];
-      if (maxPrecipProb < 20) {
-        parts.push("Dry window likely");
-      } else if (maxPrecipProb < 40) {
-        parts.push("Mostly dry");
+      label = "PLAY — It’s playable";
+      message = "Solid window. Go play.";
+      if (isCold) {
+        label = "PLAY — Cold 🥶 (tough)";
+        message = "Dry enough, but it’ll feel heavy.";
       }
-      if (avgWind < 10) {
-        parts.push("Light winds");
-      } else if (avgWind < 15) {
-        parts.push("Moderate breeze");
-      } else {
-        parts.push("Breezy");
-      }
-      summary = parts.join(". ") + ".";
     } else if (status === "RISKY") {
-      const parts = [];
-      if (maxPrecipProb >= 50 || totalPrecipMm >= 1) {
-        parts.push("Showers possible");
+      label = "RISKY — Mixed conditions";
+      message = "Playable, but expect compromises.";
+      if (signals.thunder) {
+        label = "AVOID — Thunder ⛈️";
+        message = "Lightning risk. Don’t play.";
+        status = "AVOID";
+      } else if (isLightRain) {
+        label = "RISKY — Light rain 🌧️ (playable)";
+        message = "Bring waterproofs. Expect stops.";
+      } else if (isWindy) {
+        label = "RISKY — Windy 💨 (tough)";
+        message = "Club selection will be tricky.";
+      } else if (isCold) {
+        label = "RISKY — Cold 🥶 (tough)";
+        message = "Playable, but not comfortable.";
       }
-      if (maxGust >= 25 || avgWind >= 18) {
-        parts.push("Gusty crosswinds");
+    } else if (status === "DELAY") {
+      label = "DELAY — Heavy rain ⛈️";
+      message = "Wait it out if you can.";
+      if (signals.thunder) {
+        label = "AVOID — Thunder ⛈️";
+        message = "Lightning risk. Don’t play.";
+        status = "AVOID";
       }
-      if (parts.length === 0) {
-        parts.push("Marginal conditions");
+    } else { // AVOID
+      label = "AVOID — Poor conditions";
+      message = "Not worth it today.";
+      if (signals.thunder) {
+        label = "AVOID — Thunder ⛈️";
+        message = "Lightning risk. Don’t play.";
+      } else if (signals.snow) {
+        label = "AVOID — Snow ❄️";
+        message = "Unsafe and miserable.";
+      } else if (isHeavyRain) {
+        label = "AVOID — Heavy rain ⛈️";
+        message = "Course likely unplayable.";
+      } else if (isWindy) {
+        label = "AVOID — Wind 💨";
+        message = "Too gusty to enjoy.";
       }
-      summary = parts.join(". ") + ".";
-    } else { // NO_CHANCE
-      const parts = [];
-      if (totalPrecipMm >= 4 || maxPrecipProb >= 80) {
-        parts.push("Persistent rain");
-      }
-      if (maxGust >= 35) {
-        parts.push("Strong gusts—expect disruption");
-      }
-      if (parts.length === 0) {
-        parts.push("Poor conditions for golf");
-      }
-      summary = parts.join(". ") + ".";
     }
 
     // Map status to display values
     const statusMap = {
       PLAY: { label: "PLAY", icon: "✅" },
       RISKY: { label: "RISKY", icon: "⚠️" },
-      NO_CHANCE: { label: "NO CHANCE", icon: "⛔" },
+      DELAY: { label: "DELAY", icon: "⏳" },
+      AVOID: { label: "AVOID", icon: "⛔" },
       UNKNOWN: { label: "—", icon: "❓" }
     };
     const display = statusMap[status] || statusMap.UNKNOWN;
@@ -1583,13 +1915,14 @@
       icon: display.icon,
       metrics,
       reasons,
-      summary
+      label,
+      message
     };
   }
 
   // Alias for backward compatibility
   function calculateTeeTimeDecision(hourlyForecast, teeTimeUnix, timezoneOffset = 0) {
-    return computeTeeTimeDecision(hourlyForecast, teeTimeUnix, ROUND_DURATION_HOURS);
+    return computeTeeTimeDecision(hourlyForecast, teeTimeUnix, roundDurationHours);
   }
 
   // State for tee time strip
@@ -1766,7 +2099,7 @@
     if (!selectedTeeTime) return;
 
     // Calculate decision for selected tee time (3-hour window)
-    const decision = computeTeeTimeDecision(hourly, selectedTeeTime, ROUND_DURATION_HOURS);
+    const decision = computeTeeTimeDecision(hourly, selectedTeeTime, roundDurationHours);
 
     // Update status pill
     if (statusEl) {
@@ -1780,7 +2113,9 @@
         statusEl.classList.add("ff-tee-strip-status--play");
       } else if (decision.status === "RISKY") {
         statusEl.classList.add("ff-tee-strip-status--risky");
-      } else if (decision.status === "NO_CHANCE") {
+      } else if (decision.status === "DELAY") {
+        statusEl.classList.add("ff-tee-strip-status--risky");
+      } else if (decision.status === "AVOID") {
         statusEl.classList.add("ff-tee-strip-status--no-chance");
       }
 
@@ -1857,8 +2192,14 @@
 
     // Update summary
     if (summaryEl) {
-      summaryEl.textContent = decision.summary;
+      const parts = [];
+      if (decision.label) parts.push(esc(decision.label));
+      if (decision.message) parts.push(esc(decision.message));
+      summaryEl.innerHTML = parts.length ? parts.join("<br>") : "Select a tee time to see conditions for your round.";
     }
+
+    // Society tee sheet (optional)
+    renderTeeSheet(norm);
   }
 
   // Wire up tee time selector
@@ -3410,9 +3751,9 @@
     // Show loading in search results slot
     if (searchResultsSlot) {
       searchResultsSlot.classList.remove("ff-hidden");
-      searchResultsSlot.innerHTML = `<div class="ff-card muted">🔍 Searching…</div>`;
+      searchResultsSlot.innerHTML = `<div class="ff-card"><div class="ff-inline-status"><span class="ff-spinner" aria-hidden="true"></span>Searching…</div></div>`;
     } else if (forecastSlot) {
-      forecastSlot.innerHTML = `<div class="ff-card muted">🔍 Searching…</div>`;
+      forecastSlot.innerHTML = `<div class="ff-card"><div class="ff-inline-status"><span class="ff-spinner" aria-hidden="true"></span>Searching…</div></div>`;
     }
 
     try {
@@ -3451,8 +3792,13 @@
       console.log(`[Search] About to render ${list.length} result(s)`);
       if (list.length > 0) {
         console.log(`[Search] First result:`, list[0]);
+        renderSearchResults(list);
+      } else if (searchResultsSlot) {
+        searchResultsSlot.classList.remove("ff-hidden");
+        searchResultsSlot.innerHTML = `<div class="ff-card muted">No courses found. Try a different name.</div>`;
+      } else {
+        showMessage("No courses found. Try a different name.");
       }
-      renderSearchResults(list);
     } catch (err) {
       console.error("❌ [Search] Error in doSearch:", err);
       console.error("   Error details:", {
@@ -3618,18 +3964,27 @@
     typeaheadTimer = setTimeout(async () => {
       try {
         console.log("[Typeahead] Searching for:", q);
+        if (searchResultsSlot) {
+          searchResultsSlot.classList.remove("ff-hidden");
+          searchResultsSlot.innerHTML = `<div class="ff-card"><div class="ff-inline-status"><span class="ff-spinner" aria-hidden="true"></span>Searching…</div></div>`;
+        }
         const list = await fetchCourses(q);
         console.log("[Typeahead] Got results:", list?.length || 0);
         if (Array.isArray(list) && list.length > 0) {
           renderSearchResults(list);
         } else {
-          clearSearchResults();
+          if (searchResultsSlot) {
+            searchResultsSlot.classList.remove("ff-hidden");
+            searchResultsSlot.innerHTML = `<div class="ff-card muted">No courses found. Try a different name.</div>`;
+          } else {
+            clearSearchResults();
+          }
         }
       } catch (err) {
         console.error("[Typeahead] Error:", err);
         // Don't show error for typeahead, just log it
       }
-    }, 300);
+    }, 200);
   }
 
   searchInput?.addEventListener("input", handleTypeahead);
@@ -3641,30 +3996,15 @@
     }
   });
 
-  // Expose diagnostic function for debugging
-  window.testSearchAPI = async function(query = "golf") {
-    console.log("🔧 [Test] Testing search API with query:", query);
-    try {
-      const enc = encodeURIComponent(query);
-      const url = `${API_BASE}/courses?search=${enc}`;
-      console.log("🔧 [Test] Calling:", url);
-      const res = await fetch(url);
-      console.log("🔧 [Test] Response status:", res.status);
-      console.log("🔧 [Test] Response headers:", Object.fromEntries(res.headers.entries()));
-      const text = await res.text();
-      console.log("🔧 [Test] Response body:", text);
-      try {
-        const json = JSON.parse(text);
-        console.log("🔧 [Test] Parsed JSON:", json);
-      } catch (e) {
-        console.warn("🔧 [Test] Not valid JSON");
-      }
-      return { status: res.status, text, ok: res.ok };
-    } catch (err) {
-      console.error("🔧 [Test] Error:", err);
-      return { error: err.message };
-    }
-  };
+  // Round presets
+  roundPreset18?.addEventListener("click", () => setRoundMode("18"));
+  roundPreset9?.addEventListener("click", () => setRoundMode("9"));
+  roundPresetSociety?.addEventListener("click", () => setRoundMode("society"));
+  societyGroups?.addEventListener("input", () => {
+    if (lastNorm) renderTeeTimeStrip(lastNorm);
+  });
+
+  // DEV intentionally avoids any external golf-course APIs.
 
   geoBtn?.addEventListener("click", useMyLocation);
 
@@ -3733,17 +4073,28 @@
 
   /* ---------- INIT ---------- */
   try {
-    console.log("🚀 [Init] Starting Fairway Forecast...");
+    console.log("🚀 [Init] Starting Fairway Forecast (DEV)...");
+    console.log(`📂 [Init] Using static datasets: ${USE_STATIC_DATASETS}`);
+    
+    // Default round mode presets
+    setRoundMode("18");
+
     renderVerdictCard(null);
     renderPlayability(null);
     wireTeeTimeSelector();
     wireApplyPlannerButton();
     wirePremiumButton();
+    
+    // Initialize country/state selectors (DEV)
+    if (USE_STATIC_DATASETS) {
+      void initCountryStateSelectors();
+    }
+    
     renderAll();
-    console.log("✅ [Init] Fairway Forecast ready!");
+    console.log("✅ [Init] Fairway Forecast (DEV) ready!");
     
     // Show ready state in UI
-    if (searchInput) {
+    if (searchInput && !USE_STATIC_DATASETS) {
       searchInput.placeholder = 'e.g. Swindon, GB or "golf club"';
     }
     if (searchBtn) {

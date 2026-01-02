@@ -11,11 +11,11 @@ The `/dev` folder contains a standalone version of Fairway Forecast that uses **
 ### DEV Deployment Status
 
 - **DEV is live**: Updates in this repo deploy to the GitHub Pages path `/dev` (e.g. `fairwayweather.com/dev`).
-- **Production untouched**: Production files at the repo root are not modified as part of DEV-only deployments.
+- **Production promoted**: As of **2026-01-02**, the production root (`/`) is promoted to the same **static dataset** implementation and Round Selection Tool layout as `/dev`.
 
-### Support link (DEV-only)
+### Support link
 
-- A subtle **“Support ☕”** button linking to `https://buymeacoffee.com/godskid` is shown in the **/dev footer**, near the OSM attribution.
+- A subtle **“Support ☕”** button linking to `https://buymeacoffee.com/godskid` is shown in the footer, near the OSM attribution.
 - No external widgets/scripts are loaded (link only).
 
 ### Dataset improvements (recent)
