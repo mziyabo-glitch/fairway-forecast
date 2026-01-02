@@ -63,20 +63,20 @@ To prevent unrealistic verdicts (e.g. **“PLAY” at −16°C**), playability n
 
 #### Current profile table (key fields)
 
-| Country | code | coldWarnC | coldToughC |
+| Country | code | coldWarnC | coldToughC | hardStopTempC | hardStopWindChillC | moderateRain→DELAY |
 |---|---:|---:|---:|
-| United Kingdom | gb | 8 | 4 |
-| Ireland | ie | 8 | 4 |
-| Spain | es | 14 | 8 |
-| Portugal | pt | 14 | 8 |
-| France | fr | 10 | 4 |
-| Netherlands | nl | 9 | 3 |
-| Germany | de | 9 | 3 |
-| Sweden | se | 6 | 1 |
-| USA | us | 8 | 2 |
-| Australia | au | 12 | 6 |
-| New Zealand | nz | 12 | 6 |
-| South Africa | za | 12 | 6 |
+| United Kingdom | gb (uk alias) | 8 | 4 | ≤ -5°C | WC ≤ -5°C | 2.1–4.0mm/hr |
+| Ireland | ie | 8 | 4 | ≤ -5°C | WC ≤ -5°C | 2.1–4.0mm/hr |
+| Europe default | fr/de/nl/se/es/pt… | 10 | 4 | ≤ -4°C | WC ≤ -4°C | 2.1–4.0mm/hr |
+| Spain | es | 14 | 8 | ≤ -4°C | WC ≤ -4°C | 2.1–4.0mm/hr |
+| Portugal | pt | 14 | 8 | ≤ -4°C | WC ≤ -4°C | 2.1–4.0mm/hr |
+| Netherlands | nl | 9 | 3 | ≤ -4°C | WC ≤ -4°C | 2.1–4.0mm/hr |
+| Germany | de | 9 | 3 | ≤ -4°C | WC ≤ -4°C | 2.1–4.0mm/hr |
+| Sweden | se | 6 | 1 | ≤ -4°C | WC ≤ -4°C | 2.1–4.0mm/hr |
+| USA | us | 8 | 2 | ≤ -2°C | WC ≤ -2°C | 2.1–6.0mm/hr |
+| Australia | au | 12 | 6 | ≤ -2°C | WC ≤ -2°C | 2.1–6.0mm/hr |
+| New Zealand | nz | 12 | 6 | ≤ -2°C | WC ≤ -2°C | 2.1–6.0mm/hr |
+| South Africa | za | 12 | 6 | ≤ -2°C | WC ≤ -2°C | 2.1–6.0mm/hr |
 
 #### Tuning later
 

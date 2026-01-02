@@ -1806,6 +1806,7 @@
     const windChillC = P?.computeWindChillC
       ? P.computeWindChillC(minTemp !== null ? minTemp : avgTemp, avgWind)
       : null;
+    const profileForStops = P?.getCountryProfile ? P.getCountryProfile(countryCode) : null;
     const hardStop = P?.applyHardStops
       ? P.applyHardStops({
           airTempC: minTemp !== null ? minTemp : avgTemp,
@@ -1813,6 +1814,7 @@
           windChillC,
           thunder: signals.thunder,
           snowIce: signals.snowIce,
+          profile: profileForStops,
         })
       : null;
     if (hardStop) {
@@ -1876,26 +1878,78 @@
     }
 
     // Country-aware tuning (soft thresholds)
-    const profile = P?.getCountryProfile ? P.getCountryProfile(countryCode) : null;
+    const profile = profileForStops || (P?.getCountryProfile ? P.getCountryProfile(countryCode) : null);
+    const isUKIE = profile?.region === "uk";
     const coldWarnC = profile?.coldWarnC ?? 10;
     const coldToughC = profile?.coldToughC ?? 4;
-    const rainLightMmHr = profile?.rainLightMmHr ?? 2.0;
-    const rainModerateMmHr = profile?.rainModerateMmHr ?? 6.0;
+    const rainDrizzleMax = profile?.rainDrizzleMaxMmHr ?? 0.5;
+    const rainLightMax = profile?.rainLightMaxMmHr ?? 2.0;
+    const rainModerateMax = profile?.rainModerateMaxMmHr ?? 6.0;
+    const rainHeavyMin = profile?.rainHeavyMinMmHr ?? 6.0;
     const windBreezyMph = profile?.windBreezyMph ?? 12;
     const windWindyMph = profile?.windWindyMph ?? 21;
     const windVeryWindyMph = profile?.windVeryWindyMph ?? 30;
+    const riskWindChillMinC = profile?.riskWindChillMinC ?? -2;
+    const riskWindChillMaxC = profile?.riskWindChillMaxC ?? 0;
+    const coldBreezyTempMinC = profile?.coldBreezyTempMinC ?? -2;
+    const coldBreezyTempMaxC = profile?.coldBreezyTempMaxC ?? 4;
+    const coldBreezyWindMph = profile?.coldBreezyWindMph ?? 12;
+    const wetWindPenaltyRainMmHr = profile?.wetWindPenaltyRainMmHr ?? 0.6;
+    const wetWindPenaltyWindMph = profile?.wetWindPenaltyWindMph ?? 15;
+
+    const rank = (s) => (s === "PLAY" ? 0 : s === "RISKY" ? 1 : s === "DELAY" ? 2 : s === "AVOID" ? 3 : 0);
+    const setAtLeast = (minStatus, why) => {
+      if (rank(status) < rank(minStatus)) status = minStatus;
+      if (why) reasons.push(why);
+    };
+    const worsenOneStep = (why) => {
+      const next = status === "PLAY" ? "RISKY" : status === "RISKY" ? "DELAY" : status === "DELAY" ? "AVOID" : "AVOID";
+      if (next !== status) status = next;
+      if (why) reasons.push(why);
+    };
 
     // Descriptive label + short golfer message (tasteful emoji)
     const isColdTough = avgTemp !== null && avgTemp <= coldToughC;
     const isColdWarn = avgTemp !== null && avgTemp <= coldWarnC;
-    const isDrizzle = signals.rainRateMmHr >= 0.1 && signals.rainRateMmHr <= 0.5;
-    const isLightRain = signals.rainRateMmHr > 0.5 && signals.rainRateMmHr <= rainLightMmHr;
-    const isModerateRain = signals.rainRateMmHr > rainLightMmHr && signals.rainRateMmHr <= rainModerateMmHr;
-    const isHeavyRain = signals.rainRateMmHr > rainModerateMmHr || totalPrecipMm >= 8.0 || maxPrecipProb >= 80;
+
+    const rainRate = signals.rainRateMmHr;
+    const isDrizzle = rainRate >= 0.1 && rainRate <= rainDrizzleMax;
+    const isLightRain = rainRate >= 0.6 && rainRate <= rainLightMax;
+    const isModerateRain = rainRate > rainLightMax && rainRate <= rainModerateMax;
+    const isHeavyRain = rainRate > rainHeavyMin || totalPrecipMm >= 8.0 || maxPrecipProb >= 80;
 
     const isVeryWindy = avgWind >= windVeryWindyMph || maxGust >= (windVeryWindyMph + 5);
     const isWindy = avgWind >= windWindyMph || maxGust >= (windWindyMph + 7) || (signals.gustDelta !== null && signals.gustDelta >= 12);
     const isBreezy = avgWind >= windBreezyMph || maxGust >= (windBreezyMph + 6);
+
+    // UK/EU: wind chill risk band (NOT a hard-stop)
+    const inRiskWindChillBand = (windChillC !== null) && windChillC > (profile?.hardStopWindChillC ?? -2) && windChillC >= riskWindChillMinC && windChillC <= riskWindChillMaxC;
+    if (inRiskWindChillBand) {
+      setAtLeast("RISKY", `Cold wind chill (~${Math.round(windChillC)}°C)`);
+    }
+
+    // UK/EU: cold + breezy winter-golfer condition
+    const coldBreezy =
+      (avgTemp !== null && avgTemp >= coldBreezyTempMinC && avgTemp <= coldBreezyTempMaxC && avgWind >= coldBreezyWindMph) ||
+      (windChillC !== null && windChillC >= riskWindChillMinC && windChillC <= riskWindChillMaxC && avgWind >= coldBreezyWindMph);
+    if (coldBreezy) {
+      setAtLeast("RISKY", "Cold & breezy window");
+    }
+
+    // UK/EU rain sensitivity: apply rate-based status floors
+    if (isHeavyRain) {
+      setAtLeast(avgWind >= wetWindPenaltyWindMph ? "AVOID" : "DELAY", "Heavy rain rate in window");
+    } else if (isModerateRain) {
+      setAtLeast("DELAY", "Steady rain in window");
+    } else if (isLightRain) {
+      setAtLeast("RISKY", "Light rain in window");
+    }
+
+    // Wet + windy combined penalty (worsen one step)
+    const wetAndWindy = rainRate >= wetWindPenaltyRainMmHr && avgWind >= wetWindPenaltyWindMph;
+    if (wetAndWindy) {
+      worsenOneStep("Wet + windy combo");
+    }
 
     let label = "";
     let message = "";
@@ -1903,6 +1957,10 @@
     if (status === "PLAY") {
       label = "PLAY — It’s playable";
       message = "Solid window. Go play.";
+      if (isDrizzle) {
+        label = "PLAY — Drizzle 🌦️ (annoying)";
+        message = "Playable, but damp. A light waterproof helps.";
+      }
       if (isColdTough) {
         label = "PLAY — Cold 🥶 (tough)";
         message = "Reduced carry and numb hands—layer up.";
@@ -1913,27 +1971,41 @@
     } else if (status === "RISKY") {
       label = "RISKY — Mixed conditions";
       message = "Playable, but expect compromises.";
-      if (isHeavyRain) {
-        label = "DELAY — Heavy rain ⛈️";
-        message = "Wait it out if you can.";
-        status = "DELAY";
-      } else if (isModerateRain || isLightRain || isDrizzle) {
-        label = "RISKY — Light rain 🌧️ (playable)";
-        message = "Waterproofs recommended. Expect interruptions.";
-        if (isModerateRain) {
-          label = "RISKY — Rain 🌧️ (tough)";
-          message = "Wet conditions. Expect delays and soft greens.";
-        }
+      if (isUKIE && coldBreezy) {
+        label = "RISKY — Cold & breezy 🥶💨 (tough)";
+        message = "Playable for winter golfers, but expect numb hands and reduced carry.";
+      } else if (wetAndWindy) {
+        label = "DELAY — Wet & windy 🌧️💨 (miserable)";
+        message = "Playable only if you’re committed. Consider moving the tee time.";
+      } else if (isLightRain) {
+        label = "RISKY — Light rain 🌧️ (waterproofs)";
+        message = "Waterproofs recommended. Expect a wet round.";
+      } else if (isModerateRain) {
+        label = "DELAY — Steady rain 🌧️";
+        message = "Likely stop-start. Consider moving the tee time.";
       } else if (isVeryWindy || isWindy) {
         label = "RISKY — Windy 💨 (hard scoring)";
         message = "Big club changes. Hard to score well.";
-      } else if (isColdTough) {
+      } else if (isColdTough || inRiskWindChillBand) {
         label = "RISKY — Cold 🥶 (tough)";
         message = "Playable, but uncomfortable—hands go numb fast.";
+      } else if (isDrizzle) {
+        label = "RISKY — Drizzle 🌦️";
+        message = "Playable, but annoying. Bring a light shell.";
       }
     } else if (status === "DELAY") {
       label = "DELAY — Heavy rain ⛈️";
       message = "Wait it out if you can.";
+      if (wetAndWindy) {
+        label = "DELAY — Wet & windy 🌧️💨 (miserable)";
+        message = "This is the kind of weather people quit in. Consider rescheduling.";
+      } else if (isModerateRain) {
+        label = "DELAY — Steady rain 🌧️";
+        message = "Likely stop-start. Consider moving the tee time.";
+      } else if (isHeavyRain) {
+        label = "DELAY — Heavy rain ⛈️";
+        message = "Wait it out if you can.";
+      }
     } else { // AVOID
       label = "AVOID — Poor conditions";
       message = "Not worth it today.";

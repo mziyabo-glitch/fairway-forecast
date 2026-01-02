@@ -40,54 +40,126 @@
   }
 
   const DEFAULT_PROFILE = {
+    region: "default", // default | uk | eu | other
+
+    // Soft messaging thresholds
     coldWarnC: 10,
     coldToughC: 4,
-    rainLightMmHr: 2.0,
-    rainModerateMmHr: 6.0,
+
+    // Rain sensitivity (mm/hr)
+    // Drizzle: 0.1–0.5 (playable but annoying)
+    // Light: 0.6–2.0 (risky)
+    // Moderate: 2.1–X (delay)
+    // Heavy: >X (delay/avoid)
+    rainDrizzleMaxMmHr: 0.5,
+    rainLightMaxMmHr: 2.0,
+    rainModerateMaxMmHr: 6.0,
+    rainHeavyMinMmHr: 6.0,
+
+    // Wind thresholds (mph)
     windBreezyMph: 12,
     windWindyMph: 21,
     windVeryWindyMph: 30,
+
+    // Hard-stop thresholds (profile-aware)
+    hardStopTempC: -2,
+    hardStopWindChillC: -2,
+
+    // UK/EU: risk band (not hard-stop) for cold wind chill
+    riskWindChillMinC: -2,
+    riskWindChillMaxC: 0,
+
+    // UK/EU: cold+breezy "winter golfer" risk band
+    coldBreezyTempMinC: -2,
+    coldBreezyTempMaxC: 4,
+    coldBreezyWindMph: 12,
+
+    // UK/EU: wet+wind combined penalty
+    wetWindPenaltyRainMmHr: 0.6,
+    wetWindPenaltyWindMph: 15,
   };
 
-  // Internal codes are 2-letter lowercase (gb, ie, us, ...)
-  const COUNTRY_PROFILES = {
-    // UK / Ireland: tolerate cold/rain more (but freezing is still hard-stop)
-    gb: { coldWarnC: 8, coldToughC: 4, rainLightMmHr: 2.4, rainModerateMmHr: 6.2, windBreezyMph: 12, windWindyMph: 22, windVeryWindyMph: 31 },
-    ie: { coldWarnC: 8, coldToughC: 4, rainLightMmHr: 2.4, rainModerateMmHr: 6.2, windBreezyMph: 12, windWindyMph: 22, windVeryWindyMph: 31 },
+  const UK_PROFILE = {
+    region: "uk",
+    coldWarnC: 8,
+    coldToughC: 4,
+    // UK/IE more sensitive to rain, but many still play in cold/wind
+    rainModerateMaxMmHr: 4.0,
+    rainHeavyMinMmHr: 4.0,
+    hardStopTempC: -5,
+    hardStopWindChillC: -5,
+    riskWindChillMinC: -5,
+    riskWindChillMaxC: 0,
+    coldBreezyTempMinC: -2,
+    coldBreezyTempMaxC: 4,
+    coldBreezyWindMph: 12,
+  };
 
-    // Iberia: "cold" starts earlier; heat/wind matters more culturally
-    es: { coldWarnC: 14, coldToughC: 8, rainLightMmHr: 2.0, rainModerateMmHr: 6.0, windBreezyMph: 11, windWindyMph: 20, windVeryWindyMph: 29 },
-    pt: { coldWarnC: 14, coldToughC: 8, rainLightMmHr: 2.0, rainModerateMmHr: 6.0, windBreezyMph: 11, windWindyMph: 20, windVeryWindyMph: 29 },
+  const EUROPE_DEFAULT_PROFILE = {
+    region: "eu",
+    coldWarnC: 10,
+    coldToughC: 4,
+    rainModerateMaxMmHr: 4.0,
+    rainHeavyMinMmHr: 4.0,
+    hardStopTempC: -4,
+    hardStopWindChillC: -4,
+    riskWindChillMinC: -4,
+    riskWindChillMaxC: 0,
+    coldBreezyTempMinC: -1,
+    coldBreezyTempMaxC: 4,
+    coldBreezyWindMph: 13,
+  };
 
-    // Moderate
-    fr: { coldWarnC: 10, coldToughC: 4 },
-    nl: { coldWarnC: 9, coldToughC: 3, rainLightMmHr: 2.2, rainModerateMmHr: 6.1 },
-    de: { coldWarnC: 9, coldToughC: 3, rainLightMmHr: 2.1, rainModerateMmHr: 6.1 },
-    se: { coldWarnC: 6, coldToughC: 1, rainLightMmHr: 2.0, rainModerateMmHr: 6.0 },
+  // Countries treated as "EU default" unless overridden below.
+  const EUROPE_CODES = new Set(["fr", "de", "nl", "se", "es", "pt", "ie", "gb", "uk", "dk", "no", "fi", "it", "ch", "at", "be", "cz", "pl", "gr"]);
 
-    // Wide variance; keep sane defaults
-    us: { coldWarnC: 8, coldToughC: 2, rainLightMmHr: 2.0, rainModerateMmHr: 6.0, windBreezyMph: 12, windWindyMph: 21, windVeryWindyMph: 30 },
+  // Per-country overrides (merged on top of region defaults)
+  const COUNTRY_OVERRIDES = {
+    // UK / Ireland (support both "gb" and "uk" keys)
+    gb: { ...UK_PROFILE },
+    uk: { ...UK_PROFILE },
+    ie: { ...UK_PROFILE },
 
-    // Southern hemisphere "cold" starts earlier
-    au: { coldWarnC: 12, coldToughC: 6, rainLightMmHr: 2.0, rainModerateMmHr: 6.0 },
-    nz: { coldWarnC: 12, coldToughC: 6, rainLightMmHr: 2.1, rainModerateMmHr: 6.1 },
-    za: { coldWarnC: 12, coldToughC: 6, rainLightMmHr: 2.0, rainModerateMmHr: 6.0 },
+    // Iberia: "cold" starts earlier (keep EU rain/wind defaults)
+    es: { coldWarnC: 14, coldToughC: 8, windBreezyMph: 11, windWindyMph: 20, windVeryWindyMph: 29 },
+    pt: { coldWarnC: 14, coldToughC: 8, windBreezyMph: 11, windWindyMph: 20, windVeryWindyMph: 29 },
+
+    // Northern Europe
+    se: { coldWarnC: 6, coldToughC: 1 },
+    nl: { coldWarnC: 9, coldToughC: 3 },
+    de: { coldWarnC: 9, coldToughC: 3 },
+
+    // Non-Europe
+    us: { region: "other", coldWarnC: 8, coldToughC: 2, rainModerateMaxMmHr: 6.0, rainHeavyMinMmHr: 6.0, hardStopTempC: -2, hardStopWindChillC: -2, riskWindChillMinC: -2, riskWindChillMaxC: 0 },
+    au: { region: "other", coldWarnC: 12, coldToughC: 6, rainModerateMaxMmHr: 6.0, rainHeavyMinMmHr: 6.0 },
+    nz: { region: "other", coldWarnC: 12, coldToughC: 6, rainModerateMaxMmHr: 6.0, rainHeavyMinMmHr: 6.0 },
+    za: { region: "other", coldWarnC: 12, coldToughC: 6, rainModerateMaxMmHr: 6.0, rainHeavyMinMmHr: 6.0 },
   };
 
   function getCountryProfile(countryCode) {
-    const key = normCountryCode(countryCode);
-    const p = COUNTRY_PROFILES[key] || {};
-    return { ...DEFAULT_PROFILE, ...p, code: key || "default" };
+    let key = normCountryCode(countryCode);
+    // Some users refer to "UK" as "uk" but the app uses "gb".
+    if (key === "uk") key = "gb";
+
+    const base =
+      EUROPE_CODES.has(key)
+        ? { ...DEFAULT_PROFILE, ...EUROPE_DEFAULT_PROFILE }
+        : { ...DEFAULT_PROFILE };
+
+    const override = COUNTRY_OVERRIDES[key] || {};
+    return { ...base, ...override, code: key || "default" };
   }
 
   /**
    * Apply global hard-stop rules. If triggered, returns an override verdict object.
    * Otherwise returns null.
    */
-  function applyHardStops({ airTempC, windMph, windChillC, thunder, snowIce }) {
+  function applyHardStops({ airTempC, windMph, windChillC, thunder, snowIce, profile }) {
     const T = Number.isFinite(airTempC) ? airTempC : null;
-    const W = Number.isFinite(windMph) ? windMph : 0;
     const WC = Number.isFinite(windChillC) ? windChillC : null;
+    const p = profile || DEFAULT_PROFILE;
+    const avoidTempC = Number.isFinite(p?.hardStopTempC) ? p.hardStopTempC : DEFAULT_PROFILE.hardStopTempC;
+    const avoidWindChillC = Number.isFinite(p?.hardStopWindChillC) ? p.hardStopWindChillC : DEFAULT_PROFILE.hardStopWindChillC;
 
     // Thunder: abandon/avoid regardless
     if (thunder) {
@@ -110,8 +182,8 @@
     }
 
     // Temperature hard stops
-    // NOTE: -16°C must unconditionally AVOID (covered by <= -2°C).
-    if (T !== null && T <= -2) {
+    // NOTE: -16°C must unconditionally AVOID (still true under all profiles).
+    if (T !== null && T <= avoidTempC) {
       return {
         status: "AVOID",
         label: "AVOID — Freezing ❄️",
@@ -120,16 +192,7 @@
       };
     }
 
-    if (T !== null && T <= 0 && W >= 10) {
-      return {
-        status: "AVOID",
-        label: "AVOID — Wind chill ❄️",
-        message: "Too cold with wind. Risk of numb hands and unsafe surfaces.",
-        reasons: [`${Math.round(T)}°C with ~${Math.round(W)}mph wind`],
-      };
-    }
-
-    if (WC !== null && WC <= -2) {
+    if (WC !== null && WC <= avoidWindChillC) {
       return {
         status: "AVOID",
         label: "AVOID — Wind chill ❄️",
@@ -148,6 +211,42 @@
     }
 
     const tests = [
+      {
+        name: "UK: 2°C + 15mph should be RISKY (not AVOID)",
+        input: { countryCode: "gb", tempC: 2, windMph: 15, rainMmHr: 0, weatherId: 800 },
+        expectStatus: "RISKY",
+        expectLabelIncludes: "breezy",
+      },
+      {
+        name: "UK: -2°C + 8mph should NOT be AVOID",
+        input: { countryCode: "gb", tempC: -2, windMph: 8, rainMmHr: 0, weatherId: 800 },
+        expectStatusAny: ["PLAY", "RISKY", "DELAY"],
+        expectLabelIncludes: "Cold",
+      },
+      {
+        name: "UK: -6°C should be AVOID (freezing)",
+        input: { countryCode: "gb", tempC: -6, windMph: 4, rainMmHr: 0, weatherId: 800 },
+        expectStatus: "AVOID",
+        expectLabelIncludes: "Freezing",
+      },
+      {
+        name: "UK: wind chill <= -5°C should be AVOID",
+        input: { countryCode: "gb", tempC: 0, windMph: 35, rainMmHr: 0, weatherId: 800 },
+        expectStatus: "AVOID",
+        expectLabelIncludes: "Wind chill",
+      },
+      {
+        name: "UK: light rain + wind should worsen to DELAY (wet & windy)",
+        input: { countryCode: "gb", tempC: 8, windMph: 18, rainMmHr: 1.0, weatherId: 500 },
+        expectStatus: "DELAY",
+        expectLabelIncludes: "Wet & windy",
+      },
+      {
+        name: "EU default: 2°C + 15mph should be RISKY (slightly conservative)",
+        input: { countryCode: "fr", tempC: 2, windMph: 15, rainMmHr: 0, weatherId: 800 },
+        expectStatus: "RISKY",
+        expectLabelIncludes: "Cold",
+      },
       {
         name: "Hard stop: -16°C must be AVOID (freezing)",
         input: { countryCode: "us", tempC: -16, windMph: 4, rainMmHr: 0, weatherId: 800 },
@@ -228,6 +327,9 @@
     console.groupEnd();
     console.log(`[Playability] Sanity tests complete: ${pass} passed, ${fail} failed`);
   }
+
+  // Back-compat export name (some notes/tools refer to "COUNTRY_PROFILES")
+  const COUNTRY_PROFILES = COUNTRY_OVERRIDES;
 
   // Expose
   window.FF_PLAYABILITY = {
