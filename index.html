@@ -241,7 +241,7 @@
             </div>
             <!-- Selected tee time display -->
             <div class="ff-tee-selected-time" id="teeSelectedTime" aria-live="polite">
-              <span id="teeSelectedLabel">—</span>
+              <span id="teeSelectedLabel"></span>
             </div>
           </div>
 
@@ -302,7 +302,7 @@
         </div>
       </section>
       
-      <!-- ================= ADVANCED OPTIONS (Feature-flagged) ================= -->
+      <!-- ================= ADVANCED OPTIONS (Feature-flagged - hidden by default) ================= -->
       <section id="advancedSection" class="ff-advanced ff-feature-advanced-wind" style="display:none;">
         <button type="button" id="advancedToggle" class="ff-advanced-toggle">
           <span>Advanced</span>
@@ -326,7 +326,30 @@
         </div>
       </section>
 
-      <!-- ================= ROUND PLANNER ================= -->
+      <!-- ================= PREMIUM TEASER (shown when premium features disabled) ================= -->
+      <section id="premiumTeaserSection" class="ff-premium-teaser" style="display:none;">
+        <div class="ff-premium-card">
+          <div class="ff-premium-header">
+            <span class="ff-premium-pill">Premium</span>
+            <span class="ff-premium-title">Coming soon</span>
+          </div>
+          <ul class="ff-premium-features">
+            <li>
+              <span class="ff-premium-feature-icon">📅</span>
+              <span class="ff-premium-feature-text">Round Planner — best daylight tee times</span>
+            </li>
+            <li>
+              <span class="ff-premium-feature-icon">💨</span>
+              <span class="ff-premium-feature-text">Advanced Wind Impact — gale detection</span>
+            </li>
+          </ul>
+          <button type="button" id="getPremiumBtn" class="ff-btn ff-btn-premium">
+            Get Premium
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= ROUND PLANNER (Feature-flagged - hidden by default) ================= -->
       <section aria-label="Round planner" id="roundPlannerSection">
         <div class="ff-section-label">Round Planner</div>
 

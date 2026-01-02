@@ -31,4 +31,7 @@ window.APP_CONFIG = {
   // --- Feature flags ---
   // Advanced wind features (gale detection, etc.) - hide until complete
   FEATURE_ADVANCED_WIND: false,
+  
+  // Round Planner (best daylight tee time recommendation) - Premium feature
+  FEATURE_ROUND_PLANNER: false,
 };

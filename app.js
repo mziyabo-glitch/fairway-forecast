@@ -1794,9 +1794,13 @@
 
     // Update selected tee time display
     const selectedLabelEl = $("teeSelectedLabel");
-    if (selectedLabelEl && selectedTeeTime) {
-      const tzOffset = norm?.timezoneOffset || 0;
-      selectedLabelEl.textContent = formatTeeLabel(selectedTeeTime, tzOffset);
+    if (selectedLabelEl) {
+      if (selectedTeeTime) {
+        const tzOffset = norm?.timezoneOffset || 0;
+        selectedLabelEl.textContent = formatTeeLabel(selectedTeeTime, tzOffset);
+      } else {
+        selectedLabelEl.textContent = "Select a tee time";
+      }
     }
 
     // Update metrics
@@ -1938,6 +1942,22 @@
       if (recommendedTime) {
         applyRecommendedTime(recommendedTime);
       }
+    });
+  }
+
+  /**
+   * Wire up the Premium button (placeholder for future checkout)
+   */
+  function wirePremiumButton() {
+    const premiumBtn = $("getPremiumBtn");
+    if (!premiumBtn) return;
+    
+    premiumBtn.addEventListener("click", () => {
+      // Placeholder - future premium checkout
+      openInfoModal(
+        "Premium Coming Soon",
+        "Premium features including Round Planner and Advanced Wind Impact are coming soon. Stay tuned!"
+      );
     });
   }
 
@@ -2155,10 +2175,11 @@
       recommendedBestTime = null;
     }
     
-    // Show/hide Apply button based on whether we have a recommended time
+    // Show/hide Apply button based on whether we have a recommended time (only if Round Planner enabled)
     const applyBtn = $("applyPlannerBtn");
+    const roundPlannerEnabled = APP.FEATURE_ROUND_PLANNER === true;
     if (applyBtn) {
-      if (recommendedBestTime && selectedTeeTime !== recommendedBestTime) {
+      if (roundPlannerEnabled && recommendedBestTime && selectedTeeTime !== recommendedBestTime) {
         applyBtn.style.display = "block";
         applyBtn.dataset.recommendedTime = recommendedBestTime;
       } else {
@@ -3044,6 +3065,20 @@
       advancedSection.style.display = "none";
     }
     
+    // Show/hide Round Planner section (only when feature flag enabled)
+    const roundPlannerSection = $("roundPlannerSection");
+    const roundPlannerEnabled = APP.FEATURE_ROUND_PLANNER === true;
+    if (roundPlannerSection) {
+      roundPlannerSection.style.display = roundPlannerEnabled ? "block" : "none";
+    }
+    
+    // Show/hide Premium teaser (when premium features are disabled and course is selected)
+    const premiumTeaserSection = $("premiumTeaserSection");
+    const showPremiumTeaser = selectedCourse && (!roundPlannerEnabled || !advancedWindEnabled);
+    if (premiumTeaserSection) {
+      premiumTeaserSection.style.display = showPremiumTeaser ? "block" : "none";
+    }
+    
     // Update last updated timestamp
     const lastUpdatedEl = $("lastUpdated");
     if (lastUpdatedEl && lastWeatherUpdate) {
@@ -3703,6 +3738,7 @@
     renderPlayability(null);
     wireTeeTimeSelector();
     wireApplyPlannerButton();
+    wirePremiumButton();
     renderAll();
     console.log("✅ [Init] Fairway Forecast ready!");
     

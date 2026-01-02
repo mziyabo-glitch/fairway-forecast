@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tee-Time Decision Strip - Test Scenarios (v3 - Round Planner)</title>
+  <title>Fairway Forecast - Feature Flags & Premium Test</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -35,18 +35,12 @@
       overflow-x: auto;
     }
     .output-data { background: #e8f5e9; }
-    .output-data.risky { background: #fff8e1; }
-    .output-data.no-chance { background: #ffebee; }
-    .status-play { color: #15803d; font-weight: bold; }
-    .status-risky { color: #a16207; font-weight: bold; }
-    .status-no-chance { color: #dc2626; font-weight: bold; }
     pre { margin: 0; white-space: pre-wrap; }
-    .result { margin-top: 10px; padding: 10px; border-left: 4px solid #0F766E; }
-    .result.risky { border-left-color: #f59e0b; }
-    .result.no-chance { border-left-color: #dc2626; }
-    .new-badge {
+    .flag-on { color: #15803d; font-weight: bold; }
+    .flag-off { color: #dc2626; font-weight: bold; }
+    .premium-badge {
       display: inline-block;
-      background: #0F766E;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
       color: white;
       padding: 2px 8px;
       border-radius: 4px;
@@ -54,214 +48,129 @@
       font-weight: bold;
       margin-left: 8px;
     }
-    .badge-v3 {
-      background: #7c3aed;
-    }
-    .comparison-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 12px 0;
-    }
-    .comparison-table th, .comparison-table td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: left;
-    }
-    .comparison-table th {
-      background: #f0f0f0;
-      font-weight: 700;
-    }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f0f0f0; font-weight: 700; }
   </style>
 </head>
 <body>
-  <h1>🏌️ Fairway Forecast v3 <span class="new-badge badge-v3">ROUND PLANNER</span></h1>
-  <p>This page documents the upgraded UI with clear separation between "Your tee time" and "Round Planner".</p>
+  <h1>🏌️ Fairway Forecast <span class="premium-badge">Premium</span></h1>
+  <p>This page documents the feature flag configuration and Premium gating.</p>
 
   <div class="scenario">
-    <h3>🆕 Version 3 Changes</h3>
-    <ul>
-      <li><strong>Hidden Advanced Wind:</strong> Feature-flagged behind <code>FEATURE_ADVANCED_WIND</code></li>
-      <li><strong>Renamed Decision → Round Planner:</strong> Clear that it's a recommendation</li>
-      <li><strong>Your tee time eyebrow:</strong> Strip now labeled "Your tee time"</li>
-      <li><strong>Premium time format:</strong> "Today · 14:19", "Tomorrow · 09:10", "Sun 4 · 10:45"</li>
-      <li><strong>Apply button:</strong> One-tap sync from Round Planner to your tee time</li>
-      <li><strong>Confirmation message:</strong> "Applied from Round Planner" (auto-fades)</li>
-      <li><strong>Best window prefix:</strong> Round Planner shows "Best window: PLAY" not just "Play"</li>
-    </ul>
+    <h3>Feature Flags (config.js)</h3>
+    <div class="input-data">
+      <pre>
+window.APP_CONFIG = {
+  // ... other config ...
+  
+  // Feature flags
+  FEATURE_ADVANCED_WIND: false,   // Advanced wind impact (gale detection)
+  FEATURE_ROUND_PLANNER: false,   // Round Planner (best tee time recommendations)
+};
+      </pre>
+    </div>
   </div>
 
   <div class="scenario">
-    <h3>UI Component Comparison</h3>
-    <table class="comparison-table">
+    <h3>Default Configuration (Both Flags = false)</h3>
+    <table>
       <tr>
         <th>Component</th>
-        <th>Purpose</th>
-        <th>Time Source</th>
-        <th>Label</th>
+        <th>Visibility</th>
+        <th>Notes</th>
       </tr>
       <tr>
-        <td><strong>Tee-Time Decision Strip</strong></td>
-        <td>Your selected tee time decision</td>
-        <td>User-selected date + time</td>
-        <td>"Your tee time" + "Today · 14:19"</td>
+        <td>Tee-Time Decision Strip</td>
+        <td><span class="flag-on">✓ Visible</span></td>
+        <td>Always visible when course selected</td>
       </tr>
       <tr>
-        <td><strong>Round Planner</strong></td>
-        <td>Recommended best window</td>
-        <td>Algorithm-determined</td>
-        <td>"Best window: PLAY" + "Recommended tee time: 18:13"</td>
+        <td>Advanced Wind Dropdown</td>
+        <td><span class="flag-off">✗ Hidden</span></td>
+        <td>Behind FEATURE_ADVANCED_WIND flag</td>
+      </tr>
+      <tr>
+        <td>Round Planner</td>
+        <td><span class="flag-off">✗ Hidden</span></td>
+        <td>Behind FEATURE_ROUND_PLANNER flag</td>
+      </tr>
+      <tr>
+        <td>Premium Teaser Card</td>
+        <td><span class="flag-on">✓ Visible</span></td>
+        <td>Shows "Coming soon" for premium features</td>
+      </tr>
+      <tr>
+        <td>Playability Index</td>
+        <td><span class="flag-on">✓ Visible</span></td>
+        <td>Inside Round Planner section (hidden when flag off)</td>
       </tr>
     </table>
   </div>
 
   <div class="scenario">
-    <h3>Scenario 1: NO CHANCE Strip + PLAY Planner (No Confusion)</h3>
-    <p>User selects a bad time, but Round Planner suggests a better window.</p>
-    
-    <div class="input-data">
-      <strong>User Selection:</strong>
-      <pre>
-Selected Date: Today
-Selected Time: 14:00 (during rain)
-      </pre>
-      
-      <strong>Forecast Data:</strong>
-      <pre>
-14:00-17:00: Heavy rain (90%), 35mph gusts
-09:00-12:00: Dry (10% chance), 8mph wind
-      </pre>
-    </div>
-    
-    <div class="output-data no-chance">
-      <strong>Tee-Time Decision Strip:</strong>
-      <div class="result no-chance">
-        <p><em>"Your tee time"</em></p>
-        <p><strong>Today · 14:00</strong></p>
-        <p><span class="status-no-chance">⛔ NO CHANCE</span></p>
-        <p>Persistent rain. Strong gusts—expect disruption.</p>
-      </div>
-    </div>
-    
+    <h3>Tee-Time Decision Strip - Label Fix</h3>
+    <p>The stray "—" has been removed. Label now shows:</p>
     <div class="output-data">
-      <strong>Round Planner:</strong>
-      <div class="result">
-        <p><em>"Best daylight tee time. Tap to apply."</em></p>
-        <p><span class="status-play">Best window: ✅ PLAY</span></p>
-        <p>Recommended tee time: <strong>09:00</strong></p>
-        <p><button style="background:#e8f5e9; border:1px solid #0F766E; padding:6px 12px; border-radius:8px; cursor:pointer;">Apply to my tee time</button></p>
-      </div>
+      <pre>
+With selected time: "Today · 12:42", "Tomorrow · 09:10", "Sun 4 · 10:45"
+Without selection:  "Select a tee time"
+      </pre>
     </div>
-    
-    <p><strong>✓ Acceptance:</strong> User clearly sees their bad choice (NO CHANCE) and the better option (Best window: PLAY). No confusion.</p>
   </div>
 
   <div class="scenario">
-    <h3>Scenario 2: User Applies Recommended Time</h3>
-    <p>User clicks "Apply to my tee time" on the Round Planner.</p>
-    
-    <div class="input-data">
-      <strong>Before Apply:</strong>
-      <pre>
-Strip: Today · 14:00 → NO CHANCE
-Planner: Best window: PLAY, Recommended: 09:00
-      </pre>
-    </div>
-    
+    <h3>Premium Teaser Card</h3>
+    <p>Shown when premium features are disabled:</p>
     <div class="output-data">
-      <strong>After Apply:</strong>
-      <div class="result">
-        <p><strong>Strip updates to:</strong></p>
-        <p><em>"Your tee time"</em></p>
-        <p><strong>Today · 09:00</strong></p>
-        <p><span class="status-play">✅ PLAY</span></p>
-        <p>Dry window likely. Light winds.</p>
-        <p style="background:#e8f5e9; padding:6px; border-radius:6px; text-align:center; font-size:12px; color:#0F766E;">
-          Applied from Round Planner <em>(fades after 1.5s)</em>
-        </p>
-      </div>
-    </div>
-    
-    <p><strong>✓ Acceptance:</strong> Strip instantly updates. Confirmation appears and fades. User's tee time is now optimal.</p>
-  </div>
-
-  <div class="scenario">
-    <h3>Scenario 3: Advanced Wind Hidden</h3>
-    <p>The Advanced dropdown is hidden until gale detection is complete.</p>
-    
-    <div class="input-data">
-      <strong>config.js:</strong>
       <pre>
-window.APP_CONFIG = {
-  // ...
-  FEATURE_ADVANCED_WIND: false,  // ← Hidden
-};
-      </pre>
-    </div>
-    
-    <div class="output-data">
-      <strong>Expected UI:</strong>
-      <div class="result">
-        <p>✓ No "Advanced" dropdown visible anywhere</p>
-        <p>✓ Course direction selector not shown</p>
-        <p>✓ Code preserved, just hidden behind flag</p>
-      </div>
-    </div>
-    
-    <p><strong>✓ Acceptance:</strong> When <code>FEATURE_ADVANCED_WIND = false</code>, the Advanced section never appears.</p>
-  </div>
-
-  <h2>Feature Flag Reference</h2>
-  <div class="scenario">
-    <div class="input-data">
-      <pre>
-// config.js
-window.APP_CONFIG = {
-  // ... other config ...
-  
-  // Feature flags
-  FEATURE_ADVANCED_WIND: false,  // Set to true when gale logic is complete
-};
+┌─────────────────────────────────────────────────┐
+│ [Premium]  Coming soon                          │
+│                                                 │
+│ 📅 Round Planner — best daylight tee times     │
+│ 💨 Advanced Wind Impact — gale detection       │
+│                                                 │
+│ [ Get Premium ]                                 │
+└─────────────────────────────────────────────────┘
       </pre>
     </div>
   </div>
 
-  <h2>Helper Function: formatTeeLabel</h2>
   <div class="scenario">
+    <h3>When FEATURE_ROUND_PLANNER = true</h3>
+    <table>
+      <tr>
+        <th>Component</th>
+        <th>Visibility</th>
+      </tr>
+      <tr>
+        <td>Round Planner Card</td>
+        <td><span class="flag-on">✓ Visible</span></td>
+      </tr>
+      <tr>
+        <td>Apply Button</td>
+        <td><span class="flag-on">✓ Visible</span> (when recommended time differs)</td>
+      </tr>
+      <tr>
+        <td>Premium Teaser</td>
+        <td><span class="flag-off">✗ Hidden</span> (if ADVANCED_WIND also true)</td>
+      </tr>
+    </table>
+    <p><strong>Apply Action:</strong> Tapping "Apply to my tee time" sets the Strip to the recommended time and re-renders instantly.</p>
+  </div>
+
+  <div class="scenario">
+    <h3>Helper Functions</h3>
     <div class="input-data">
       <pre>
-// Format tee time label in premium format
+// Format tee time label
 formatTeeLabel(tsSeconds, tzOffset) → string
 
 Examples:
-  formatTeeLabel(todayAt1419, tz) → "Today · 14:19"
+  formatTeeLabel(todayAt1242, tz) → "Today · 12:42"
   formatTeeLabel(tomorrowAt0910, tz) → "Tomorrow · 09:10"
   formatTeeLabel(sundayAt1045, tz) → "Sun 4 · 10:45"
-      </pre>
-    </div>
-  </div>
-
-  <h2>UI Layout (Mobile-First)</h2>
-  <div class="scenario">
-    <div class="input-data">
-      <pre>
-┌─────────────────────────────────────────────────┐
-│ YOUR TEE TIME                                   │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ [✅ PLAY]         Today · 14:19             │ │
-│ │ [Today] [Tmrw] [Sat 3] [Sun 4] [Mon 5]      │ │
-│ │ 🕐 Time: [14:00 ▼]                          │ │
-│ │ 🌧️ 8%  💨 8mph  🌡️ 18°C  💥 13mph          │ │
-│ │ Dry window likely. Light winds.             │ │
-│ └─────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────┤
-│ ROUND PLANNER                                   │
-│ ┌─────────────────────────────────────────────┐ │
-│ │ Best daylight tee time. Tap to apply.       │ │
-│ │ Best window: ✅ PLAY                         │ │
-│ │ Recommended tee time: 09:00                 │ │
-│ │ [ Apply to my tee time ]                    │ │
-│ └─────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────┘
+  formatTeeLabel(null, tz) → "Select a tee time"
       </pre>
     </div>
   </div>
@@ -269,26 +178,59 @@ Examples:
   <h2>Acceptance Tests</h2>
   <div class="scenario">
     <ul>
-      <li>✅ <strong>Test 1:</strong> When strip says NO CHANCE, planner shows "Best window: PLAY" (not confusing "Play")</li>
-      <li>✅ <strong>Test 2:</strong> Advanced dropdown not visible when <code>FEATURE_ADVANCED_WIND = false</code></li>
-      <li>✅ <strong>Test 3:</strong> Clicking "Apply to my tee time" updates strip instantly</li>
-      <li>✅ <strong>Test 4:</strong> Confirmation message "Applied from Round Planner" appears and fades</li>
-      <li>✅ <strong>Test 5:</strong> UI remains compact and clean on mobile (no bloat)</li>
-      <li>✅ <strong>Test 6:</strong> Both components display times in course local time</li>
+      <li>✅ <strong>Test 1:</strong> Advanced wind bar is NOT visible when FEATURE_ADVANCED_WIND = false</li>
+      <li>✅ <strong>Test 2:</strong> Tee-Time Decision Strip never shows "—" (shows proper label or "Select a tee time")</li>
+      <li>✅ <strong>Test 3:</strong> Round Planner hidden by default, replaced with Premium teaser</li>
+      <li>✅ <strong>Test 4:</strong> Premium teaser shows "Coming soon" with two feature items</li>
+      <li>✅ <strong>Test 5:</strong> When Round Planner enabled, Apply button updates Strip instantly</li>
+      <li>✅ <strong>Test 6:</strong> Page remains clean, mobile-first, not bloated</li>
     </ul>
   </div>
 
+  <h2>UI Layout (Default - Premium Features Disabled)</h2>
+  <div class="scenario">
+    <div class="input-data">
+      <pre>
+┌─────────────────────────────────────────────────┐
+│ YOUR TEE TIME                                   │
+│ ┌─────────────────────────────────────────────┐ │
+│ │ [✅ PLAY]              Today · 14:19        │ │
+│ │ [Today] [Tmrw] [Sat 3] [Sun 4]              │ │
+│ │ 🕐 Time: [14:00 ▼]                          │ │
+│ │ 🌧️ 8%  💨 8mph  🌡️ 18°C  💥 13mph          │ │
+│ │ Dry window likely. Light winds.             │ │
+│ └─────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────┤
+│ [Premium]  Coming soon                          │
+│ 📅 Round Planner — best daylight tee times     │
+│ 💨 Advanced Wind Impact — gale detection       │
+│ [ Get Premium ]                                 │
+├─────────────────────────────────────────────────┤
+│ FORECAST                                        │
+│ [Current] [Hourly] [Daily]                      │
+│ ...                                             │
+└─────────────────────────────────────────────────┘
+
+NOTE: Round Planner section is HIDDEN
+NOTE: Advanced dropdown is HIDDEN
+NOTE: No empty gaps or spacing issues
+      </pre>
+    </div>
+  </div>
+
   <script>
-    console.log("🏌️ Fairway Forecast v3 Test Scenarios");
-    console.log("======================================");
+    console.log("🏌️ Fairway Forecast - Feature Flags & Premium Test");
+    console.log("====================================================");
     console.log("");
-    console.log("Key improvements:");
-    console.log("  • Your tee time vs Round Planner - clear distinction");
-    console.log("  • 'Best window: PLAY' prefix prevents confusion");
-    console.log("  • One-tap Apply syncs recommended time");
-    console.log("  • Advanced wind hidden until complete");
+    console.log("Default configuration:");
+    console.log("  FEATURE_ADVANCED_WIND: false");
+    console.log("  FEATURE_ROUND_PLANNER: false");
     console.log("");
-    console.log("Open the main app (index.html) to test the component.");
+    console.log("Result:");
+    console.log("  ✓ Tee-Time Strip visible with proper labels");
+    console.log("  ✓ Premium teaser shown with 'Coming soon'");
+    console.log("  ✗ Advanced Wind hidden");
+    console.log("  ✗ Round Planner hidden");
   </script>
 </body>
 </html>
