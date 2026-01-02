@@ -230,13 +230,23 @@
       <!-- ================= TEE-TIME DECISION STRIP ================= -->
       <section id="teeTimeStripSection" class="ff-tee-time-strip" style="display:none;" aria-label="Tee time decision">
         <div class="ff-tee-strip-card">
-          <!-- Top row: Status pill + Date chips -->
+          <!-- Eyebrow label -->
+          <div class="ff-tee-eyebrow">Your tee time</div>
+          
+          <!-- Top row: Status pill + Selected time display -->
           <div class="ff-tee-strip-header">
             <div class="ff-tee-strip-status" id="teeTimeStatus">
               <span class="ff-tee-status-icon" id="teeTimeIcon" aria-hidden="true">⏳</span>
               <span class="ff-tee-status-label" id="teeTimeLabel">Select tee time</span>
             </div>
-            <!-- Date chip selector -->
+            <!-- Selected tee time display -->
+            <div class="ff-tee-selected-time" id="teeSelectedTime" aria-live="polite">
+              <span id="teeSelectedLabel">—</span>
+            </div>
+          </div>
+
+          <!-- Date chip selector -->
+          <div class="ff-tee-date-row">
             <div class="ff-tee-date-chips" id="teeDateChips" role="group" aria-label="Select date">
               <!-- Date chips populated by JS -->
             </div>
@@ -246,13 +256,18 @@
           <div class="ff-tee-time-row">
             <label class="ff-tee-time-label">
               <span class="ff-tee-time-icon" aria-hidden="true">🕐</span>
-              Tee Time
+              Time
             </label>
             <div class="ff-tee-time-selector" role="group" aria-label="Select tee time">
               <select id="teeTimeSelect" class="ff-tee-select" aria-describedby="teeTimeDesc">
                 <!-- Options populated by JS -->
               </select>
             </div>
+          </div>
+          
+          <!-- Applied confirmation (hidden by default) -->
+          <div class="ff-tee-applied-msg" id="teeAppliedMsg" style="display:none;">
+            Applied from Round Planner
           </div>
 
           <!-- Metrics row -->
@@ -287,8 +302,8 @@
         </div>
       </section>
       
-      <!-- ================= ADVANCED OPTIONS ================= -->
-      <section id="advancedSection" class="ff-advanced" style="display:none;">
+      <!-- ================= ADVANCED OPTIONS (Feature-flagged) ================= -->
+      <section id="advancedSection" class="ff-advanced ff-feature-advanced-wind" style="display:none;">
         <button type="button" id="advancedToggle" class="ff-advanced-toggle">
           <span>Advanced</span>
           <span id="advancedArrow" class="ff-advanced-arrow">▼</span>
@@ -311,15 +326,17 @@
         </div>
       </section>
 
-      <!-- ================= DECISION ================= -->
-      <section aria-label="Play decision">
-        <div class="ff-section-label">Decision</div>
+      <!-- ================= ROUND PLANNER ================= -->
+      <section aria-label="Round planner" id="roundPlannerSection">
+        <div class="ff-section-label">Round Planner</div>
 
         <section
           id="verdictCard"
           class="ff-panel ff-verdict ff-verdict--neutral"
           aria-live="polite"
         >
+          <div class="ff-planner-subtitle">Best daylight tee time. Tap to apply.</div>
+          
           <div class="ff-verdict-main">
             <div class="ff-verdict-badge" aria-hidden="true">
               <span id="verdictIcon">⏳</span>
@@ -336,12 +353,17 @@
                 <span class="ff-time-separator">·</span>
                 <span id="gmtTime">—</span>
               </div>
-              <div class="ff-time-hint">Times shown in course local time</div>
+              <div class="ff-time-hint">Course local time</div>
 
               <div class="ff-verdict-meta">
-                <span>Best tee time</span>
+                <span>Recommended tee time</span>
                 <strong id="verdictBestTime">—</strong>
               </div>
+              
+              <!-- Apply to tee time button -->
+              <button type="button" id="applyPlannerBtn" class="ff-btn ff-btn-apply" style="display:none;">
+                Apply to my tee time
+              </button>
             </div>
           </div>
         </section>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tee-Time Decision Strip - Test Scenarios (v2 - Date Selection)</title>
+  <title>Tee-Time Decision Strip - Test Scenarios (v3 - Round Planner)</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -54,204 +54,188 @@
       font-weight: bold;
       margin-left: 8px;
     }
+    .badge-v3 {
+      background: #7c3aed;
+    }
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+    }
+    .comparison-table th, .comparison-table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+    .comparison-table th {
+      background: #f0f0f0;
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
-  <h1>🏌️ Tee-Time Decision Strip v2 <span class="new-badge">DATE SELECTION</span></h1>
-  <p>This page demonstrates the upgraded Tee-Time Decision Strip with date + time selection and 3-hour round evaluation.</p>
+  <h1>🏌️ Fairway Forecast v3 <span class="new-badge badge-v3">ROUND PLANNER</span></h1>
+  <p>This page documents the upgraded UI with clear separation between "Your tee time" and "Round Planner".</p>
 
   <div class="scenario">
-    <h3>🆕 New Features</h3>
+    <h3>🆕 Version 3 Changes</h3>
     <ul>
-      <li><strong>Date Selection:</strong> Horizontal date chips (Today, Tomorrow, Sat 6, etc.)</li>
-      <li><strong>3-Hour Round:</strong> Evaluation window changed from 4h to 3h</li>
-      <li><strong>Daylight Enforcement:</strong> Tee time + 3h must be inside daylight</li>
-      <li><strong>Forecast Days:</strong> Supports up to 7 days (or 5 if limited)</li>
-      <li><strong>Smart Time Snapping:</strong> When switching dates, snaps to nearest valid time</li>
+      <li><strong>Hidden Advanced Wind:</strong> Feature-flagged behind <code>FEATURE_ADVANCED_WIND</code></li>
+      <li><strong>Renamed Decision → Round Planner:</strong> Clear that it's a recommendation</li>
+      <li><strong>Your tee time eyebrow:</strong> Strip now labeled "Your tee time"</li>
+      <li><strong>Premium time format:</strong> "Today · 14:19", "Tomorrow · 09:10", "Sun 4 · 10:45"</li>
+      <li><strong>Apply button:</strong> One-tap sync from Round Planner to your tee time</li>
+      <li><strong>Confirmation message:</strong> "Applied from Round Planner" (auto-fades)</li>
+      <li><strong>Best window prefix:</strong> Round Planner shows "Best window: PLAY" not just "Play"</li>
     </ul>
   </div>
 
   <div class="scenario">
-    <h3>Scenario 1: PLAY - Perfect Morning Round (Saturday)</h3>
-    <p>A beautiful Saturday morning with minimal rain chance and light winds.</p>
-    
-    <div class="input-data">
-      <strong>Input Forecast (3-hour window from 09:00):</strong>
-      <pre>
-[
-  { timeISO: "2026-01-03T09:00:00Z", tempC: 16, feelsLikeC: 15, windMph: 7, gustMph: 11, precipProbPct: 5, precipMm: 0 },
-  { timeISO: "2026-01-03T10:00:00Z", tempC: 18, feelsLikeC: 17, windMph: 9, gustMph: 13, precipProbPct: 8, precipMm: 0 },
-  { timeISO: "2026-01-03T11:00:00Z", tempC: 19, feelsLikeC: 18, windMph: 8, gustMph: 12, precipProbPct: 5, precipMm: 0 }
-]
-
-Daylight: Sunrise 07:45, Sunset 16:30
-Selected Date: Sat 3 Jan
-Selected Time: 09:00
-      </pre>
-    </div>
-    
-    <div class="output-data">
-      <strong>Expected Output:</strong>
-      <div class="result">
-        <p><span class="status-play">✅ PLAY</span></p>
-        <p><strong>Metrics (3h window):</strong></p>
-        <ul>
-          <li>Rain: 8% (max probability)</li>
-          <li>Wind: 8 mph (average)</li>
-          <li>Temp: 18°C (average)</li>
-          <li>Gusts: 13 mph (max)</li>
-        </ul>
-        <p><strong>Summary:</strong> "Dry window likely. Light winds."</p>
-        <p><strong>Round ends:</strong> 12:00 (within daylight ✓)</p>
-      </div>
-    </div>
+    <h3>UI Component Comparison</h3>
+    <table class="comparison-table">
+      <tr>
+        <th>Component</th>
+        <th>Purpose</th>
+        <th>Time Source</th>
+        <th>Label</th>
+      </tr>
+      <tr>
+        <td><strong>Tee-Time Decision Strip</strong></td>
+        <td>Your selected tee time decision</td>
+        <td>User-selected date + time</td>
+        <td>"Your tee time" + "Today · 14:19"</td>
+      </tr>
+      <tr>
+        <td><strong>Round Planner</strong></td>
+        <td>Recommended best window</td>
+        <td>Algorithm-determined</td>
+        <td>"Best window: PLAY" + "Recommended tee time: 18:13"</td>
+      </tr>
+    </table>
   </div>
 
   <div class="scenario">
-    <h3>Scenario 2: RISKY - Sunday Afternoon Showers</h3>
-    <p>Showers possible with gusty winds. Playable but challenging.</p>
+    <h3>Scenario 1: NO CHANCE Strip + PLAY Planner (No Confusion)</h3>
+    <p>User selects a bad time, but Round Planner suggests a better window.</p>
     
     <div class="input-data">
-      <strong>Input Forecast (3-hour window from 14:00):</strong>
+      <strong>User Selection:</strong>
       <pre>
-[
-  { timeISO: "2026-01-04T14:00:00Z", tempC: 14, feelsLikeC: 12, windMph: 17, gustMph: 27, precipProbPct: 50, precipMm: 0.3 },
-  { timeISO: "2026-01-04T15:00:00Z", tempC: 13, feelsLikeC: 10, windMph: 19, gustMph: 29, precipProbPct: 60, precipMm: 0.5 },
-  { timeISO: "2026-01-04T16:00:00Z", tempC: 13, feelsLikeC: 9, windMph: 18, gustMph: 26, precipProbPct: 55, precipMm: 0.4 }
-]
-
-Daylight: Sunrise 07:46, Sunset 16:31
-Selected Date: Sun 4 Jan
-Selected Time: 14:00
+Selected Date: Today
+Selected Time: 14:00 (during rain)
       </pre>
-    </div>
-    
-    <div class="output-data risky">
-      <strong>Expected Output:</strong>
-      <div class="result risky">
-        <p><span class="status-risky">⚠️ RISKY</span></p>
-        <p><strong>Metrics (3h window):</strong></p>
-        <ul>
-          <li>Rain: 60% (max probability)</li>
-          <li>Wind: 18 mph (average)</li>
-          <li>Temp: 13°C (average)</li>
-          <li>Gusts: 29 mph (max)</li>
-        </ul>
-        <p><strong>Summary:</strong> "Showers possible. Gusty crosswinds."</p>
-        <p><strong>Reasons:</strong></p>
-        <ul>
-          <li>Rain chance 60%</li>
-          <li>Gusty winds (up to 29mph)</li>
-          <li>Strong sustained wind (~18mph)</li>
-        </ul>
-        <p><strong>Round ends:</strong> 17:00 (after sunset ⚠️ - this time would be invalid)</p>
-        <p><em>Note: In practice, 14:00 would not be offered as a valid tee time since round ends after sunset.</em></p>
-      </div>
-    </div>
-  </div>
-
-  <div class="scenario">
-    <h3>Scenario 3: NO CHANCE - Monday Storm</h3>
-    <p>Heavy persistent rain with dangerous gusts. Not playable.</p>
-    
-    <div class="input-data">
-      <strong>Input Forecast (3-hour window from 10:00):</strong>
+      
+      <strong>Forecast Data:</strong>
       <pre>
-[
-  { timeISO: "2026-01-05T10:00:00Z", tempC: 7, feelsLikeC: 2, windMph: 29, gustMph: 43, precipProbPct: 92, precipMm: 2.8 },
-  { timeISO: "2026-01-05T11:00:00Z", tempC: 7, feelsLikeC: 1, windMph: 31, gustMph: 46, precipProbPct: 95, precipMm: 3.2 },
-  { timeISO: "2026-01-05T12:00:00Z", tempC: 8, feelsLikeC: 3, windMph: 27, gustMph: 39, precipProbPct: 88, precipMm: 2.0 }
-]
-
-Daylight: Sunrise 07:46, Sunset 16:32
-Selected Date: Mon 5 Jan
-Selected Time: 10:00
+14:00-17:00: Heavy rain (90%), 35mph gusts
+09:00-12:00: Dry (10% chance), 8mph wind
       </pre>
     </div>
     
     <div class="output-data no-chance">
-      <strong>Expected Output:</strong>
+      <strong>Tee-Time Decision Strip:</strong>
       <div class="result no-chance">
+        <p><em>"Your tee time"</em></p>
+        <p><strong>Today · 14:00</strong></p>
         <p><span class="status-no-chance">⛔ NO CHANCE</span></p>
-        <p><strong>Metrics (3h window):</strong></p>
-        <ul>
-          <li>Rain: 95% (max probability)</li>
-          <li>Wind: 29 mph (average)</li>
-          <li>Temp: 7°C (average)</li>
-          <li>Gusts: 46 mph (max)</li>
-        </ul>
-        <p><strong>Summary:</strong> "Persistent rain. Strong gusts—expect disruption."</p>
-        <p><strong>Reasons:</strong></p>
-        <ul>
-          <li>Heavy rain expected (~8.0mm)</li>
-          <li>Dangerous gusts (up to 46mph)</li>
-        </ul>
-        <p><strong>Round ends:</strong> 13:00 (within daylight ✓, but weather is terrible)</p>
+        <p>Persistent rain. Strong gusts—expect disruption.</p>
       </div>
     </div>
+    
+    <div class="output-data">
+      <strong>Round Planner:</strong>
+      <div class="result">
+        <p><em>"Best daylight tee time. Tap to apply."</em></p>
+        <p><span class="status-play">Best window: ✅ PLAY</span></p>
+        <p>Recommended tee time: <strong>09:00</strong></p>
+        <p><button style="background:#e8f5e9; border:1px solid #0F766E; padding:6px 12px; border-radius:8px; cursor:pointer;">Apply to my tee time</button></p>
+      </div>
+    </div>
+    
+    <p><strong>✓ Acceptance:</strong> User clearly sees their bad choice (NO CHANCE) and the better option (Best window: PLAY). No confusion.</p>
   </div>
 
-  <h2>Decision Logic Reference (3-Hour Window)</h2>
   <div class="scenario">
-    <h3>Thresholds (Easy to Tweak)</h3>
+    <h3>Scenario 2: User Applies Recommended Time</h3>
+    <p>User clicks "Apply to my tee time" on the Round Planner.</p>
+    
+    <div class="input-data">
+      <strong>Before Apply:</strong>
+      <pre>
+Strip: Today · 14:00 → NO CHANCE
+Planner: Best window: PLAY, Recommended: 09:00
+      </pre>
+    </div>
+    
+    <div class="output-data">
+      <strong>After Apply:</strong>
+      <div class="result">
+        <p><strong>Strip updates to:</strong></p>
+        <p><em>"Your tee time"</em></p>
+        <p><strong>Today · 09:00</strong></p>
+        <p><span class="status-play">✅ PLAY</span></p>
+        <p>Dry window likely. Light winds.</p>
+        <p style="background:#e8f5e9; padding:6px; border-radius:6px; text-align:center; font-size:12px; color:#0F766E;">
+          Applied from Round Planner <em>(fades after 1.5s)</em>
+        </p>
+      </div>
+    </div>
+    
+    <p><strong>✓ Acceptance:</strong> Strip instantly updates. Confirmation appears and fades. User's tee time is now optimal.</p>
+  </div>
+
+  <div class="scenario">
+    <h3>Scenario 3: Advanced Wind Hidden</h3>
+    <p>The Advanced dropdown is hidden until gale detection is complete.</p>
+    
+    <div class="input-data">
+      <strong>config.js:</strong>
+      <pre>
+window.APP_CONFIG = {
+  // ...
+  FEATURE_ADVANCED_WIND: false,  // ← Hidden
+};
+      </pre>
+    </div>
+    
+    <div class="output-data">
+      <strong>Expected UI:</strong>
+      <div class="result">
+        <p>✓ No "Advanced" dropdown visible anywhere</p>
+        <p>✓ Course direction selector not shown</p>
+        <p>✓ Code preserved, just hidden behind flag</p>
+      </div>
+    </div>
+    
+    <p><strong>✓ Acceptance:</strong> When <code>FEATURE_ADVANCED_WIND = false</code>, the Advanced section never appears.</p>
+  </div>
+
+  <h2>Feature Flag Reference</h2>
+  <div class="scenario">
     <div class="input-data">
       <pre>
-// Round duration: 3 hours (ROUND_DURATION_HOURS = 3)
-
-// NO CHANCE if any of:
-- totalPrecipMm >= 4.0
-- maxPrecipProb >= 80 AND totalPrecipMm >= 1.5
-- maxGust >= 35 mph
-
-// RISKY if not NO CHANCE and any of:
-- totalPrecipMm between 1.5 and 4.0
-- maxPrecipProb between 50 and 79
-- maxGust between 25 and 34 mph
-- avgWind >= 18 mph
-
-// PLAY otherwise
-
-// DAYLIGHT ENFORCEMENT:
-- Tee time must be after sunrise + 30min
-- Round must end before sunset
-- Fallback if no sunrise/sunset: 08:00 - 17:00
+// config.js
+window.APP_CONFIG = {
+  // ... other config ...
+  
+  // Feature flags
+  FEATURE_ADVANCED_WIND: false,  // Set to true when gale logic is complete
+};
       </pre>
     </div>
   </div>
 
-  <h2>Helper Functions</h2>
+  <h2>Helper Function: formatTeeLabel</h2>
   <div class="scenario">
-    <h3>JavaScript API</h3>
     <div class="input-data">
       <pre>
-// Get number of forecast days available (max 7)
-getForecastDaysAvailable(norm) → number
+// Format tee time label in premium format
+formatTeeLabel(tsSeconds, tzOffset) → string
 
-// Get daylight window for a specific date
-getDaylightWindowForDate(date, norm) → { sunrise: unixSeconds, sunset: unixSeconds }
-
-// Get valid tee times for a date (daylight-only, 3h round fits)
-getValidTeeTimesForDate(date, norm, stepMinutes = 30) → [{ value: unixSeconds, label: "HH:MM" }]
-
-// Get available dates with valid tee times
-getAvailableDates(norm) → [{ date: Date, label: "Today", hasValidTimes: boolean }]
-
-// Calculate decision for a tee time (3h window)
-computeTeeTimeDecision(forecast, teeTimeUnix, windowHours = 3) → {
-  status: "PLAY" | "RISKY" | "NO_CHANCE",
-  statusLabel: "PLAY" | "RISKY" | "NO CHANCE",
-  icon: "✅" | "⚠️" | "⛔",
-  metrics: {
-    maxPrecipProb: number,
-    totalPrecipMm: number,
-    avgWind: number,
-    maxGust: number,
-    avgTemp: number,
-    feelsLike: number
-  },
-  reasons: string[],
-  summary: string
-}
+Examples:
+  formatTeeLabel(todayAt1419, tz) → "Today · 14:19"
+  formatTeeLabel(tomorrowAt0910, tz) → "Tomorrow · 09:10"
+  formatTeeLabel(sundayAt1045, tz) → "Sun 4 · 10:45"
       </pre>
     </div>
   </div>
@@ -261,76 +245,50 @@ computeTeeTimeDecision(forecast, teeTimeUnix, windowHours = 3) → {
     <div class="input-data">
       <pre>
 ┌─────────────────────────────────────────────────┐
-│  [✅ PLAY]    [Today] [Tmrw] [Sat 3] [Sun 4]    │
+│ YOUR TEE TIME                                   │
+│ ┌─────────────────────────────────────────────┐ │
+│ │ [✅ PLAY]         Today · 14:19             │ │
+│ │ [Today] [Tmrw] [Sat 3] [Sun 4] [Mon 5]      │ │
+│ │ 🕐 Time: [14:00 ▼]                          │ │
+│ │ 🌧️ 8%  💨 8mph  🌡️ 18°C  💥 13mph          │ │
+│ │ Dry window likely. Light winds.             │ │
+│ └─────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────┤
-│  🕐 Tee Time              [09:00 ▼]             │
-├─────────────────────────────────────────────────┤
-│  🌧️ Rain   💨 Wind   🌡️ Temp   💥 Gusts        │
-│    8%       8 mph    18°C     13 mph            │
-├─────────────────────────────────────────────────┤
-│  Dry window likely. Light winds.                │
+│ ROUND PLANNER                                   │
+│ ┌─────────────────────────────────────────────┐ │
+│ │ Best daylight tee time. Tap to apply.       │ │
+│ │ Best window: ✅ PLAY                         │ │
+│ │ Recommended tee time: 09:00                 │ │
+│ │ [ Apply to my tee time ]                    │ │
+│ └─────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────┘
-
-Mobile View (stacked):
-┌─────────────────────┐
-│     [✅ PLAY]       │
-│ [Today][Tmrw][Sat]  │
-├─────────────────────┤
-│   🕐 Tee Time       │
-│   [  09:00  ▼ ]     │
-├─────────────────────┤
-│ 🌧️ 8%  │ 💨 8 mph  │
-│ 🌡️ 18° │ 💥 13 mph │
-├─────────────────────┤
-│ Dry window likely.  │
-│ Light winds.        │
-└─────────────────────┘
       </pre>
     </div>
   </div>
 
-  <h2>Integration Notes</h2>
+  <h2>Acceptance Tests</h2>
   <div class="scenario">
-    <p><strong>Key UX Principle:</strong></p>
-    <blockquote style="background: #e8f5e9; padding: 12px; border-radius: 8px; font-style: italic;">
-      "If I tee off at THIS time on THIS day — should we play?"
-    </blockquote>
-    
-    <p><strong>The component will NEVER:</strong></p>
     <ul>
-      <li>❌ Recommend night golf</li>
-      <li>❌ Allow rounds ending after sunset</li>
-      <li>❌ Show dates beyond forecast capability</li>
-      <li>❌ Offer times where 3-hour round doesn't fit in daylight</li>
-    </ul>
-    
-    <p><strong>Smart Time Snapping:</strong></p>
-    <ul>
-      <li>If user selects 10:00 on Saturday, then switches to Sunday...</li>
-      <li>...and 10:00 is valid on Sunday → stays at 10:00</li>
-      <li>...and 10:00 is NOT valid → snaps to nearest valid time</li>
-    </ul>
-    
-    <p><strong>Accessibility features:</strong></p>
-    <ul>
-      <li>Date chips: role="group" + aria-label="Select date"</li>
-      <li>Time selector: aria-label="Select tee time"</li>
-      <li>Disabled chips marked with aria-disabled</li>
-      <li>Icon + text (color not sole indicator)</li>
+      <li>✅ <strong>Test 1:</strong> When strip says NO CHANCE, planner shows "Best window: PLAY" (not confusing "Play")</li>
+      <li>✅ <strong>Test 2:</strong> Advanced dropdown not visible when <code>FEATURE_ADVANCED_WIND = false</code></li>
+      <li>✅ <strong>Test 3:</strong> Clicking "Apply to my tee time" updates strip instantly</li>
+      <li>✅ <strong>Test 4:</strong> Confirmation message "Applied from Round Planner" appears and fades</li>
+      <li>✅ <strong>Test 5:</strong> UI remains compact and clean on mobile (no bloat)</li>
+      <li>✅ <strong>Test 6:</strong> Both components display times in course local time</li>
     </ul>
   </div>
 
   <script>
-    console.log("🏌️ Tee-Time Decision Strip v2 Test Scenarios");
-    console.log("=============================================");
+    console.log("🏌️ Fairway Forecast v3 Test Scenarios");
+    console.log("======================================");
     console.log("");
-    console.log("New in v2:");
-    console.log("  • Date chip selector (Today, Tomorrow, Sat 6...)");
-    console.log("  • 3-hour round window (was 4h)");
-    console.log("  • Daylight-only enforcement");
-    console.log("  • Smart time snapping when switching dates");
+    console.log("Key improvements:");
+    console.log("  • Your tee time vs Round Planner - clear distinction");
+    console.log("  • 'Best window: PLAY' prefix prevents confusion");
+    console.log("  • One-tap Apply syncs recommended time");
+    console.log("  • Advanced wind hidden until complete");
     console.log("");
-    console.log("Open the main app (index.html) to see the component in action.");
+    console.log("Open the main app (index.html) to test the component.");
   </script>
 </body>
 </html>

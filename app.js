@@ -165,6 +165,44 @@
     const date = new Date(tsSeconds * 1000);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
+
+  /**
+   * Format tee time label in premium format: "Today · 14:19", "Tomorrow · 09:10", "Sun 4 · 10:45"
+   * @param {number} tsSeconds - Unix timestamp in seconds
+   * @param {number} tzOffset - Timezone offset in seconds
+   * @returns {string} Formatted label
+   */
+  function formatTeeLabel(tsSeconds, tzOffset = null) {
+    if (!tsSeconds) return "—";
+    
+    const now = new Date();
+    const teeDate = new Date(tsSeconds * 1000);
+    
+    // Get time in course local timezone
+    const time = fmtTimeCourse(tsSeconds, tzOffset);
+    
+    // Determine day label
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const teeDay = new Date(teeDate);
+    teeDay.setHours(0, 0, 0, 0);
+    
+    let dayLabel;
+    if (teeDay.getTime() === today.getTime()) {
+      dayLabel = "Today";
+    } else if (teeDay.getTime() === tomorrow.getTime()) {
+      dayLabel = "Tomorrow";
+    } else {
+      const dayName = teeDate.toLocaleDateString([], { weekday: "short" });
+      const dayNum = teeDate.getDate();
+      dayLabel = `${dayName} ${dayNum}`;
+    }
+    
+    return `${dayLabel} · ${time}`;
+  }
   
   // Legacy fmtTime - uses device local time (for backward compatibility)
   function fmtTime(tsSeconds, showGMT = false) {
@@ -1754,6 +1792,13 @@
     if (iconEl) iconEl.textContent = decision.icon;
     if (labelEl) labelEl.textContent = decision.statusLabel;
 
+    // Update selected tee time display
+    const selectedLabelEl = $("teeSelectedLabel");
+    if (selectedLabelEl && selectedTeeTime) {
+      const tzOffset = norm?.timezoneOffset || 0;
+      selectedLabelEl.textContent = formatTeeLabel(selectedTeeTime, tzOffset);
+    }
+
     // Update metrics
     if (rainMetric) {
       rainMetric.textContent = decision.metrics.maxPrecipProb !== null 
@@ -1821,6 +1866,77 @@
       selectedTeeTime = Number(selectEl.value);
       if (lastNorm) {
         renderTeeTimeStrip(lastNorm);
+      }
+    });
+  }
+
+  /**
+   * Show the "Applied from Round Planner" confirmation message with auto-fade
+   */
+  function showAppliedConfirmation() {
+    const msgEl = $("teeAppliedMsg");
+    if (!msgEl) return;
+    
+    // Reset animation by removing and re-adding element
+    msgEl.style.display = "none";
+    msgEl.offsetHeight; // Force reflow
+    msgEl.style.display = "block";
+    
+    // Hide after animation completes (1.5s)
+    setTimeout(() => {
+      msgEl.style.display = "none";
+    }, 1500);
+  }
+
+  /**
+   * Apply recommended time from Round Planner to Tee-Time Decision Strip
+   * @param {number} recommendedTime - Unix timestamp in seconds
+   */
+  function applyRecommendedTime(recommendedTime) {
+    if (!recommendedTime || !lastNorm) return;
+    
+    // Find which date this time belongs to
+    const availableDates = getAvailableDates(lastNorm);
+    const targetDate = new Date(recommendedTime * 1000);
+    targetDate.setHours(0, 0, 0, 0);
+    const targetDateKey = targetDate.toDateString();
+    
+    // Set the selected date
+    const dateInfo = availableDates.find(d => d.dateKey === targetDateKey);
+    if (dateInfo) {
+      selectedTeeDate = dateInfo.date;
+    }
+    
+    // Set the selected time
+    selectedTeeTime = recommendedTime;
+    
+    // Re-render the strip
+    renderTeeTimeStrip(lastNorm);
+    
+    // Re-render the planner to update Apply button state
+    renderVerdictCard(lastNorm);
+    
+    // Show confirmation
+    showAppliedConfirmation();
+    
+    // Scroll to strip
+    const stripSection = $("teeTimeStripSection");
+    if (stripSection) {
+      stripSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  /**
+   * Wire up the Apply button in the Round Planner
+   */
+  function wireApplyPlannerButton() {
+    const applyBtn = $("applyPlannerBtn");
+    if (!applyBtn) return;
+    
+    applyBtn.addEventListener("click", () => {
+      const recommendedTime = Number(applyBtn.dataset.recommendedTime);
+      if (recommendedTime) {
+        applyRecommendedTime(recommendedTime);
       }
     });
   }
@@ -1993,7 +2109,7 @@
       verdictIcon.textContent = "—";
     }
 
-    // Label: Show "Night time" clearly when it's night time
+    // Label: Show "Best window:" prefix for Round Planner clarity
     let labelText = "";
     if (isNighttime) {
       labelText = "Night time";
@@ -2001,7 +2117,9 @@
       labelText = v.label || "—";
     }
     
-    verdictLabel.innerHTML = `${labelText} <span class="ff-info-icon" title="Click for more info">ℹ️</span>`;
+    // Add "Best window:" prefix to distinguish from user's selected tee time
+    const labelPrefix = isNighttime ? "" : '<span class="ff-verdict-label-prefix">Best window</span>';
+    verdictLabel.innerHTML = `${labelPrefix}${labelText} <span class="ff-info-icon" title="Click for more info">ℹ️</span>`;
     
     // Reason: Show tomorrow's forecast info when nighttime
     if (isNighttime && tomorrowData) {
@@ -2024,12 +2142,28 @@
     
     // Best time: Show tomorrow's best time if nighttime (in course local time)
     const tzOffset = norm?.timezoneOffset || null;
+    let recommendedBestTime = null;
+    
     if (isNighttime && tomorrowData?.best && typeof tomorrowData.best.dt === "number") {
       verdictBestTime.textContent = fmtTimeCourse(tomorrowData.best.dt, tzOffset);
+      recommendedBestTime = tomorrowData.best.dt;
     } else if (v.best && typeof v.best.dt === "number") {
       verdictBestTime.textContent = fmtTimeCourse(v.best.dt, tzOffset);
+      recommendedBestTime = v.best.dt;
     } else {
       verdictBestTime.textContent = "—";
+      recommendedBestTime = null;
+    }
+    
+    // Show/hide Apply button based on whether we have a recommended time
+    const applyBtn = $("applyPlannerBtn");
+    if (applyBtn) {
+      if (recommendedBestTime && selectedTeeTime !== recommendedBestTime) {
+        applyBtn.style.display = "block";
+        applyBtn.dataset.recommendedTime = recommendedBestTime;
+      } else {
+        applyBtn.style.display = "none";
+      }
     }
 
     // Quick stats: Show tomorrow's stats when nighttime
@@ -2901,9 +3035,10 @@
       roundPlayabilitySection.style.display = "none";
     }
     
-    // Show/hide advanced section (only when course selected)
+    // Show/hide advanced section (only when course selected AND feature flag enabled)
     const advancedSection = $("advancedSection");
-    if (advancedSection && selectedCourse) {
+    const advancedWindEnabled = APP.FEATURE_ADVANCED_WIND === true;
+    if (advancedSection && selectedCourse && advancedWindEnabled) {
       advancedSection.style.display = "block";
     } else if (advancedSection) {
       advancedSection.style.display = "none";
@@ -3567,6 +3702,7 @@
     renderVerdictCard(null);
     renderPlayability(null);
     wireTeeTimeSelector();
+    wireApplyPlannerButton();
     renderAll();
     console.log("✅ [Init] Fairway Forecast ready!");
     

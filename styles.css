@@ -841,6 +841,53 @@ button, input, select{ font: inherit; }
   color:var(--muted);
 }
 
+/* Round Planner subtitle */
+.ff-planner-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Apply to tee time button */
+.ff-btn-apply {
+  margin-top: 12px;
+  width: 100%;
+  background: var(--brand-soft);
+  color: var(--brand);
+  border: 1px solid rgba(15,118,110,.25);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ff-btn-apply:hover {
+  background: var(--brand);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15,118,110,.25);
+}
+
+.ff-btn-apply:active {
+  transform: translateY(0);
+}
+
+/* Best window label prefix */
+.ff-verdict-label-prefix {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: block;
+  margin-bottom: 2px;
+}
+
 .ff-verdict--play{
   background:linear-gradient(180deg,rgba(31,111,92,.16),#fff);
   border-color:rgba(31,111,92,.35);
@@ -1754,6 +1801,55 @@ button, input, select{ font: inherit; }
 .ff-tee-strip-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 16px 44px rgba(6,24,20,.18);
+}
+
+/* Eyebrow label */
+.ff-tee-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* Selected tee time display */
+.ff-tee-selected-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* Date row container */
+.ff-tee-date-row {
+  margin: 10px 0;
+}
+
+/* Applied confirmation message */
+.ff-tee-applied-msg {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand);
+  padding: 8px;
+  margin-top: 10px;
+  background: var(--brand-soft);
+  border-radius: 8px;
+  animation: fadeInOut 1.5s ease forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-4px); }
+  20% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
 }
 
 /* Header row: Status + Time selector */

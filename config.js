@@ -27,4 +27,8 @@ window.APP_CONFIG = {
 
   // --- App defaults ---
   DEFAULT_UNITS: "metric", // "metric" (°C) or "imperial" (°F)
+
+  // --- Feature flags ---
+  // Advanced wind features (gale detection, etc.) - hide until complete
+  FEATURE_ADVANCED_WIND: false,
 };
