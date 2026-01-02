@@ -383,7 +383,7 @@ def generate_index(us_index: dict) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--only", help="Comma-separated ISO2 countries (e.g. fr,de,es)")
-    parser.add_argument("--us", help="Comma-separated USPS state codes (e.g. CA,NY,TX)")
+    parser.add_argument("--us", help="Comma-separated USPS state codes (e.g. CA,NY,TX) or 'all'")
     parser.add_argument("--all", action="store_true", help="Build all requested countries + all US states")
     parser.add_argument("--no-cache", action="store_true", help="Disable Overpass cache")
     args = parser.parse_args()
@@ -394,12 +394,23 @@ def main() -> int:
         countries = sorted(set(EUROPE + AFRICA + OCEANIA))
         states = US_ALL
     else:
+        # Default behavior (when no flags at all): proof build.
         countries = PROOF_COUNTRIES
         states = PROOF_US
-        if args.only:
-            countries = [c.strip().lower() for c in args.only.split(",") if c.strip()]
-        if args.us:
-            states = [s.strip().upper() for s in args.us.split(",") if s.strip()]
+
+        # If user specifies --only, do not implicitly build proof US states.
+        if args.only is not None:
+            countries = [c.strip().lower() for c in (args.only or "").split(",") if c.strip()]
+            states = []
+
+        # If user specifies --us, do not implicitly build proof countries.
+        if args.us is not None:
+            countries = [] if args.only is None else countries
+            val = (args.us or "").strip().lower()
+            if val == "all":
+                states = US_ALL
+            else:
+                states = [s.strip().upper() for s in val.split(",") if s.strip()]
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     US_DIR.mkdir(parents=True, exist_ok=True)
