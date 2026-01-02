@@ -60,7 +60,7 @@
   const countrySelect = $("countrySelect");
   const stateSelect = $("stateSelect");
   const stateSelectRow = $("stateSelectRow");
-  const addCourseLink = $("addCourseLink");
+  // DEV NOTE: Course-request UI is intentionally disabled in DEV.
 
   const tabCurrent = $("tabCurrent");
   const tabHourly = $("tabHourly");
@@ -550,19 +550,6 @@
   }
 
   /**
-   * Load the custom courses overlay
-   * @returns {Promise<Array>} Array of custom courses
-   */
-  async function loadCustomCourses() {
-    try {
-      const data = await loadDataset("custom.json");
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  }
-
-  /**
    * Load courses for the current country/state selection
    * @returns {Promise<Array>} Array of courses [name, lat, lon, region]
    */
@@ -577,17 +564,6 @@
     } else {
       // Load country dataset
       courses = await loadDataset(`${currentCountry}.json`);
-    }
-    
-    // Merge with custom courses
-    const custom = await loadCustomCourses();
-    if (custom.length > 0) {
-      const countryFilter = currentCountry.toUpperCase();
-      const filteredCustom = custom.filter(c => {
-        const cCountry = (c[3] || "").toUpperCase();
-        return cCountry === countryFilter || !cCountry;
-      });
-      courses = [...courses, ...filteredCustom];
     }
     
     return courses;
@@ -682,7 +658,6 @@
         await refreshDataset();
       }
       
-      updateAddCourseLink();
     });
     
     // State change handler
@@ -710,7 +685,6 @@
       refreshDataset();
     }
     
-    updateAddCourseLink();
   }
 
   /**
@@ -767,31 +741,6 @@
       }
       if (searchBtn) searchBtn.disabled = false;
     }
-  }
-
-  /**
-   * Update the "Can't find your course?" link
-   */
-  function updateAddCourseLink() {
-    if (!addCourseLink) return;
-    
-    const countryName = COUNTRIES.find(c => c.code === currentCountry)?.name || currentCountry;
-    const stateName = currentState ? ` (${currentState})` : "";
-    
-    // Create prefilled GitHub issue URL
-    const issueTitle = encodeURIComponent(`Add missing course: [Course Name]`);
-    const issueBody = encodeURIComponent(`## Missing Course Request
-
-**Course Name:** 
-**City/Town:** 
-**Country:** ${countryName}${stateName}
-**Website (optional):** 
-
----
-*Please ensure this course exists on OpenStreetMap. If not, consider adding it at [openstreetmap.org](https://www.openstreetmap.org/)*`);
-    
-    // TODO: Replace with your actual repo URL
-    addCourseLink.href = `https://github.com/mziyabo-glitch/fairway-forecast/issues/new?title=${issueTitle}&body=${issueBody}&labels=course-request`;
   }
 
   /* ---------- API ---------- */
