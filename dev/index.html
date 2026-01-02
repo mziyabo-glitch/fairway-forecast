@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <!-- Primary Meta Tags -->
+  <title>Golf Course Weather & Forecast | Fairway Weather – DEV</title>
+  <meta name="description" content="Golf course weather forecast app. Check wind, rain & playability before your round." />
+  <meta name="robots" content="noindex, nofollow" />
+  
+  <!-- PWA -->
+  <link rel="manifest" href="../manifest.json" />
+  <meta name="theme-color" content="#1F6F78" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Fairway Forecast DEV" />
+
+  <!-- Security - relaxed for dev -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+  <!-- Icons -->
+  <link rel="icon" href="../icons/favicon.ico" />
+  <link rel="apple-touch-icon" href="../icons/icon-192.png" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Fuse.js for fuzzy search -->
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="./styles.css" />
+  
+  <style>
+    /* Dev banner */
+    .ff-dev-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(90deg, #f59e0b, #d97706);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      padding: 6px 12px;
+      z-index: 9999;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .ff-dev-banner a {
+      color: #fff;
+      text-decoration: underline;
+      margin-left: 8px;
+    }
+    /* Offset body for fixed banner */
+    body {
+      padding-top: 32px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- DEV BANNER -->
+  <div class="ff-dev-banner">
+    ⚠️ DEVELOPMENT BUILD — <a href="/">Go to Production</a>
+  </div>
+
+  <main class="ff-wrap">
+    <section class="ff-shell">
+      <!-- ================= HEADER ================= -->
+      <header class="ff-header">
+        <div class="ff-brand">
+          <img src="../icons/icon-192.png" alt="Fairway Weather - Golf Course Forecast App" class="ff-logo" />
+          <div class="ff-brand-text">
+            <h1 class="ff-brand-title">Fairway Weather <span class="ff-brand-sub">Golf Forecast</span></h1>
+            <span class="ff-tagline">Golf course weather – know before you tee</span>
+          </div>
+        </div>
+        <p class="ff-hero-line">
+          <strong>Golf weather forecast:</strong> tee time conditions, wind impact, rain timing & playability scores.
+        </p>
+      </header>
+
+      <!-- ================= COUNTRY / STATE SELECTOR ================= -->
+      <section class="ff-panel ff-panel--country" aria-label="Region selector">
+        <div class="ff-country-row">
+          <label class="ff-label" for="countrySelect">
+            Country / Region
+          </label>
+          <select id="countrySelect" class="ff-select ff-select-country" aria-describedby="countryHelp">
+            <!-- Options populated by JS -->
+          </select>
+        </div>
+        
+        <!-- US State selector (hidden unless US is selected) -->
+        <div id="stateSelectRow" class="ff-state-row" style="display: none;">
+          <label class="ff-label" for="stateSelect">
+            State
+          </label>
+          <select id="stateSelect" class="ff-select ff-select-state">
+            <option value="">Select a state...</option>
+            <!-- Options populated by JS -->
+          </select>
+        </div>
+        
+        <div id="countryHelp" class="ff-hint ff-osm-attribution">
+          Course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
+        </div>
+      </section>
+
+      <!-- ================= SEARCH ================= -->
+      <section class="ff-panel ff-panel--search" aria-label="Search">
+        <label class="ff-label" for="searchInput">
+          Search golf course
+        </label>
+
+        <div class="ff-search-row">
+          <input
+            id="searchInput"
+            class="ff-input"
+            type="search"
+            placeholder='Type course name...'
+            autocomplete="off"
+            inputmode="search"
+            aria-describedby="searchHelp"
+          />
+
+          <button id="btnGeo" class="ff-btn ff-btn-ghost" type="button" title="Use my location" aria-label="Use my location">
+            ⌖
+          </button>
+        </div>
+
+        <button id="searchBtn" class="ff-btn ff-btn-primary" type="button" style="width:100%;">
+          Search
+        </button>
+
+        <div id="searchHelp" class="ff-hint">
+          Start typing to see course suggestions
+        </div>
+        
+        <!-- "Can't find your course?" link -->
+        <div class="ff-add-course">
+          <a id="addCourseLink" href="#" target="_blank" rel="noopener">
+            Can't find your course? Request it here →
+          </a>
+        </div>
+
+        <div class="ff-units-row">
+          <label class="ff-label" for="unitsSelect">Units</label>
+          <select id="unitsSelect" class="ff-select">
+            <option value="metric">°C / m·s</option>
+            <option value="imperial">°F / mph</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- ✅ SEARCH RESULTS SLOT -->
+      <section id="searchResultsSlot" class="ff-search-results" aria-live="polite" aria-label="Search results">
+        <!-- app.js renders the "Select a result" card/list here -->
+      </section>
+
+      <!-- ================= LOCATION ================= -->
+      <section aria-label="Location">
+        <div class="ff-section-label">Location</div>
+        <div id="locationSlot"></div>
+
+        <div class="ff-hint">
+          Tap ★ to add or remove favourites
+        </div>
+      </section>
+
+      <!-- ================= TABS ================= -->
+      <nav class="ff-tabs" aria-label="Forecast tabs">
+        <button id="tabCurrent" class="ff-tab active" type="button">Current</button>
+        <button id="tabHourly" class="ff-tab" type="button">Hourly</button>
+        <button id="tabDaily" class="ff-tab" type="button">Daily</button>
+      </nav>
+
+      <!-- ================= TEE-TIME DECISION STRIP ================= -->
+      <section id="teeTimeStripSection" class="ff-tee-time-strip" style="display:none;" aria-label="Tee time decision">
+        <div class="ff-tee-strip-card">
+          <div class="ff-tee-eyebrow">Your tee time</div>
+          
+          <div class="ff-tee-strip-header">
+            <div class="ff-tee-strip-status" id="teeTimeStatus">
+              <span class="ff-tee-status-icon" id="teeTimeIcon" aria-hidden="true">⏳</span>
+              <span class="ff-tee-status-label" id="teeTimeLabel">Select tee time</span>
+            </div>
+            <div class="ff-tee-selected-time" id="teeSelectedTime" aria-live="polite">
+              <span id="teeSelectedLabel"></span>
+            </div>
+          </div>
+
+          <div class="ff-tee-date-row">
+            <div class="ff-tee-date-chips" id="teeDateChips" role="group" aria-label="Select date">
+            </div>
+          </div>
+
+          <div class="ff-tee-time-row">
+            <label class="ff-tee-time-label">
+              <span class="ff-tee-time-icon" aria-hidden="true">🕐</span>
+              Time
+            </label>
+            <div class="ff-tee-time-selector" role="group" aria-label="Select tee time">
+              <select id="teeTimeSelect" class="ff-tee-select" aria-describedby="teeTimeDesc">
+              </select>
+            </div>
+          </div>
+          
+          <div class="ff-tee-applied-msg" id="teeAppliedMsg" style="display:none;">
+            Applied from Round Planner
+          </div>
+
+          <div class="ff-tee-strip-metrics" id="teeTimeMetrics" aria-live="polite">
+            <div class="ff-tee-metric">
+              <span class="ff-tee-metric-icon" aria-hidden="true">🌧️</span>
+              <span class="ff-tee-metric-label">Rain</span>
+              <strong class="ff-tee-metric-value" id="teeMetricRain">—</strong>
+            </div>
+            <div class="ff-tee-metric">
+              <span class="ff-tee-metric-icon" aria-hidden="true">💨</span>
+              <span class="ff-tee-metric-label">Wind</span>
+              <strong class="ff-tee-metric-value" id="teeMetricWind">—</strong>
+            </div>
+            <div class="ff-tee-metric">
+              <span class="ff-tee-metric-icon" aria-hidden="true">🌡️</span>
+              <span class="ff-tee-metric-label">Temp</span>
+              <strong class="ff-tee-metric-value" id="teeMetricTemp">—</strong>
+            </div>
+            <div class="ff-tee-metric">
+              <span class="ff-tee-metric-icon" aria-hidden="true">💥</span>
+              <span class="ff-tee-metric-label">Gusts</span>
+              <strong class="ff-tee-metric-value" id="teeMetricGust">—</strong>
+            </div>
+          </div>
+
+          <p class="ff-tee-strip-summary" id="teeTimeSummary" aria-live="polite">
+            Select a tee time to see conditions for your 3-hour round.
+          </p>
+          <span id="teeTimeDesc" class="ff-sr-only">Shows weather conditions for a 3-hour round starting at the selected time. Only daylight tee times are available.</span>
+        </div>
+      </section>
+      
+      <!-- ================= ADVANCED OPTIONS (Feature-flagged) ================= -->
+      <section id="advancedSection" class="ff-advanced ff-feature-advanced-wind" style="display:none;">
+        <button type="button" id="advancedToggle" class="ff-advanced-toggle">
+          <span>Advanced</span>
+          <span id="advancedArrow" class="ff-advanced-arrow">▼</span>
+        </button>
+        <div id="advancedOptions" class="ff-advanced-options" style="display:none;">
+          <div class="ff-course-direction">
+            <label class="ff-label" for="courseDirectionSelect">Course direction (for wind impact)</label>
+            <select id="courseDirectionSelect" class="ff-select">
+              <option value="">Not set</option>
+              <option value="N">N (North)</option>
+              <option value="NE">NE (Northeast)</option>
+              <option value="E">E (East)</option>
+              <option value="SE">SE (Southeast)</option>
+              <option value="S">S (South)</option>
+              <option value="SW">SW (Southwest)</option>
+              <option value="W">W (West)</option>
+              <option value="NW">NW (Northwest)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= PREMIUM TEASER ================= -->
+      <section id="premiumTeaserSection" class="ff-premium-teaser" style="display:none;">
+        <div class="ff-premium-card">
+          <div class="ff-premium-header">
+            <span class="ff-premium-pill">Premium</span>
+            <span class="ff-premium-title">Coming soon</span>
+          </div>
+          <ul class="ff-premium-features">
+            <li>
+              <span class="ff-premium-feature-icon">📅</span>
+              <span class="ff-premium-feature-text">Round Planner — best daylight tee times</span>
+            </li>
+            <li>
+              <span class="ff-premium-feature-icon">💨</span>
+              <span class="ff-premium-feature-text">Advanced Wind Impact — gale detection</span>
+            </li>
+          </ul>
+          <button type="button" id="getPremiumBtn" class="ff-btn ff-btn-premium">
+            Get Premium
+          </button>
+        </div>
+      </section>
+
+      <!-- ================= ROUND PLANNER (Feature-flagged) ================= -->
+      <section aria-label="Round planner" id="roundPlannerSection">
+        <div class="ff-section-label">Round Planner</div>
+
+        <section id="verdictCard" class="ff-panel ff-verdict ff-verdict--neutral" aria-live="polite">
+          <div class="ff-planner-subtitle">Best daylight tee time. Tap to apply.</div>
+          
+          <div class="ff-verdict-main">
+            <div class="ff-verdict-badge" aria-hidden="true">
+              <span id="verdictIcon">⏳</span>
+            </div>
+
+            <div class="ff-verdict-text">
+              <div id="verdictLabel" class="ff-verdict-label">Loading… <span class="ff-info-icon" title="Click for more info">ℹ️</span></div>
+              <div id="verdictReason" class="ff-verdict-reason">—</div>
+
+              <div class="ff-verdict-quick-stats" id="verdictQuickStats"></div>
+
+              <div class="ff-verdict-time" id="verdictTime">
+                <span id="localTime">—</span>
+                <span class="ff-time-separator">·</span>
+                <span id="gmtTime">—</span>
+              </div>
+              <div class="ff-time-hint">Course local time</div>
+
+              <div class="ff-verdict-meta">
+                <span>Recommended tee time</span>
+                <strong id="verdictBestTime">—</strong>
+              </div>
+              
+              <button type="button" id="applyPlannerBtn" class="ff-btn ff-btn-apply" style="display:none;">
+                Apply to my tee time
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= PLAYABILITY INDEX ================= -->
+        <section class="ff-panel ff-panel--challenge" style="margin-top:var(--gap);">
+          <div class="ff-challenge">
+            <div class="ff-challenge-header">
+              <div class="ff-challenge-title">
+                Playability Index
+                <span class="ff-info-icon" id="playabilityInfoBtn" title="How is this calculated?">ℹ️</span>
+              </div>
+              <div id="challengeRating" class="ff-challenge-badge">—</div>
+            </div>
+            <div id="challengeReason" class="ff-challenge-reason"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ================= RESULTS (FORECAST ONLY) ================= -->
+      <section id="results" class="ff-results" aria-live="polite">
+        <div>
+          <div class="ff-section-label">Forecast</div>
+          <div id="forecastSlot"></div>
+        </div>
+      </section>
+
+      <!-- ================= ROUND-BASED PLAYABILITY ================= -->
+      <section id="roundPlayabilitySection" style="display:none;">
+        <div class="ff-section-label">Round Windows</div>
+        <div id="roundPlayabilityCard" class="ff-card"></div>
+      </section>
+
+      <!-- ================= COURSE DIFFICULTY ================= -->
+      <section id="courseDifficultySection" class="ff-panel ff-panel--difficulty" style="display:none;">
+        <div class="ff-difficulty">
+          <div class="ff-difficulty-header">
+            <div class="ff-difficulty-title">Course Difficulty</div>
+            <div id="difficultyBadge" class="ff-difficulty-badge">—</div>
+          </div>
+          <div class="ff-difficulty-stats">
+            <div class="ff-difficulty-stat">
+              <span class="ff-difficulty-label">Slope</span>
+              <strong id="slopeValue">—</strong>
+            </div>
+            <div class="ff-difficulty-stat">
+              <span class="ff-difficulty-label">Rating</span>
+              <strong id="ratingValue">—</strong>
+            </div>
+            <div class="ff-difficulty-stat">
+              <span class="ff-difficulty-label">Par</span>
+              <strong id="parValue">—</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= LAST UPDATED ================= -->
+      <div id="lastUpdated" class="ff-last-updated"></div>
+    </section>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="ff-foot">
+      <p><strong>Fairway Weather</strong> – Golf Course Weather Forecasts</p>
+      <p class="ff-foot-tagline">Check golf weather conditions before your round. Best tee times & playability for golfers worldwide.</p>
+      <p class="ff-foot-credits">Weather data © <a href="https://openweathermap.org" target="_blank" rel="noopener">OpenWeather</a></p>
+      <p class="ff-foot-credits ff-osm-attribution">Course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></p>
+      <p class="ff-foot-copy">© 2024 Fairway Weather · Not affiliated with Fairway, Kansas</p>
+    </footer>
+
+  </main>
+
+  <!-- PREMIUM EXPLAINER MODAL -->
+  <div id="infoModal" class="ff-modal" hidden>
+    <div class="ff-modal-backdrop"></div>
+    <div class="ff-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="infoModalTitle">
+      <button type="button" id="infoModalClose" class="ff-modal-close" aria-label="Close explanation">×</button>
+      <h2 id="infoModalTitle" class="ff-modal-title"></h2>
+      <p id="infoModalBody" class="ff-modal-body"></p>
+    </div>
+  </div>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
