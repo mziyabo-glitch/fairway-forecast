@@ -7,6 +7,7 @@ This repo uses `/dev` as a **safe testing environment**. Production lives at the
 - **DEV approved**: Expanded country coverage, search, and forecast flows are signed off in `/dev`.
 - **OSM attribution present**: “© OpenStreetMap contributors” is visible in DEV and will remain visible in production.
 - **No DEV-only UI leaks**: DEV banner must not ship to production.
+- **Support link**: If DEV includes the “Support ☕” Buy Me a Coffee link, promote it to production in the same footer placement.
 
 ## Step 1 — Verify DEV is healthy
 

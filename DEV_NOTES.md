@@ -13,6 +13,11 @@ The `/dev` folder contains a standalone version of Fairway Forecast that uses **
 - **DEV is live**: Updates in this repo deploy to the GitHub Pages path `/dev` (e.g. `fairwayweather.com/dev`).
 - **Production untouched**: Production files at the repo root are not modified as part of DEV-only deployments.
 
+### Support link (DEV-only)
+
+- A subtle **“Support ☕”** button linking to `https://buymeacoffee.com/godskid` is shown in the **/dev footer**, near the OSM attribution.
+- No external widgets/scripts are loaded (link only).
+
 ### Countries available in DEV
 
 United Kingdom (GB), Ireland (IE), USA (US), Canada (CA), Australia (AU), New Zealand (NZ), South Africa (ZA), Zimbabwe (ZW),
