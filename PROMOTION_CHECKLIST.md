@@ -60,6 +60,7 @@ Only use this if production `app.js` already supports static datasets.
   - [ ] USA state flow works
   - [ ] Selecting a course loads forecast correctly
   - [ ] OSM attribution visible
+  - [ ] “Support ☕” link placement matches approved DEV styling (optional)
 
 ## Step 4 — Post-promotion
 

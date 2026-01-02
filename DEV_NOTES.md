@@ -39,6 +39,15 @@ Current counts in repo (approx):
 - Replaced the tall “logo / intro” hero card with a **compact tool-first topbar** (icon + “Fairway Weather” + short tagline).
 - This keeps the Round Selection tool visible above-the-fold on mobile.
 
+### DEV production-readiness polish
+
+- DEV indicator bar is now a thin, professional strip: **“● DEV — TESTING”** with a subtle Production link.
+- State selector only appears for **USA**.
+- Tee-time verdict messaging upgraded to golfer-friendly labels (PLAY/RISKY/DELAY/AVOID) with short guidance lines.
+- Search UX now shows a lightweight spinner + “No courses found” state.
+- Premium messaging is kept subtle (no large teaser card).
+- Support link button styling softened to match the calm UI.
+
 ### Repo cleanup / archive
 
 - Legacy files and notes were moved into `/archive/` (see `archive/ARCHIVE_README.md`) to keep the active repo easier to maintain.

@@ -767,9 +767,9 @@
       // Show/hide state selector for US
       if (currentCountry === "us") {
         await populateUSStates();
-        if (stateSelectRow) stateSelectRow.style.display = "block";
+        setStateSelectorVisible(true);
       } else {
-        if (stateSelectRow) stateSelectRow.style.display = "none";
+        setStateSelectorVisible(false);
         await refreshDataset();
       }
       
@@ -790,13 +790,14 @@
     // Initial setup
     if (currentCountry === "us") {
       populateUSStates().then(() => {
-        if (stateSelectRow) stateSelectRow.style.display = "block";
+        setStateSelectorVisible(true);
         if (currentState) {
           stateSelect.value = currentState;
           refreshDataset();
         }
       });
     } else {
+      setStateSelectorVisible(false);
       refreshDataset();
     }
     
@@ -833,6 +834,10 @@
     if (searchBtn) searchBtn.disabled = true;
     
     try {
+      if (searchResultsSlot) {
+        searchResultsSlot.classList.remove("ff-hidden");
+        searchResultsSlot.innerHTML = `<div class="ff-card"><div class="ff-inline-status"><span class="ff-spinner" aria-hidden="true"></span>Loading courses…</div></div>`;
+      }
       const courses = await loadCurrentDataset();
       initFuseSearch(courses);
       
@@ -847,6 +852,7 @@
         searchInput.disabled = false;
       }
       if (searchBtn) searchBtn.disabled = false;
+      clearSearchResults();
       
     } catch (err) {
       console.error("Failed to load dataset:", err);
@@ -855,6 +861,15 @@
         searchInput.disabled = false;
       }
       if (searchBtn) searchBtn.disabled = false;
+    }
+  }
+
+  function setStateSelectorVisible(visible) {
+    if (!stateSelectRow || !stateSelect) return;
+    stateSelectRow.style.display = visible ? "block" : "none";
+    if (!visible) {
+      stateSelect.value = "";
+      stateSelect.innerHTML = "";
     }
   }
 
@@ -1750,26 +1765,59 @@
       feelsLike: avgFeelsLike !== null ? Math.round(avgFeelsLike) : null
     };
 
+    const toGroup = (id) => (typeof id === "number" ? Math.floor(id / 100) : null);
+
     // Decision logic
     const T = TEE_TIME_THRESHOLDS;
     const reasons = [];
-    let status = "PLAY";
+    let status = "PLAY"; // PLAY | RISKY | DELAY | AVOID
+
+    // Extra signals for golf-readable verdicts
+    const signals = (() => {
+      let thunder = false;
+      let snow = false;
+      for (const h of windowData) {
+        const w0 = Array.isArray(h?.weather) ? h.weather[0] : null;
+        const id = typeof w0?.id === "number" ? w0.id : null;
+        const g = toGroup(id);
+        if (g === 2) thunder = true; // 2xx thunderstorm
+        if (g === 6) snow = true; // 6xx snow
+      }
+      const rainRateMmHr = WINDOW_HOURS > 0 ? (totalPrecipMm / WINDOW_HOURS) : 0;
+      const gustDelta = (Number.isFinite(maxGust) && Number.isFinite(avgWind)) ? (maxGust - avgWind) : null;
+      return {
+        thunder,
+        snow,
+        rainRateMmHr,
+        gustDelta,
+      };
+    })();
 
     // Check NO CHANCE conditions
     if (totalPrecipMm >= T.noChance.totalPrecipMm) {
-      status = "NO_CHANCE";
+      status = "DELAY";
       reasons.push(`Heavy rain expected (~${metrics.totalPrecipMm}mm)`);
     } else if (maxPrecipProb >= T.noChance.precipProbAndRainMm.prob && 
                totalPrecipMm >= T.noChance.precipProbAndRainMm.mm) {
-      status = "NO_CHANCE";
+      status = "DELAY";
       reasons.push(`Rain very likely (${metrics.maxPrecipProb}%) with ~${metrics.totalPrecipMm}mm expected`);
     } else if (maxGust >= T.noChance.maxGust) {
-      status = "NO_CHANCE";
+      status = "AVOID";
       reasons.push(`Dangerous gusts (up to ${metrics.maxGust}mph)`);
     }
 
-    // Check RISKY conditions (if not already NO CHANCE)
-    if (status !== "NO_CHANCE") {
+    // Thunder/snow override
+    if (signals.thunder) {
+      status = "AVOID";
+      reasons.unshift("Thunderstorm risk");
+    }
+    if (signals.snow) {
+      status = "AVOID";
+      reasons.unshift("Snow/sleet risk");
+    }
+
+    // Check RISKY conditions (if not already AVOID/DELAY)
+    if (status === "PLAY") {
       if (totalPrecipMm >= T.risky.totalPrecipMmMin && totalPrecipMm < T.risky.totalPrecipMmMax) {
         status = "RISKY";
         reasons.push(`~${metrics.totalPrecipMm}mm rain expected`);
@@ -1792,54 +1840,71 @@
       }
     }
 
-    // Build human-readable summary
-    let summary = "";
+    // Descriptive label + short golfer message (tasteful emoji)
+    const isCold = avgTemp !== null && avgTemp <= 6;
+    const isLightRain = signals.rainRateMmHr >= 0.8 || maxPrecipProb >= 55 || totalPrecipMm >= 2.0;
+    const isHeavyRain = signals.rainRateMmHr >= 3.0 || totalPrecipMm >= 8.0 || maxPrecipProb >= 80;
+    const isWindy = avgWind >= 18 || maxGust >= 28 || (signals.gustDelta !== null && signals.gustDelta >= 12);
+
+    let label = "";
+    let message = "";
+
     if (status === "PLAY") {
-      const parts = [];
-      if (maxPrecipProb < 20) {
-        parts.push("Dry window likely");
-      } else if (maxPrecipProb < 40) {
-        parts.push("Mostly dry");
+      label = "PLAY — It’s playable";
+      message = "Solid window. Go play.";
+      if (isCold) {
+        label = "PLAY — Cold 🥶 (tough)";
+        message = "Dry enough, but it’ll feel heavy.";
       }
-      if (avgWind < 10) {
-        parts.push("Light winds");
-      } else if (avgWind < 15) {
-        parts.push("Moderate breeze");
-      } else {
-        parts.push("Breezy");
-      }
-      summary = parts.join(". ") + ".";
     } else if (status === "RISKY") {
-      const parts = [];
-      if (maxPrecipProb >= 50 || totalPrecipMm >= 1) {
-        parts.push("Showers possible");
+      label = "RISKY — Mixed conditions";
+      message = "Playable, but expect compromises.";
+      if (signals.thunder) {
+        label = "AVOID — Thunder ⛈️";
+        message = "Lightning risk. Don’t play.";
+        status = "AVOID";
+      } else if (isLightRain) {
+        label = "RISKY — Light rain 🌧️ (playable)";
+        message = "Bring waterproofs. Expect stops.";
+      } else if (isWindy) {
+        label = "RISKY — Windy 💨 (tough)";
+        message = "Club selection will be tricky.";
+      } else if (isCold) {
+        label = "RISKY — Cold 🥶 (tough)";
+        message = "Playable, but not comfortable.";
       }
-      if (maxGust >= 25 || avgWind >= 18) {
-        parts.push("Gusty crosswinds");
+    } else if (status === "DELAY") {
+      label = "DELAY — Heavy rain ⛈️";
+      message = "Wait it out if you can.";
+      if (signals.thunder) {
+        label = "AVOID — Thunder ⛈️";
+        message = "Lightning risk. Don’t play.";
+        status = "AVOID";
       }
-      if (parts.length === 0) {
-        parts.push("Marginal conditions");
+    } else { // AVOID
+      label = "AVOID — Poor conditions";
+      message = "Not worth it today.";
+      if (signals.thunder) {
+        label = "AVOID — Thunder ⛈️";
+        message = "Lightning risk. Don’t play.";
+      } else if (signals.snow) {
+        label = "AVOID — Snow ❄️";
+        message = "Unsafe and miserable.";
+      } else if (isHeavyRain) {
+        label = "AVOID — Heavy rain ⛈️";
+        message = "Course likely unplayable.";
+      } else if (isWindy) {
+        label = "AVOID — Wind 💨";
+        message = "Too gusty to enjoy.";
       }
-      summary = parts.join(". ") + ".";
-    } else { // NO_CHANCE
-      const parts = [];
-      if (totalPrecipMm >= 4 || maxPrecipProb >= 80) {
-        parts.push("Persistent rain");
-      }
-      if (maxGust >= 35) {
-        parts.push("Strong gusts—expect disruption");
-      }
-      if (parts.length === 0) {
-        parts.push("Poor conditions for golf");
-      }
-      summary = parts.join(". ") + ".";
     }
 
     // Map status to display values
     const statusMap = {
       PLAY: { label: "PLAY", icon: "✅" },
       RISKY: { label: "RISKY", icon: "⚠️" },
-      NO_CHANCE: { label: "NO CHANCE", icon: "⛔" },
+      DELAY: { label: "DELAY", icon: "⏳" },
+      AVOID: { label: "AVOID", icon: "⛔" },
       UNKNOWN: { label: "—", icon: "❓" }
     };
     const display = statusMap[status] || statusMap.UNKNOWN;
@@ -1850,7 +1915,8 @@
       icon: display.icon,
       metrics,
       reasons,
-      summary
+      label,
+      message
     };
   }
 
@@ -2047,7 +2113,9 @@
         statusEl.classList.add("ff-tee-strip-status--play");
       } else if (decision.status === "RISKY") {
         statusEl.classList.add("ff-tee-strip-status--risky");
-      } else if (decision.status === "NO_CHANCE") {
+      } else if (decision.status === "DELAY") {
+        statusEl.classList.add("ff-tee-strip-status--risky");
+      } else if (decision.status === "AVOID") {
         statusEl.classList.add("ff-tee-strip-status--no-chance");
       }
 
@@ -2124,7 +2192,10 @@
 
     // Update summary
     if (summaryEl) {
-      summaryEl.textContent = decision.summary;
+      const parts = [];
+      if (decision.label) parts.push(esc(decision.label));
+      if (decision.message) parts.push(esc(decision.message));
+      summaryEl.innerHTML = parts.length ? parts.join("<br>") : "Select a tee time to see conditions for your round.";
     }
 
     // Society tee sheet (optional)
@@ -3680,9 +3751,9 @@
     // Show loading in search results slot
     if (searchResultsSlot) {
       searchResultsSlot.classList.remove("ff-hidden");
-      searchResultsSlot.innerHTML = `<div class="ff-card muted">🔍 Searching…</div>`;
+      searchResultsSlot.innerHTML = `<div class="ff-card"><div class="ff-inline-status"><span class="ff-spinner" aria-hidden="true"></span>Searching…</div></div>`;
     } else if (forecastSlot) {
-      forecastSlot.innerHTML = `<div class="ff-card muted">🔍 Searching…</div>`;
+      forecastSlot.innerHTML = `<div class="ff-card"><div class="ff-inline-status"><span class="ff-spinner" aria-hidden="true"></span>Searching…</div></div>`;
     }
 
     try {
@@ -3721,8 +3792,13 @@
       console.log(`[Search] About to render ${list.length} result(s)`);
       if (list.length > 0) {
         console.log(`[Search] First result:`, list[0]);
+        renderSearchResults(list);
+      } else if (searchResultsSlot) {
+        searchResultsSlot.classList.remove("ff-hidden");
+        searchResultsSlot.innerHTML = `<div class="ff-card muted">No courses found. Try a different name.</div>`;
+      } else {
+        showMessage("No courses found. Try a different name.");
       }
-      renderSearchResults(list);
     } catch (err) {
       console.error("❌ [Search] Error in doSearch:", err);
       console.error("   Error details:", {
@@ -3888,12 +3964,21 @@
     typeaheadTimer = setTimeout(async () => {
       try {
         console.log("[Typeahead] Searching for:", q);
+        if (searchResultsSlot) {
+          searchResultsSlot.classList.remove("ff-hidden");
+          searchResultsSlot.innerHTML = `<div class="ff-card"><div class="ff-inline-status"><span class="ff-spinner" aria-hidden="true"></span>Searching…</div></div>`;
+        }
         const list = await fetchCourses(q);
         console.log("[Typeahead] Got results:", list?.length || 0);
         if (Array.isArray(list) && list.length > 0) {
           renderSearchResults(list);
         } else {
-          clearSearchResults();
+          if (searchResultsSlot) {
+            searchResultsSlot.classList.remove("ff-hidden");
+            searchResultsSlot.innerHTML = `<div class="ff-card muted">No courses found. Try a different name.</div>`;
+          } else {
+            clearSearchResults();
+          }
         }
       } catch (err) {
         console.error("[Typeahead] Error:", err);

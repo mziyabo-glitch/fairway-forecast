@@ -1899,21 +1899,21 @@ button, input, select{ font: inherit; }
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 7px 11px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: var(--surface-2);
-  color: var(--brand-2);
+  background: transparent;
+  color: var(--muted);
   text-decoration: none;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
-  box-shadow: 0 6px 18px rgba(6,24,20,.10);
+  box-shadow: none;
 }
 
 .ff-support-btn:hover{
-  background: var(--surface);
-  border-color: rgba(15,118,110,.25);
-  color: var(--brand);
+  background: var(--surface-2);
+  border-color: rgba(7,21,18,.18);
+  color: var(--text);
 }
 
 .ff-support-note{
@@ -1922,6 +1922,61 @@ button, input, select{ font: inherit; }
   opacity: 0.8;
   max-width: 320px;
   line-height: 1.4;
+}
+
+.ff-premium-note{
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.ff-premium-note a{
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+.ff-premium-note a:hover{
+  color: var(--brand);
+}
+
+/* Hide large premium teaser card in DEV (keep messaging subtle) */
+#premiumTeaserSection{
+  display: none !important;
+}
+
+/* Search results dropdown polish */
+.ff-search-results{
+  min-height: 54px; /* reserve space to reduce layout shifts */
+}
+
+.ff-search-results .ff-card{
+  padding: 10px;
+}
+
+.ff-result-list{
+  max-height: 280px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.ff-inline-status{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ff-spinner{
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(7,21,18,.18);
+  border-top-color: var(--brand);
+  animation: spin 0.8s linear infinite;
 }
 
 /* =========================================================

@@ -44,25 +44,37 @@
       top: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(90deg, #b45309, #92400e);
-      color: #fff;
-      font-size: 12px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 12px;
+      background: rgba(7, 21, 18, 0.06);
+      color: rgba(7, 21, 18, 0.78);
+      font-size: 11px;
       font-weight: 800;
-      text-align: center;
-      padding: 8px 12px;
       z-index: 9999;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      letter-spacing: 0.4px;
+      box-shadow: none;
+      border-bottom: 1px solid rgba(7, 21, 18, 0.08);
+      letter-spacing: 0.2px;
     }
     .ff-dev-banner a {
-      color: #fff;
-      text-decoration: underline;
-      margin-left: 10px;
-      font-weight: 700;
+      color: rgba(7, 21, 18, 0.72);
+      text-decoration: none;
+      font-weight: 800;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(7, 21, 18, 0.12);
+      background: rgba(255, 255, 255, 0.6);
+    }
+    .ff-dev-banner a:hover {
+      background: rgba(255, 255, 255, 0.9);
+      border-color: rgba(7, 21, 18, 0.18);
     }
     /* Offset body for fixed banner */
     body {
-      padding-top: 36px;
+      padding-top: 32px;
     }
   </style>
 </head>
@@ -70,7 +82,7 @@
 <body>
   <!-- DEV BANNER -->
   <div class="ff-dev-banner">
-    DEV ENVIRONMENT – TESTING ONLY
+    <span>● DEV — TESTING</span>
     <a href="/">Production</a>
   </div>
 
@@ -413,6 +425,7 @@
           Support ☕
         </a>
         <div class="ff-support-note">If this forecast saved you a wasted trip, consider buying a coffee.</div>
+        <div class="ff-premium-note">Premium — coming soon</div>
       </div>
       <p class="ff-foot-copy">© 2024 Fairway Weather · Not affiliated with Fairway, Kansas</p>
     </footer>
