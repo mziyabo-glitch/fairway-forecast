@@ -46,6 +46,9 @@ GEOFABRIK_PBF_URLS = {
     "es": "https://download.geofabrik.de/europe/spain-latest.osm.pbf",
     "pt": "https://download.geofabrik.de/europe/portugal-latest.osm.pbf",
     "nl": "https://download.geofabrik.de/europe/netherlands-latest.osm.pbf",
+    "fr": "https://download.geofabrik.de/europe/france-latest.osm.pbf",
+    "au": "https://download.geofabrik.de/australia-oceania/australia-latest.osm.pbf",
+    "nz": "https://download.geofabrik.de/australia-oceania/new-zealand-latest.osm.pbf",
 }
 
 OVERPASS_ENDPOINTS = [
@@ -505,7 +508,13 @@ def build_country_geofabrik(code2: str) -> int:
 
     def get_name(tags: dict) -> str:
         n = tags.get("name") or tags.get("official_name") or tags.get("alt_name") or tags.get("name:en") or ""
-        return _normalize_name(n)
+        name = _normalize_name(n)
+        # Quality guard: skip numeric-only / ultra-short labels (often holes/features, not courses)
+        if len(name) < 3 and not re.search(r"[A-Za-z]", name):
+            return ""
+        if re.fullmatch(r"\d+", name or ""):
+            return ""
+        return name
 
     def is_excluded(tags: dict) -> bool:
         if tags.get("leisure") in excluded_leisure:
