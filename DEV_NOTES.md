@@ -1,31 +1,122 @@
 # Fairway Forecast - Development Notes
 
-## Static Dataset Search Implementation
+## DEV Deployment Status
 
-This document describes the static OSM-based course dataset implementation for GitHub Pages deployment.
+**Status:** ✅ DEV environment is live and ready for testing
 
-### Overview
+**Deployment Date:** 2024
 
-The `/dev` folder contains a standalone version of Fairway Forecast that uses **static JSON datasets** instead of API-based course search. This allows the app to work on GitHub Pages without any backend dependencies.
+**Environment:** `/dev` folder (GitHub Pages)
 
-### Data Attribution
+## Expanded Country Coverage
+
+The DEV environment now includes expanded golf course coverage for the following countries:
+
+### Available Countries (35 total)
+
+**Europe:**
+- 🇬🇧 United Kingdom (GB)
+- 🇮🇪 Ireland (IE)
+- 🇫🇷 France (FR)
+- 🇩🇪 Germany (DE)
+- 🇪🇸 Spain (ES)
+- 🇵🇹 Portugal (PT)
+- 🇳🇱 Netherlands (NL)
+- 🇸🇪 Sweden (SE)
+- 🇩🇰 Denmark (DK)
+- 🇳🇴 Norway (NO)
+- 🇫🇮 Finland (FI)
+- 🇮🇹 Italy (IT)
+- 🇨🇭 Switzerland (CH)
+- 🇦🇹 Austria (AT)
+- 🇧🇪 Belgium (BE)
+- 🇨🇿 Czechia (CZ)
+- 🇵🇱 Poland (PL)
+- 🇬🇷 Greece (GR)
+
+**Americas:**
+- 🇺🇸 United States (US) - State-by-state selection
+- 🇨🇦 Canada (CA)
+- 🇲🇽 Mexico (MX)
+
+**Asia-Pacific:**
+- 🇦🇺 Australia (AU)
+- 🇳🇿 New Zealand (NZ)
+- 🇯🇵 Japan (JP)
+- 🇰🇷 South Korea (KR)
+- 🇹🇭 Thailand (TH)
+- 🇲🇾 Malaysia (MY)
+- 🇸🇬 Singapore (SG)
+- 🇮🇳 India (IN)
+- 🇨🇳 China (CN)
+
+**Africa & Middle East:**
+- 🇿🇦 South Africa (ZA)
+- 🇿🇼 Zimbabwe (ZW)
+- 🇦🇪 UAE (AE)
+- 🇲🇦 Morocco (MA)
+- 🇹🇷 Turkey (TR)
+
+## Configuration
+
+**Default Country:** United Kingdom (GB)
+
+**Dataset Path:** `/data/courses/` (shared with production)
+
+**Lazy Loading:** Datasets are loaded on-demand when a country is selected
+
+**USA Logic:** USA uses state-by-state selection (same as production)
+
+## Features Removed from DEV
+
+The following features have been removed from DEV as per requirements:
+
+- ❌ "Can't find your course?" button
+- ❌ GitHub Issue links for course requests
+- ❌ `custom.json` merge logic
+
+## Data Attribution
 
 **Course data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), licensed under ODbL.**
 
-OSM attribution is displayed:
-1. In the country selector panel
-2. In the footer
+Attribution is displayed in:
+1. Country selector panel (below country dropdown)
+2. Footer (below weather data attribution)
 
-### Architecture
+## Known Limitations
+
+1. **Dataset Availability:** Not all countries may have datasets generated yet. Missing datasets will show "Failed to load courses" when selected.
+
+2. **Dataset Generation:** Country datasets are generated via GitHub Actions workflow (`build-courses.yml`). Some countries may require manual dataset generation.
+
+3. **USA State Selection:** USA requires state selection before course search is enabled.
+
+4. **Testing:** DEV environment is for testing only. Production remains unchanged.
+
+## Testing Checklist
+
+Before promoting to production, verify:
+
+- [ ] UK course search works (e.g., "St Andrews")
+- [ ] Ireland course search works
+- [ ] USA flow works (select state, then search)
+- [ ] Spain, Portugal, Germany load and search correctly
+- [ ] Zimbabwe returns results (even if limited)
+- [ ] Selecting a course triggers weather forecast correctly
+- [ ] No console errors
+- [ ] OpenStreetMap attribution is visible
+- [ ] DEV banner is visible at top of page
+
+## Architecture
 
 ```
 /dev/                     # Development/staging site
   index.html              # With dev banner + country/state selectors
-  config.js               # FEATURE_STATIC_DATASETS: true
-  app.js                  # Modified to use local datasets
-  styles.css              # With country selector styles
+  config.js               # Expanded COUNTRIES list, DEFAULT_COUNTRY: "gb"
+  app.js                  # Static dataset search (no custom.json merge)
+  styles.css              # Country selector styles (no .ff-add-course)
 
-/data/courses/            # Static course datasets
+/data/courses/            # Static course datasets (shared with production)
   gb.json                 # UK courses
   fr.json                 # France courses
   de.json                 # Germany courses
@@ -36,9 +127,11 @@ OSM attribution is displayed:
   us/
     CA.json               # California courses
     FL.json               # Florida courses
-    TX.json               # Texas courses (TBD)
+    TX.json               # Texas courses
+    NY.json               # New York courses
+    AZ.json               # Arizona courses
     ...                   # One file per state
-  custom.json             # Manual course additions (merged at runtime)
+  [country].json          # Other country datasets (as available)
 
 /scripts/
   build_courses.py        # OSM data extraction script
@@ -47,7 +140,7 @@ OSM attribution is displayed:
   build-courses.yml       # Weekly dataset refresh action
 ```
 
-### Dataset Format
+## Dataset Format
 
 Courses are stored as compact arrays to minimize file size:
 
@@ -60,14 +153,14 @@ Courses are stored as compact arrays to minimize file size:
 
 Format: `[name, lat, lon, region]`
 
-### Search Implementation
+## Search Implementation
 
 - **Fuse.js** for fuzzy matching (typo tolerance, partial matches)
 - **Lazy loading**: Only the selected country/state dataset is loaded
 - **Client-side caching**: Datasets cached in memory after first load
 - **localStorage**: Remembers user's country/state selection
 
-### Feature Flags
+## Feature Flags
 
 In `config.js`:
 
@@ -77,16 +170,16 @@ In `config.js`:
 | `FEATURE_ADVANCED_WIND` | `false` | Hide advanced wind section |
 | `FEATURE_ROUND_PLANNER` | `false` | Hide round planner (Premium) |
 
-### Building Datasets
+## Building Datasets
 
-#### Prerequisites
+### Prerequisites
 
 ```bash
 pip install osmium requests
 # On Ubuntu/Debian: sudo apt-get install libosmium2-dev
 ```
 
-#### Manual Build
+### Manual Build
 
 ```bash
 python scripts/build_courses.py
@@ -94,7 +187,7 @@ python scripts/build_courses.py
 
 This downloads Geofabrik extracts and generates JSON files. **Warning: Downloads are large (several GB total).**
 
-#### GitHub Action
+### GitHub Action
 
 The `build-courses.yml` workflow:
 - Runs weekly (Sunday 3am UTC)
@@ -102,64 +195,7 @@ The `build-courses.yml` workflow:
 - Caches OSM downloads between runs
 - Commits changes to `data/courses/`
 
-### Adding Missing Courses
-
-Users can request missing courses via GitHub Issues. The "Can't find your course?" link creates a prefilled issue.
-
-Alternatively, add courses to `data/courses/custom.json`:
-
-```json
-[
-  ["My Local Course", 51.5, -0.1, "GB"]
-]
-```
-
-Custom courses are merged with the main dataset at runtime.
-
-### Promotion Checklist
-
-Before promoting `/dev` to production:
-
-1. **Test on GitHub Pages**
-   - [ ] Deploy and verify `/dev` loads without errors
-   - [ ] Test UK course search (e.g., "St Andrews")
-   - [ ] Test US flow (select state, then search)
-   - [ ] Verify course selection triggers weather fetch
-   - [ ] Check mobile responsiveness
-
-2. **Verify Data**
-   - [ ] Run GitHub Action to generate full datasets
-   - [ ] Check file sizes are reasonable
-   - [ ] Verify OSM attribution visible
-
-3. **Promote to Production**
-   ```bash
-   # Option A: Copy dev files to root
-   cp dev/index.html index.html
-   cp dev/config.js config.js
-   cp dev/app.js app.js
-   cp dev/styles.css styles.css
-   
-   # Update paths in index.html (remove ../ prefixes)
-   # Remove dev banner
-   
-   # Option B: Use feature flag
-   # Set FEATURE_STATIC_DATASETS: true in root config.js
-   ```
-
-4. **Post-Promotion**
-   - [ ] Verify production works
-   - [ ] Monitor for errors
-   - [ ] Consider setting up Sentry or similar
-
-### Known Limitations
-
-1. **Dataset Size**: US states are split to keep files manageable (~50KB each)
-2. **Freshness**: Datasets are rebuilt weekly; new OSM courses may take up to 7 days to appear
-3. **Coverage**: Only courses tagged as `leisure=golf_course` or `golf=course` in OSM
-4. **Coordinates**: For polygon geometries, we use a representative point (first node), not true centroid
-
-### Troubleshooting
+## Troubleshooting
 
 **"Loading courses..." stuck**
 - Check browser console for fetch errors
@@ -176,7 +212,12 @@ Before promoting `/dev` to production:
 - Check network tab for API errors
 - Verify Cloudflare Worker is responding
 
-### File Sizes (Approximate)
+**Country dataset not found**
+- Dataset may not be generated yet
+- Check `/data/courses/` for available files
+- Trigger GitHub Action to generate missing datasets
+
+## File Sizes (Approximate)
 
 | Dataset | Courses | Size |
 |---------|---------|------|

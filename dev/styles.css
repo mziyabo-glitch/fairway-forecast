@@ -2343,24 +2343,6 @@ button, input, select{ font: inherit; }
   text-decoration: underline;
 }
 
-/* "Can't find your course?" link */
-.ff-add-course {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--line);
-  text-align: center;
-}
-
-.ff-add-course a {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--brand);
-  text-decoration: none;
-}
-
-.ff-add-course a:hover {
-  text-decoration: underline;
-}
 
 /* Dataset loading indicator */
 .ff-loading-dataset {
