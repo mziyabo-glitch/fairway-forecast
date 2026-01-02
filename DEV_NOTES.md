@@ -231,4 +231,4 @@ Before promoting `/dev` to production:
 
 ---
 
-*Last updated: 2024*
+*Last updated: 2026-01-02*
