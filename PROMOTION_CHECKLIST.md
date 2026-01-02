@@ -15,6 +15,9 @@ This repo uses `/dev` as a **safe testing environment**. Production lives at the
 - [ ] Confirm country selection works and datasets lazy-load
 - [ ] Confirm USA flow works (country=US → state selector → results)
 - [ ] Select a course and confirm weather forecast loads
+- [ ] Confirm Round Selection Tool is above the fold and smooth on mobile
+- [ ] Confirm search is debounced and capped results feel responsive
+- [ ] Confirm Society tee sheet generates 8‑minute intervals (when enabled)
 
 ## Step 2 — Decide promotion approach
 
@@ -36,6 +39,7 @@ This makes production use the same static dataset implementation as DEV.
 - [ ] Remove DEV-only marker:
   - [ ] Delete the DEV banner HTML/CSS (e.g. “DEV ENVIRONMENT – TESTING ONLY”)
   - [ ] Ensure `robots` meta tag is appropriate for production (remove `noindex, nofollow`)
+  - [ ] If desired, promote the “Support ☕” link from DEV footer to production footer in the same placement
 
 ### Option B: Enable static datasets in production via config
 

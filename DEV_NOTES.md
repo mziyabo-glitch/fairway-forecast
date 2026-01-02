@@ -18,6 +18,26 @@ The `/dev` folder contains a standalone version of Fairway Forecast that uses **
 - A subtle **“Support ☕”** button linking to `https://buymeacoffee.com/godskid` is shown in the **/dev footer**, near the OSM attribution.
 - No external widgets/scripts are loaded (link only).
 
+### Dataset improvements (recent)
+
+- **Spain (ES)**, **Portugal (PT)**, **Netherlands (NL)**: rebuilt from **full Geofabrik extracts** with expanded golf tagging and polygon-first dedupe.
+- **Australia (AU)**, **New Zealand (NZ)**, **France (FR)**: rebuilt from **full Geofabrik extracts** with polygon-first dedupe and stronger exclusions for non-courses.
+
+Current counts in repo (approx):
+- **AU**: 1,457
+- **NZ**: 390
+- **FR**: 738
+
+### Round Selection Tool (DEV UI)
+
+- The **Round Selection Tool** is now the primary above-the-fold UI in `/dev` (country → course → round preset → tee time / society tee sheet).
+- Search is **debounced (~200ms)** and results are **capped (12)** for mobile performance.
+- Society tee sheets generate tee times every **8 minutes**.
+
+### Repo cleanup / archive
+
+- Legacy files and notes were moved into `/archive/` (see `archive/ARCHIVE_README.md`) to keep the active repo easier to maintain.
+
 ### Countries available in DEV
 
 United Kingdom (GB), Ireland (IE), USA (US), Canada (CA), Australia (AU), New Zealand (NZ), South Africa (ZA), Zimbabwe (ZW),

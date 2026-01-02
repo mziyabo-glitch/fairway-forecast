@@ -2349,6 +2349,124 @@ button, input, select{ font: inherit; }
   background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
 }
 
+/* =========================================================
+   ROUND SELECTION TOOL (DEV)
+   ========================================================= */
+
+.ff-round-tool{
+  padding: 14px;
+}
+
+.ff-round-tool-head{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin-bottom: 10px;
+}
+
+.ff-round-tool-title{
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.ff-round-tool-sub{
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.ff-round-step{
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.ff-round-step:first-of-type{
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.ff-round-step-label{
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.ff-round-presets{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.ff-chip{
+  appearance:none;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor:pointer;
+}
+
+.ff-chip:hover{
+  border-color: rgba(15,118,110,.25);
+  background: var(--surface);
+}
+
+.ff-chip.active{
+  background: linear-gradient(180deg,var(--brand),var(--brand-2));
+  color:#fff;
+  border-color: rgba(31,111,92,.45);
+}
+
+.ff-round-micro{
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+.ff-society{
+  margin-top: 10px;
+}
+
+.ff-tee-sheet{
+  margin-top: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.ff-tee-sheet-title{
+  font-weight: 900;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.ff-tee-sheet-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.ff-tee-sheet-slot{
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .ff-country-row {
   display: flex;
   flex-direction: column;

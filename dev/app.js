@@ -13,7 +13,7 @@
   /* ---------- CONFIG ---------- */
   const APP = window.APP_CONFIG || {};
   const API_BASE = APP.WORKER_BASE_URL || "https://fairway-forecast-api.mziyabo.workers.dev";
-  const MAX_RESULTS = 20;
+  const MAX_RESULTS = 12;
 
   const COURSE_CACHE_TTL_MS = 10 * 60 * 1000;
   const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
@@ -68,6 +68,14 @@
 
   const geoBtn = $("btnGeo") || $("geoBtn");
   const unitsSelect = $("unitsSelect") || $("units");
+
+  // Round Selection Tool controls (DEV)
+  const roundPreset18 = $("roundPreset18");
+  const roundPreset9 = $("roundPreset9");
+  const roundPresetSociety = $("roundPresetSociety");
+  const societyControls = $("societyControls");
+  const societyGroups = $("societyGroups");
+  const teeSheetSlot = $("teeSheetSlot");
 
   const verdictCard = $("verdictCard");
   const verdictIcon = $("verdictIcon");
@@ -217,6 +225,58 @@
 
   function pct(pop) {
     return typeof pop === "number" ? `${Math.round(pop * 100)}%` : "";
+  }
+
+  function setRoundMode(mode) {
+    roundMode = mode;
+    if (mode === "9") roundDurationHours = 2;
+    else roundDurationHours = 4; // 18 + society default
+
+    // UI state
+    const setActive = (btn, active) => {
+      if (!btn) return;
+      btn.classList.toggle("active", active);
+    };
+    setActive(roundPreset18, mode === "18");
+    setActive(roundPreset9, mode === "9");
+    setActive(roundPresetSociety, mode === "society");
+
+    if (societyControls) societyControls.style.display = mode === "society" ? "block" : "none";
+
+    // Re-render tee strip and tee sheet if available
+    if (lastNorm) renderTeeTimeStrip(lastNorm);
+  }
+
+  function renderTeeSheet(norm) {
+    if (!teeSheetSlot) return;
+    if (roundMode !== "society" || !selectedTeeTime || !norm) {
+      teeSheetSlot.style.display = "none";
+      teeSheetSlot.innerHTML = "";
+      return;
+    }
+
+    const groups = Math.max(2, Math.min(60, Number(societyGroups?.value || 12)));
+    const tzOff = norm?.timezoneOffset || null;
+
+    const slots = [];
+    for (let i = 0; i < groups; i++) {
+      const t = selectedTeeTime + (i * 8 * 60);
+      slots.push(t);
+    }
+
+    const chips = slots
+      .slice(0, 48) // keep rendering light on mobile
+      .map((t, idx) => `<div class="ff-tee-sheet-slot">${idx + 1}. ${esc(fmtTimeCourse(t, tzOff))}</div>`)
+      .join("");
+
+    const more = slots.length > 48 ? `<div class="ff-hint" style="margin-top:8px;">Showing first 48 tee times.</div>` : "";
+
+    teeSheetSlot.innerHTML = `
+      <div class="ff-tee-sheet-title">Society tee sheet · ${groups} groups · 8‑min spacing</div>
+      <div class="ff-tee-sheet-grid">${chips}</div>
+      ${more}
+    `;
+    teeSheetSlot.style.display = "block";
   }
 
   // Format time at course location (using course timezone offset)
@@ -1411,7 +1471,8 @@
      ========================================================= */
 
   // Round duration in hours (3-hour round)
-  const ROUND_DURATION_HOURS = 3;
+  let roundDurationHours = 4; // default: 18 holes (~4h)
+  let roundMode = "18"; // "18" | "9" | "society"
 
   // Fallback daylight window (08:00 - 17:00) if sunrise/sunset unavailable
   const FALLBACK_DAYLIGHT = { startHour: 8, endHour: 17 };
@@ -1508,7 +1569,7 @@
    * @param {number} stepMinutes - Step size in minutes (30 or 60)
    * @returns {Array} Array of { value: unixSeconds, label: "HH:MM" }
    */
-  function getValidTeeTimesForDate(date, norm, stepMinutes = 30) {
+  function getValidTeeTimesForDate(date, norm, stepMinutes = 8) {
     const tzOffset = norm?.timezoneOffset || 0;
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
     
@@ -1524,9 +1585,9 @@
     
     // Valid tee time range:
     // - Start: sunrise + 30min (allow early birds)
-    // - End: sunset - ROUND_DURATION_HOURS (round must finish before sunset)
+    // - End: sunset - roundDurationHours (round must finish before sunset)
     const playStart = sunrise + (30 * 60); // 30 min after sunrise
-    const playEnd = sunset - (ROUND_DURATION_HOURS * 3600); // 3h before sunset
+    const playEnd = sunset - (roundDurationHours * 3600);
     
     const now = nowSec();
     const options = [];
@@ -1540,7 +1601,7 @@
       if (slot < forecastMin || slot > forecastMax) continue;
       
       // Verify the full round is within daylight
-      const roundEnd = slot + (ROUND_DURATION_HOURS * 3600);
+      const roundEnd = slot + (roundDurationHours * 3600);
       if (roundEnd > sunset) continue;
       
       // Format time in course local timezone
@@ -1609,7 +1670,7 @@
    * @param {number} windowHours - Duration of round in hours (default 3)
    * @returns {Object} Decision result with status, metrics, reasons, and summary
    */
-  function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours = ROUND_DURATION_HOURS) {
+  function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours = roundDurationHours) {
     const WINDOW_HOURS = windowHours;
     const windowEnd = teeTimeUnix + (WINDOW_HOURS * 3600);
 
@@ -1795,7 +1856,7 @@
 
   // Alias for backward compatibility
   function calculateTeeTimeDecision(hourlyForecast, teeTimeUnix, timezoneOffset = 0) {
-    return computeTeeTimeDecision(hourlyForecast, teeTimeUnix, ROUND_DURATION_HOURS);
+    return computeTeeTimeDecision(hourlyForecast, teeTimeUnix, roundDurationHours);
   }
 
   // State for tee time strip
@@ -1972,7 +2033,7 @@
     if (!selectedTeeTime) return;
 
     // Calculate decision for selected tee time (3-hour window)
-    const decision = computeTeeTimeDecision(hourly, selectedTeeTime, ROUND_DURATION_HOURS);
+    const decision = computeTeeTimeDecision(hourly, selectedTeeTime, roundDurationHours);
 
     // Update status pill
     if (statusEl) {
@@ -2065,6 +2126,9 @@
     if (summaryEl) {
       summaryEl.textContent = decision.summary;
     }
+
+    // Society tee sheet (optional)
+    renderTeeSheet(norm);
   }
 
   // Wire up tee time selector
@@ -3835,7 +3899,7 @@
         console.error("[Typeahead] Error:", err);
         // Don't show error for typeahead, just log it
       }
-    }, 300);
+    }, 200);
   }
 
   searchInput?.addEventListener("input", handleTypeahead);
@@ -3847,30 +3911,15 @@
     }
   });
 
-  // Expose diagnostic function for debugging
-  window.testSearchAPI = async function(query = "golf") {
-    console.log("🔧 [Test] Testing search API with query:", query);
-    try {
-      const enc = encodeURIComponent(query);
-      const url = `${API_BASE}/courses?search=${enc}`;
-      console.log("🔧 [Test] Calling:", url);
-      const res = await fetch(url);
-      console.log("🔧 [Test] Response status:", res.status);
-      console.log("🔧 [Test] Response headers:", Object.fromEntries(res.headers.entries()));
-      const text = await res.text();
-      console.log("🔧 [Test] Response body:", text);
-      try {
-        const json = JSON.parse(text);
-        console.log("🔧 [Test] Parsed JSON:", json);
-      } catch (e) {
-        console.warn("🔧 [Test] Not valid JSON");
-      }
-      return { status: res.status, text, ok: res.ok };
-    } catch (err) {
-      console.error("🔧 [Test] Error:", err);
-      return { error: err.message };
-    }
-  };
+  // Round presets
+  roundPreset18?.addEventListener("click", () => setRoundMode("18"));
+  roundPreset9?.addEventListener("click", () => setRoundMode("9"));
+  roundPresetSociety?.addEventListener("click", () => setRoundMode("society"));
+  societyGroups?.addEventListener("input", () => {
+    if (lastNorm) renderTeeTimeStrip(lastNorm);
+  });
+
+  // DEV intentionally avoids any external golf-course APIs.
 
   geoBtn?.addEventListener("click", useMyLocation);
 
@@ -3942,6 +3991,9 @@
     console.log("🚀 [Init] Starting Fairway Forecast (DEV)...");
     console.log(`📂 [Init] Using static datasets: ${USE_STATIC_DATASETS}`);
     
+    // Default round mode presets
+    setRoundMode("18");
+
     renderVerdictCard(null);
     renderPlayability(null);
     wireTeeTimeSelector();
