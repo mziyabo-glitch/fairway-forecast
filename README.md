@@ -33,7 +33,7 @@ The builder uses OpenStreetMap’s Overpass API and caches responses to reduce l
 #### Proof build (small)
 
 ```bash
-python scripts/build_courses.py --only=gb,fr,de,es --us=CA,FL,TX
+python3 scripts/build_courses.py --only=gb,fr,de,es --us=CA,FL,TX
 node scripts/generate_catalog.mjs
 node scripts/verify_data.mjs
 ```
@@ -41,7 +41,7 @@ node scripts/verify_data.mjs
 #### Full build (all requested coverage)
 
 ```bash
-python scripts/build_courses.py --all
+python3 scripts/build_courses.py --all
 node scripts/generate_catalog.mjs
 node scripts/verify_data.mjs
 ```

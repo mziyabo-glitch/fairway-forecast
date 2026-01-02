@@ -12,7 +12,7 @@ on:
         description: 'Build mode: proof (small) or all (full)'
         type: choice
         required: false
-        default: 'proof'
+        default: 'all'
         options:
           - proof
           - all
@@ -45,11 +45,11 @@ jobs:
       
       - name: Build datasets
         run: |
-          if [ "${{ github.event.inputs.mode || 'proof' }}" = "all" ]; then
-            python scripts/build_courses.py --all
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.mode || 'all' }}" = "all" ]; then
+            python3 scripts/build_courses.py --all
           else
             # Proof build (small, fast): GB/FR/DE/ES + CA/FL/TX
-            python scripts/build_courses.py --only=gb,fr,de,es --us=CA,FL,TX
+            python3 scripts/build_courses.py --only=gb,fr,de,es --us=CA,FL,TX
           fi
 
           # Ensure catalogs exist even if dataset build was partial
