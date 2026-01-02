@@ -13,19 +13,17 @@
   /* ---------- CONFIG ---------- */
   const APP = window.APP_CONFIG || {};
   const API_BASE = APP.WORKER_BASE_URL || "https://fairway-forecast-api.mziyabo.workers.dev";
-  const SUPABASE_URL = APP.SUPABASE_URL || "";
-  const SUPABASE_ANON_KEY = APP.SUPABASE_ANON_KEY || "";
-  const COURSES_TABLE = APP.COURSES_TABLE || "uk_golf_courses";
-  const COURSE_COLS = APP.COURSE_COLS || { name: "name", lat: "latitude", lon: "longitude", country: "country" };
   const MAX_RESULTS = 20;
 
   const COURSE_CACHE_TTL_MS = 10 * 60 * 1000;
   const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
 
   /* ---------- STATIC DATASET CONFIG ---------- */
-  const USE_STATIC_DATASETS = APP.FEATURE_STATIC_DATASETS !== false;
+  // DEV is required to use local datasets only (NO Supabase, NO external course APIs).
+  const USE_LOCAL_DATASETS = APP.USE_LOCAL_DATASETS !== false;
+  const USE_STATIC_DATASETS = USE_LOCAL_DATASETS && APP.FEATURE_STATIC_DATASETS !== false;
   const DATASET_BASE_PATH = APP.DATASET_BASE_PATH || "../data/courses";
-  const COUNTRIES = APP.COUNTRIES || [
+  let COUNTRIES = APP.COUNTRIES || [
     { code: "gb", name: "United Kingdom", flag: "🇬🇧" },
     { code: "us", name: "United States", flag: "🇺🇸" },
     { code: "au", name: "Australia", flag: "🇦🇺" },
@@ -42,6 +40,8 @@
   let currentState = localStorage.getItem("ff_state") || "";
   let currentFuse = null; // Fuse.js instance for current dataset
   let usStates = []; // US states index
+  let currentDocs = []; // current dataset as objects (for nearby search)
+  let coursesIndex = null; // data/courses/index.json cache
 
   /* ---------- DOM ---------- */
   const $ = (id) => document.getElementById(id);
@@ -168,6 +168,51 @@
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  }
+
+  function iso2ToFlagEmoji(code) {
+    const c = String(code || "").trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(c)) return "";
+    const A = 0x1f1e6;
+    const cc = c.charCodeAt(0) - 65;
+    const dd = c.charCodeAt(1) - 65;
+    return String.fromCodePoint(A + cc, A + dd);
+  }
+
+  async function loadCoursesIndex() {
+    if (coursesIndex) return coursesIndex;
+    const url = `${DATASET_BASE_PATH}/index.json`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || typeof data !== "object") return null;
+      coursesIndex = data;
+      return coursesIndex;
+    } catch {
+      return null;
+    }
+  }
+
+  async function maybeHydrateCountriesFromIndex() {
+    if (!USE_LOCAL_DATASETS) return;
+    const idx = await loadCoursesIndex();
+    const list = Array.isArray(idx?.countries) ? idx.countries : null;
+    if (!list) return;
+
+    const mapped = [];
+    for (const c of list) {
+      const code = String(c?.code || "").toUpperCase();
+      const name = String(c?.name || "").trim();
+      if (!code || !name) continue;
+      if (code === "US") {
+        mapped.push({ code: "us", name, flag: iso2ToFlagEmoji("US") });
+      } else {
+        mapped.push({ code: code.toLowerCase(), name, flag: iso2ToFlagEmoji(code) });
+      }
+    }
+
+    if (mapped.length > 0) COUNTRIES = mapped;
   }
 
   function pct(pop) {
@@ -541,7 +586,13 @@
     
     try {
       const data = await loadDataset("us_index.json");
-      usStates = Array.isArray(data) ? data : [];
+      // New schema: { updated, states: [...], total }
+      if (data && typeof data === "object" && Array.isArray(data.states)) {
+        usStates = data.states;
+      } else {
+        // Backward compat: older schema was an array
+        usStates = Array.isArray(data) ? data : [];
+      }
       return usStates;
     } catch (err) {
       console.warn(`📂 [Dataset] Failed to load US states index`);
@@ -588,6 +639,7 @@
       lon: c[2],
       region: c[3] || ""
     }));
+    currentDocs = docs;
     
     currentFuse = new Fuse(docs, {
       keys: ["name"],
@@ -634,9 +686,12 @@
   /**
    * Initialize country/state selectors
    */
-  function initCountryStateSelectors() {
+  async function initCountryStateSelectors() {
     if (!countrySelect) return;
     
+    // Prefer the dynamic catalog if available (data/courses/index.json)
+    await maybeHydrateCountriesFromIndex();
+
     // Populate country dropdown
     countrySelect.innerHTML = COUNTRIES.map(c => 
       `<option value="${c.code}" ${c.code === currentCountry ? "selected" : ""}>${c.flag} ${c.name}</option>`
@@ -786,58 +841,7 @@
     }
   }
 
-  async function fetchCoursesSupabase(query) {
-    const q = (query || "").trim();
-    if (!q || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.log("🔍 [Supabase] Skipped - missing query or config");
-      return [];
-    }
-
-    const table = COURSES_TABLE;
-    const cols = COURSE_COLS;
-
-    console.log(`🔍 [Supabase] Searching for: "${q}"`);
-
-    // Simple ilike on name for now; schema only has name/lat/lon/country
-    const pattern = `*${q.replace(/[%*]/g, "").trim()}*`;
-    const searchParam = encodeURIComponent(`name.ilike.${pattern}`);
-
-    const url = `${SUPABASE_URL}/rest/v1/${encodeURIComponent(table)}?select=*&${searchParam}`;
-
-    try {
-      const res = await fetch(url, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      });
-      if (!res.ok) {
-        console.warn("🔍 [Supabase] Search failed", res.status, await res.text().catch(() => ""));
-        return [];
-      }
-      const rows = await res.json();
-      if (!Array.isArray(rows) || !rows.length) {
-        console.log(`🔍 [Supabase] No results found`);
-        return [];
-      }
-
-      console.log(`✅ [Supabase] Found ${rows.length} course(s)`);
-
-      // Map Supabase columns into the shape normalizeCourse expects
-      return rows.map((row) => ({
-        id: row.id ?? null,
-        name: row[cols.name] ?? row.name ?? "Course",
-        lat: typeof row[cols.lat] === "number" ? row[cols.lat] : null,
-        lon: typeof row[cols.lon] === "number" ? row[cols.lon] : null,
-        country: row[cols.country] ?? row.country ?? "",
-        city: "",
-        state: "",
-      }));
-    } catch (err) {
-      console.warn("🔍 [Supabase] Search error", err);
-      return [];
-    }
-  }
+  // Supabase is intentionally not used in DEV.
 
   /* ---------- GEOCODING (City/Town lookup) ---------- */
   async function geocodeCity(query) {
@@ -884,137 +888,54 @@
       return [];
     }
 
-    // Use static dataset search when enabled
-    if (USE_STATIC_DATASETS && currentFuse) {
-      console.log(`🔍 [Static] Searching for: "${q}"`);
-      const results = searchCoursesStatic(q);
-      console.log(`📊 [Static] Found ${results.length} course(s)`);
-      return results;
+    // DEV local datasets only: never call Supabase or external golf-course APIs.
+    if (!USE_STATIC_DATASETS) return [];
+
+    if (!currentFuse) {
+      // Dataset might not be loaded yet (e.g. user typed immediately after switching)
+      await refreshDataset();
     }
 
-    // Fall back to API-based search
-    const cacheKey = q.toLowerCase();
-    const cached = cacheGet(memCache.courses, cacheKey, COURSE_CACHE_TTL_MS);
-    if (cached) {
-      console.log(`🔍 [Cache] Found cached results for: "${q}"`);
-      return cached;
-    }
-
-    console.log(`🔍 [Search] Starting search for: "${q}"`);
-
-    const enc = encodeURIComponent(q);
-
-    let list = [];
-    let source = "unknown";
-    let apiError = null;
-    
-    try {
-      console.log(`🌐 [GolfAPI] Calling primary API: /courses?search=${enc}`);
-      const data = await apiGet(`/courses?search=${enc}`);
-      console.log(`📦 [GolfAPI] Response received:`, data);
-      list = Array.isArray(data?.courses) ? data.courses : [];
-      source = "GolfAPI";
-      if (list.length > 0) {
-        console.log(`✅ [GolfAPI] Found ${list.length} course(s)`);
-      } else {
-        console.log(`⚠️ [GolfAPI] No results found`);
-      }
-    } catch (err) {
-      apiError = err;
-      console.error("❌ [GolfAPI] Primary API failed:", err);
-      console.error("   Error details:", {
-        message: err?.message,
-        status: err?.status,
-        name: err?.name
-      });
-      
-      // If rate limited, don't try fallback - just throw
-      if (err?.status === 429 || err?.name === "RateLimitError") {
-        console.warn("   ⚠️ Rate limit detected (429) - not trying fallback");
-        throw err;
-      }
-      
-      list = [];
-      source = "GolfAPI (failed)";
-    }
-
-    // Fallback to Supabase when no primary matches (only if not rate limited)
-    if ((!Array.isArray(list) || list.length === 0) && (!apiError || apiError?.status !== 429)) {
-      console.log(`🔄 [Fallback] Trying Supabase...`);
-      try {
-        const supa = await fetchCoursesSupabase(q);
-        if (supa.length > 0) {
-          list = supa;
-          source = "Supabase";
-          console.log(`✅ [Fallback] Using ${supa.length} result(s) from Supabase`);
-        } else {
-          console.log(`❌ [Fallback] Supabase also returned no results`);
-        }
-      } catch (fallbackErr) {
-        console.error("❌ [Fallback] Supabase also failed:", fallbackErr);
-      }
-    }
-
-    console.log(`📊 [Search] Final result: ${list.length} course(s) from ${source}`);
-
-    // Cache successful results (even if empty, but not errors)
-    if (source !== "unknown" && (!apiError || apiError?.status !== 429)) {
-      cacheSet(memCache.courses, cacheKey, list);
-    }
-
-    return list;
+    console.log(`🔍 [Static] Searching for: "${q}"`);
+    const results = searchCoursesStatic(q);
+    console.log(`📊 [Static] Found ${results.length} course(s)`);
+    return results;
   }
 
   async function fetchNearbyCourses(lat, lon, radiusKm = 10, maxResults = 5) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-    
-    try {
-      // Search for courses in the area - use city name or broad search
-      // We'll search for "golf" in the area and filter by distance
-      const searchTerms = ["golf", "golf course", "golf club"];
-      const allCourses = [];
-      
-      for (const term of searchTerms) {
-        try {
-          const data = await apiGet(`/courses?search=${encodeURIComponent(term)}`);
-          const courses = Array.isArray(data?.courses) ? data.courses : [];
-          allCourses.push(...courses);
-        } catch (err) {
-          console.warn(`[Nearby] Search failed for "${term}"`, err);
-        }
-      }
-      
-      // Filter by distance and remove duplicates
-      const nearby = [];
-      const seenIds = new Set();
-      const currentCourseId = selectedCourse?.id;
-      
-      for (const course of allCourses) {
-        const courseLat = course?.lat || course?.location?.latitude;
-        const courseLon = course?.lon || course?.location?.longitude;
-        const courseId = course?.id;
-        
-        // Skip if no coordinates or already seen or is current course
-        if (!Number.isFinite(courseLat) || !Number.isFinite(courseLon)) continue;
-        if (courseId && (seenIds.has(courseId) || courseId === currentCourseId)) continue;
-        
-        const distance = calculateDistance(lat, lon, courseLat, courseLon);
-        if (distance !== null && distance <= radiusKm) {
-          seenIds.add(courseId);
-          nearby.push({
-            ...course,
-            distance: distance
-          });
-        }
-      }
-      
-      // Sort by distance and limit results
-      nearby.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
-      return nearby.slice(0, maxResults);
-    } catch (err) {
-      console.warn("[Nearby] Failed to fetch nearby courses", err);
-      return [];
+
+    if (!USE_STATIC_DATASETS || currentDocs.length === 0) return [];
+
+    const nearby = [];
+    const currentCourseId = selectedCourse?.id;
+
+    for (const d of currentDocs) {
+      const dLat = Number(d.lat);
+      const dLon = Number(d.lon);
+      if (!Number.isFinite(dLat) || !Number.isFinite(dLon)) continue;
+
+      const distance = calculateDistance(lat, lon, dLat, dLon);
+      if (distance === null || distance > radiusKm) continue;
+
+      const id = `static-${d.idx}`;
+      if (currentCourseId && id === currentCourseId) continue;
+
+      nearby.push({
+        id,
+        name: d.name,
+        lat: dLat,
+        lon: dLon,
+        country: currentCountry.toUpperCase(),
+        state: d.region,
+        city: d.region,
+        source: "osm",
+        distance,
+      });
     }
+
+    nearby.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    return nearby.slice(0, maxResults);
   }
 
   async function fetchWeather(lat, lon) {
@@ -4029,7 +3950,7 @@
     
     // Initialize country/state selectors (DEV)
     if (USE_STATIC_DATASETS) {
-      initCountryStateSelectors();
+      void initCountryStateSelectors();
     }
     
     renderAll();

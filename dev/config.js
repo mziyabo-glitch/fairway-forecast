@@ -5,18 +5,8 @@ window.APP_CONFIG = {
   // --- Weather (use Cloudflare Worker so keys are not exposed) ---
   WORKER_BASE_URL: "https://fairway-forecast-api.mziyabo.workers.dev",
 
-  // --- Supabase (disabled in dev - using static datasets) ---
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: "",
-
-  // --- Courses table/columns (not used in dev) ---
-  COURSES_TABLE: "uk_golf_courses",
-  COURSE_COLS: {
-    name: "name",
-    lat: "latitude",
-    lon: "longitude",
-    country: "country",
-  },
+  // --- DEV: Force local static datasets (NO Supabase, NO external course APIs) ---
+  USE_LOCAL_DATASETS: true,
 
   // --- App defaults ---
   DEFAULT_UNITS: "metric", // "metric" (°C) or "imperial" (°F)
@@ -26,7 +16,7 @@ window.APP_CONFIG = {
   FEATURE_ROUND_PLANNER: false,
 
   // --- DEV: Static Dataset Search ---
-  FEATURE_STATIC_DATASETS: true, // Enable static OSM-based course search
+  FEATURE_STATIC_DATASETS: true, // legacy flag (kept for compatibility)
 
   // Dataset paths (relative to /dev/)
   DATASET_BASE_PATH: "../data/courses",

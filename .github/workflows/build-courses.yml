@@ -8,15 +8,14 @@ on:
   # Manual trigger
   workflow_dispatch:
     inputs:
-      countries:
-        description: 'Countries to build (comma-separated: gb,fr,de,se,za,au,us or "all")'
+      mode:
+        description: 'Build mode: proof (small) or all (full)'
+        type: choice
         required: false
-        default: 'all'
-      force_download:
-        description: 'Force re-download even if cached'
-        type: boolean
-        required: false
-        default: false
+        default: 'proof'
+        options:
+          - proof
+          - all
 
 jobs:
   build:
@@ -30,26 +29,35 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
       
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libosmium2-dev
-          pip install osmium requests
-      
-      - name: Cache OSM downloads
+      - name: Cache Overpass responses
         uses: actions/cache@v4
         with:
-          path: .cache/osm
-          key: osm-cache-${{ github.run_number }}
+          path: scripts/cache/overpass
+          key: overpass-cache-${{ github.run_number }}
           restore-keys: |
-            osm-cache-
+            overpass-cache-
       
       - name: Build datasets
         run: |
-          python scripts/build_courses.py
-        env:
-          COUNTRIES: ${{ github.event.inputs.countries || 'all' }}
+          if [ "${{ github.event.inputs.mode || 'proof' }}" = "all" ]; then
+            python scripts/build_courses.py --all
+          else
+            # Proof build (small, fast): GB/FR/DE/ES + CA/FL/TX
+            python scripts/build_courses.py --only=gb,fr,de,es --us=CA,FL,TX
+          fi
+
+          # Ensure catalogs exist even if dataset build was partial
+          node scripts/generate_catalog.mjs
+
+      - name: Verify datasets
+        run: |
+          node scripts/verify_data.mjs
       
       - name: Commit and push changes
         run: |
