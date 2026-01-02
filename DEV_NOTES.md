@@ -34,6 +34,11 @@ Current counts in repo (approx):
 - Search is **debounced (~200ms)** and results are **capped (12)** for mobile performance.
 - Society tee sheets generate tee times every **8 minutes**.
 
+### Header simplification (DEV UI)
+
+- Replaced the tall “logo / intro” hero card with a **compact tool-first topbar** (icon + “Fairway Weather” + short tagline).
+- This keeps the Round Selection tool visible above-the-fold on mobile.
+
 ### Repo cleanup / archive
 
 - Legacy files and notes were moved into `/archive/` (see `archive/ARCHIVE_README.md`) to keep the active repo easier to maintain.
