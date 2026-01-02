@@ -1755,6 +1755,7 @@
     const avgFeelsLike = feelsLikes.length > 0
       ? feelsLikes.reduce((sum, v) => sum + v, 0) / feelsLikes.length
       : avgTemp;
+    const minTemp = temps.length > 0 ? Math.min(...temps) : null;
 
     const metrics = {
       maxPrecipProb: Math.round(maxPrecipProb),
@@ -1775,23 +1776,65 @@
     // Extra signals for golf-readable verdicts
     const signals = (() => {
       let thunder = false;
-      let snow = false;
+      let snowIce = false;
       for (const h of windowData) {
         const w0 = Array.isArray(h?.weather) ? h.weather[0] : null;
         const id = typeof w0?.id === "number" ? w0.id : null;
         const g = toGroup(id);
         if (g === 2) thunder = true; // 2xx thunderstorm
-        if (g === 6) snow = true; // 6xx snow
+        // Snow/ice/freezing precip (hard-stop)
+        if (g === 6) snowIce = true; // 6xx snow
+        if (id === 511) snowIce = true; // freezing rain
+        if (id === 611 || id === 612 || id === 613 || id === 615 || id === 616) snowIce = true; // sleet / mixed
+        const main = typeof w0?.main === "string" ? w0.main.toLowerCase() : "";
+        const desc = typeof w0?.description === "string" ? w0.description.toLowerCase() : "";
+        if (main.includes("snow") || main.includes("sleet") || desc.includes("freezing")) snowIce = true;
       }
       const rainRateMmHr = WINDOW_HOURS > 0 ? (totalPrecipMm / WINDOW_HOURS) : 0;
       const gustDelta = (Number.isFinite(maxGust) && Number.isFinite(avgWind)) ? (maxGust - avgWind) : null;
       return {
         thunder,
-        snow,
+        snowIce,
         rainRateMmHr,
         gustDelta,
       };
     })();
+
+    // --- HARD STOPS (override everything) ---
+    const P = window.FF_PLAYABILITY || null;
+    const countryCode = (typeof currentCountry === "string" && currentCountry) ? currentCountry : (APP.DEFAULT_COUNTRY || "");
+    const windChillC = P?.computeWindChillC
+      ? P.computeWindChillC(minTemp !== null ? minTemp : avgTemp, avgWind)
+      : null;
+    const hardStop = P?.applyHardStops
+      ? P.applyHardStops({
+          airTempC: minTemp !== null ? minTemp : avgTemp,
+          windMph: avgWind,
+          windChillC,
+          thunder: signals.thunder,
+          snowIce: signals.snowIce,
+        })
+      : null;
+    if (hardStop) {
+      const statusMap = {
+        PLAY: { label: "PLAY", icon: "✅" },
+        RISKY: { label: "RISKY", icon: "⚠️" },
+        DELAY: { label: "DELAY", icon: "⏳" },
+        AVOID: { label: "AVOID", icon: "⛔" },
+        UNKNOWN: { label: "—", icon: "❓" }
+      };
+      const display = statusMap[hardStop.status] || statusMap.UNKNOWN;
+      return {
+        status: hardStop.status,
+        statusLabel: display.label,
+        icon: display.icon,
+        metrics: { ...metrics, windChillC: windChillC !== null ? Math.round(windChillC) : null },
+        reasons: [...(hardStop.reasons || []), ...reasons],
+        label: hardStop.label,
+        message: hardStop.message,
+        countryCode,
+      };
+    }
 
     // Check NO CHANCE conditions
     if (totalPrecipMm >= T.noChance.totalPrecipMm) {
@@ -1806,15 +1849,7 @@
       reasons.push(`Dangerous gusts (up to ${metrics.maxGust}mph)`);
     }
 
-    // Thunder/snow override
-    if (signals.thunder) {
-      status = "AVOID";
-      reasons.unshift("Thunderstorm risk");
-    }
-    if (signals.snow) {
-      status = "AVOID";
-      reasons.unshift("Snow/sleet risk");
-    }
+    // Thunder/snow/ice are handled above as hard-stops.
 
     // Check RISKY conditions (if not already AVOID/DELAY)
     if (status === "PLAY") {
@@ -1840,11 +1875,27 @@
       }
     }
 
+    // Country-aware tuning (soft thresholds)
+    const profile = P?.getCountryProfile ? P.getCountryProfile(countryCode) : null;
+    const coldWarnC = profile?.coldWarnC ?? 10;
+    const coldToughC = profile?.coldToughC ?? 4;
+    const rainLightMmHr = profile?.rainLightMmHr ?? 2.0;
+    const rainModerateMmHr = profile?.rainModerateMmHr ?? 6.0;
+    const windBreezyMph = profile?.windBreezyMph ?? 12;
+    const windWindyMph = profile?.windWindyMph ?? 21;
+    const windVeryWindyMph = profile?.windVeryWindyMph ?? 30;
+
     // Descriptive label + short golfer message (tasteful emoji)
-    const isCold = avgTemp !== null && avgTemp <= 6;
-    const isLightRain = signals.rainRateMmHr >= 0.8 || maxPrecipProb >= 55 || totalPrecipMm >= 2.0;
-    const isHeavyRain = signals.rainRateMmHr >= 3.0 || totalPrecipMm >= 8.0 || maxPrecipProb >= 80;
-    const isWindy = avgWind >= 18 || maxGust >= 28 || (signals.gustDelta !== null && signals.gustDelta >= 12);
+    const isColdTough = avgTemp !== null && avgTemp <= coldToughC;
+    const isColdWarn = avgTemp !== null && avgTemp <= coldWarnC;
+    const isDrizzle = signals.rainRateMmHr >= 0.1 && signals.rainRateMmHr <= 0.5;
+    const isLightRain = signals.rainRateMmHr > 0.5 && signals.rainRateMmHr <= rainLightMmHr;
+    const isModerateRain = signals.rainRateMmHr > rainLightMmHr && signals.rainRateMmHr <= rainModerateMmHr;
+    const isHeavyRain = signals.rainRateMmHr > rainModerateMmHr || totalPrecipMm >= 8.0 || maxPrecipProb >= 80;
+
+    const isVeryWindy = avgWind >= windVeryWindyMph || maxGust >= (windVeryWindyMph + 5);
+    const isWindy = avgWind >= windWindyMph || maxGust >= (windWindyMph + 7) || (signals.gustDelta !== null && signals.gustDelta >= 12);
+    const isBreezy = avgWind >= windBreezyMph || maxGust >= (windBreezyMph + 6);
 
     let label = "";
     let message = "";
@@ -1852,48 +1903,44 @@
     if (status === "PLAY") {
       label = "PLAY — It’s playable";
       message = "Solid window. Go play.";
-      if (isCold) {
+      if (isColdTough) {
         label = "PLAY — Cold 🥶 (tough)";
-        message = "Dry enough, but it’ll feel heavy.";
+        message = "Reduced carry and numb hands—layer up.";
+      } else if (isColdWarn) {
+        label = "PLAY — Chilly 🧥";
+        message = "Bring layers. Expect shorter carry.";
       }
     } else if (status === "RISKY") {
       label = "RISKY — Mixed conditions";
       message = "Playable, but expect compromises.";
-      if (signals.thunder) {
-        label = "AVOID — Thunder ⛈️";
-        message = "Lightning risk. Don’t play.";
-        status = "AVOID";
-      } else if (isLightRain) {
+      if (isHeavyRain) {
+        label = "DELAY — Heavy rain ⛈️";
+        message = "Wait it out if you can.";
+        status = "DELAY";
+      } else if (isModerateRain || isLightRain || isDrizzle) {
         label = "RISKY — Light rain 🌧️ (playable)";
-        message = "Bring waterproofs. Expect stops.";
-      } else if (isWindy) {
-        label = "RISKY — Windy 💨 (tough)";
-        message = "Club selection will be tricky.";
-      } else if (isCold) {
+        message = "Waterproofs recommended. Expect interruptions.";
+        if (isModerateRain) {
+          label = "RISKY — Rain 🌧️ (tough)";
+          message = "Wet conditions. Expect delays and soft greens.";
+        }
+      } else if (isVeryWindy || isWindy) {
+        label = "RISKY — Windy 💨 (hard scoring)";
+        message = "Big club changes. Hard to score well.";
+      } else if (isColdTough) {
         label = "RISKY — Cold 🥶 (tough)";
-        message = "Playable, but not comfortable.";
+        message = "Playable, but uncomfortable—hands go numb fast.";
       }
     } else if (status === "DELAY") {
       label = "DELAY — Heavy rain ⛈️";
       message = "Wait it out if you can.";
-      if (signals.thunder) {
-        label = "AVOID — Thunder ⛈️";
-        message = "Lightning risk. Don’t play.";
-        status = "AVOID";
-      }
     } else { // AVOID
       label = "AVOID — Poor conditions";
       message = "Not worth it today.";
-      if (signals.thunder) {
-        label = "AVOID — Thunder ⛈️";
-        message = "Lightning risk. Don’t play.";
-      } else if (signals.snow) {
-        label = "AVOID — Snow ❄️";
-        message = "Unsafe and miserable.";
-      } else if (isHeavyRain) {
+      if (isHeavyRain) {
         label = "AVOID — Heavy rain ⛈️";
         message = "Course likely unplayable.";
-      } else if (isWindy) {
+      } else if (isVeryWindy) {
         label = "AVOID — Wind 💨";
         message = "Too gusty to enjoy.";
       }
@@ -1916,7 +1963,8 @@
       metrics,
       reasons,
       label,
-      message
+      message,
+      countryCode,
     };
   }
 
@@ -4073,7 +4121,7 @@
 
   /* ---------- INIT ---------- */
   try {
-    console.log("🚀 [Init] Starting Fairway Forecast (DEV)...");
+    console.log("🚀 [Init] Starting Fairway Forecast...");
     console.log(`📂 [Init] Using static datasets: ${USE_STATIC_DATASETS}`);
     
     // Default round mode presets
@@ -4100,6 +4148,38 @@
     if (searchBtn) {
       searchBtn.disabled = false;
       searchBtn.textContent = "Search";
+    }
+
+    // Optional sanity tests (opt-in)
+    // Run with: ?playabilityTest=1
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("playabilityTest") === "1" && window.FF_PLAYABILITY?.runSanityTests) {
+        const decideForTest = ({ countryCode, tempC, windMph, rainMmHr, weatherId }) => {
+          const prev = currentCountry;
+          currentCountry = String(countryCode || prev || "").toLowerCase();
+          const now = Math.floor(Date.now() / 1000);
+          const hours = 4;
+          const windSpeed = units() === "metric" ? (windMph / 2.237) : windMph;
+          const windGust = units() === "metric" ? ((windMph + 1) / 2.237) : (windMph + 1);
+          const hourly = Array.from({ length: hours }, (_, i) => ({
+            dt: now + i * 3600,
+            pop: 0,
+            rain_mm: typeof rainMmHr === "number" ? rainMmHr : 0,
+            wind_speed: windSpeed,
+            wind_gust: windGust,
+            temp: tempC,
+            feels_like: tempC,
+            weather: [{ id: weatherId ?? 800, main: "Clear", description: "clear sky" }],
+          }));
+          const out = computeTeeTimeDecision(hourly, now, hours);
+          currentCountry = prev;
+          return out;
+        };
+        window.FF_PLAYABILITY.runSanityTests(decideForTest);
+      }
+    } catch (e) {
+      console.warn("[Playability] Sanity tests failed to run:", e);
     }
   } catch (err) {
     console.error("❌ [Init] Failed to initialize app:", err);

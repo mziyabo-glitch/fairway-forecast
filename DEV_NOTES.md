@@ -48,6 +48,42 @@ Current counts in repo (approx):
 - Premium messaging is kept subtle (no large teaser card).
 - Support link button styling softened to match the calm UI.
 
+### Playability verdict safety + country tuning (shared with production)
+
+To prevent unrealistic verdicts (e.g. **“PLAY” at −16°C**), playability now has:
+
+- **Global hard stops (override everything → AVOID)**:
+  - **Freezing**: if \(airTempC \le -2°C\) → **AVOID — Freezing ❄️**
+  - **Wind chill**: if \(airTempC \le 0°C\) AND wind ≥ 10mph, or computed \(windChillC \le -2°C\) → **AVOID — Wind chill ❄️**
+  - **Snow/ice/freezing precip** in tee-time window → **AVOID — Snow/ice ❄️**
+  - **Thunderstorm** in tee-time window → **AVOID — Thunder ⛈️**
+
+- **Country-aware “soft” profiles** (after hard stops) to tune what feels “cold”, “tough”, “windy”, and rain tolerance.
+  - Profiles live in `shared/playability.js` as `COUNTRY_PROFILES` and are keyed by the app’s internal country codes (e.g. `gb`, `es`, `us`).
+
+#### Current profile table (key fields)
+
+| Country | code | coldWarnC | coldToughC |
+|---|---:|---:|---:|
+| United Kingdom | gb | 8 | 4 |
+| Ireland | ie | 8 | 4 |
+| Spain | es | 14 | 8 |
+| Portugal | pt | 14 | 8 |
+| France | fr | 10 | 4 |
+| Netherlands | nl | 9 | 3 |
+| Germany | de | 9 | 3 |
+| Sweden | se | 6 | 1 |
+| USA | us | 8 | 2 |
+| Australia | au | 12 | 6 |
+| New Zealand | nz | 12 | 6 |
+| South Africa | za | 12 | 6 |
+
+#### Tuning later
+
+- Edit `shared/playability.js` → `COUNTRY_PROFILES` (keep it small + sane).
+- **Never weaken hard stops** unless you’re intentionally changing safety policy.
+- Dev-only sanity tests can be run with `?playabilityTest=1` (console output).
+
 ### Repo cleanup / archive
 
 - Legacy files and notes were moved into `/archive/` (see `archive/ARCHIVE_README.md`) to keep the active repo easier to maintain.
