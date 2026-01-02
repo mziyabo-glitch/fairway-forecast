@@ -18,6 +18,15 @@ The `/dev` folder contains a standalone version of Fairway Forecast that uses **
 - A subtle **“Support ☕”** button linking to `https://buymeacoffee.com/godskid` is shown in the footer, near the OSM attribution.
 - No external widgets/scripts are loaded (link only).
 
+### Cloudflare Web Analytics
+
+- **Manual beacon snippet installed** (to avoid unreliable “auto-injected” behavior):
+  - Production: `index.html` (root) — inserted **just before `</head>`**
+  - DEV: `dev/index.html` — inserted **just before `</head>`**
+- **Notes**:
+  - Ad blockers/privacy tools may prevent events from appearing.
+  - Expect up to **~30 minutes** delay before data shows in the Cloudflare dashboard.
+
 ### Dataset improvements (recent)
 
 - **Spain (ES)**, **Portugal (PT)**, **Netherlands (NL)**: rebuilt from **full Geofabrik extracts** with expanded golf tagging and polygon-first dedupe.
