@@ -6,8 +6,10 @@
 // - Weather via Cloudflare Worker
 
 window.APP_CONFIG = {
-  // --- Weather (use Cloudflare Worker so keys are not exposed) ---
-  WORKER_BASE_URL: "https://fairway-forecast-api.mziyabo.workers.dev",
+  // --- Weather ---
+  // Use same-origin API proxy endpoints (`/weather`, `/geocode`) so Cloudflare can cache.
+  // (The proxy forwards to the Worker; no keys are exposed to the browser.)
+  WORKER_BASE_URL: "",
 
   // --- Static datasets (OSM) ---
   USE_LOCAL_DATASETS: true,

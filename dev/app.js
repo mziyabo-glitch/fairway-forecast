@@ -12,7 +12,9 @@
 
   /* ---------- CONFIG ---------- */
   const APP = window.APP_CONFIG || {};
-  const API_BASE = APP.WORKER_BASE_URL || "https://fairway-forecast-api.mziyabo.workers.dev";
+  // Allow empty-string to mean "same-origin" (e.g. call `/weather` on this domain)
+  const API_BASE =
+    typeof APP.WORKER_BASE_URL === "string" ? APP.WORKER_BASE_URL : "https://fairway-forecast-api.mziyabo.workers.dev";
   const MAX_RESULTS = 12;
 
   const COURSE_CACHE_TTL_MS = 10 * 60 * 1000;
