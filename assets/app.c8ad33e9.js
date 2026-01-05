@@ -1,9 +1,9 @@
 /* =====================================================
-   Fairway Forecast – app.js (DEV BUILD)
-   
+   Fairway Forecast – app.js (PRODUCTION BUILD)
+
    This version uses static OSM-based course datasets
-   for offline/GitHub Pages deployment.
-   
+   for GitHub Pages deployment.
+
    Data © OpenStreetMap contributors (ODbL)
    ===================================================== */
 
@@ -21,10 +21,10 @@
   const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
 
   /* ---------- STATIC DATASET CONFIG ---------- */
-  // DEV is required to use local datasets only (NO Supabase, NO external course APIs).
+  // Static datasets only (no Supabase / no external course APIs).
   const USE_LOCAL_DATASETS = APP.USE_LOCAL_DATASETS !== false;
   const USE_STATIC_DATASETS = USE_LOCAL_DATASETS && APP.FEATURE_STATIC_DATASETS !== false;
-  const DATASET_BASE_PATH = APP.DATASET_BASE_PATH || "../data/courses";
+  const DATASET_BASE_PATH = APP.DATASET_BASE_PATH || "data/courses";
   let COUNTRIES = APP.COUNTRIES || [
     { code: "gb", name: "United Kingdom", flag: "🇬🇧" },
     { code: "us", name: "United States", flag: "🇺🇸" },
@@ -4289,7 +4289,7 @@
 
   /* ---------- INIT ---------- */
   try {
-    console.log("🚀 [Init] Starting Fairway Forecast (DEV)...");
+    console.log("🚀 [Init] Starting Fairway Forecast...");
     console.log(`📂 [Init] Using static datasets: ${USE_STATIC_DATASETS}`);
     
     // Default round mode presets
@@ -4319,7 +4319,7 @@
     }
 
     // Optional sanity tests (opt-in)
-    // Run with: /dev/?playabilityTest=1
+    // Run with: ?playabilityTest=1
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get("playabilityTest") === "1" && window.FF_PLAYABILITY?.runSanityTests) {
