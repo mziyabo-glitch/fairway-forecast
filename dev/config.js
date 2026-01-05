@@ -2,10 +2,9 @@
 // Development configuration - uses static OSM datasets
 
 window.APP_CONFIG = {
-  // --- Weather ---
-  // Use same-origin API proxy endpoints (`/weather`, `/geocode`) so Cloudflare can cache.
-  // (The proxy forwards to the Worker; no keys are exposed to the browser.)
-  WORKER_BASE_URL: "",
+  // --- Weather (rollback) ---
+  // Directly call the upstream Worker (immediate fix if same-origin proxy isn't deployed on this host).
+  WORKER_BASE_URL: "https://fairway-forecast-api.mziyabo.workers.dev",
 
   // --- DEV: Force local static datasets (NO Supabase, NO external course APIs) ---
   USE_LOCAL_DATASETS: true,
