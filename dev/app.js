@@ -85,6 +85,13 @@
   const verdictReason = $("verdictReason");
   const verdictBestTime = $("verdictBestTime");
   const verdictQuickStats = $("verdictQuickStats");
+  const verdictMetaLabel = $("verdictMetaLabel");
+  const verdictChips = $("verdictChips");
+  const verdictWindowTools = $("verdictWindowTools");
+  const verdictDayStrip = $("verdictDayStrip");
+  const verdictTeeTimeSelect = $("verdictTeeTime");
+  const verdictDurationSelect = $("verdictDuration");
+  const verdictWindowNote = $("verdictWindowNote");
   const localTimeEl = $("localTime");
   const gmtTimeEl = $("gmtTime");
 
@@ -112,6 +119,10 @@
   let nearbyCourses = [];
   let courseDirection = ""; // N, NE, E, SE, S, SW, W, NW or ""
   let lastWeatherUpdate = null;
+
+  // Verdict window UI state (UI-only enhancement; does not affect verdict logic)
+  let verdictSelectedDayIdx = 0; // 0-4
+  let verdictDurationHours = 4;
 
   /* ---------- SAFE HTML ---------- */
   const esc = (s) =>
@@ -2042,6 +2053,262 @@
     };
   }
 
+  /* ---------- Verdict window helpers (UI-only) ---------- */
+  function courseDayKeyFromUnix(dt, tzOffsetSec = 0) {
+    const d = new Date((dt + tzOffsetSec) * 1000);
+    // Use UTC fields on the shifted timestamp so timezone doesn't affect grouping.
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function getValidTeeTimesForDateWithDuration(date, norm, stepMinutes, durationHours) {
+    // Based on getValidTeeTimesForDate; UI-only, does not change the decision logic.
+    const tzOffset = norm?.timezoneOffset || 0;
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+
+    const timestamps = hourly.map(h => h?.dt).filter(dt => typeof dt === "number");
+    if (timestamps.length === 0) return [];
+
+    const forecastMin = Math.min(...timestamps);
+    const forecastMax = Math.max(...timestamps);
+
+    const { sunrise, sunset } = getDaylightWindowForDate(date, norm);
+    const playStart = sunrise + (30 * 60);
+    const playEnd = sunset - (durationHours * 3600);
+
+    const now = nowSec();
+    const options = [];
+    const stepSeconds = Math.max(1, Number(stepMinutes || 60)) * 60;
+
+    for (let slot = playStart; slot <= playEnd; slot += stepSeconds) {
+      if (slot < now) continue;
+      if (slot < forecastMin || slot > forecastMax) continue;
+      const roundEnd = slot + (durationHours * 3600);
+      if (roundEnd > sunset) continue;
+
+      const courseDate = new Date((slot + tzOffset) * 1000);
+      const hours = courseDate.getUTCHours().toString().padStart(2, "0");
+      const mins = courseDate.getUTCMinutes().toString().padStart(2, "0");
+      options.push({ value: slot, label: `${hours}:${mins}` });
+    }
+    return options;
+  }
+
+  function build5DayTiles(norm) {
+    const daily = Array.isArray(norm?.daily) ? norm.daily : [];
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    const tzOff = norm?.timezoneOffset || 0;
+
+    const windByDay = new Map(); // dayKey -> maxWindMph
+    for (const h of hourly) {
+      const dt = h?.dt;
+      if (typeof dt !== "number") continue;
+      const k = courseDayKeyFromUnix(dt, tzOff);
+      const windRaw = typeof h.wind_speed === "number" ? h.wind_speed : null;
+      const windMph = windRaw !== null ? (units() === "metric" ? windRaw * 2.237 : windRaw) : null;
+      if (windMph === null) continue;
+      const prev = windByDay.get(k) ?? 0;
+      if (windMph > prev) windByDay.set(k, windMph);
+    }
+
+    const out = [];
+    for (let i = 0; i < Math.min(5, daily.length); i++) {
+      const d = daily[i];
+      const dt = typeof d?.dt === "number" ? d.dt : null;
+      if (!dt) continue;
+
+      const dayKey = courseDayKeyFromUnix(dt, tzOff);
+      const dayName = fmtDay(dt) || "";
+      const dateStr = (() => {
+        const dd = new Date((dt + tzOff) * 1000);
+        const day = dd.getUTCDate();
+        const month = dd.toLocaleDateString([], { month: "short" });
+        return `${day} ${month}`;
+      })();
+
+      const hi = typeof d.max === "number" ? Math.round(d.max) : null;
+      const lo = typeof d.min === "number" ? Math.round(d.min) : null;
+      const rain = typeof d.pop === "number" ? Math.round(d.pop * 100) : 0;
+      const wind = Math.round(windByDay.get(dayKey) ?? 0);
+      const ico = iconHtml(d.weather, 1);
+
+      out.push({
+        idx: i,
+        dt,
+        dayName,
+        dateStr,
+        ico,
+        hi,
+        lo,
+        rain,
+        wind,
+      });
+    }
+    return out;
+  }
+
+  function renderVerdictDayStrip(norm) {
+    if (!verdictDayStrip) return;
+    const tiles = build5DayTiles(norm);
+    if (tiles.length === 0) {
+      verdictDayStrip.innerHTML = "";
+      return;
+    }
+    verdictSelectedDayIdx = Math.max(0, Math.min(verdictSelectedDayIdx, tiles.length - 1));
+
+    verdictDayStrip.innerHTML = tiles.map(t => {
+      const selected = t.idx === verdictSelectedDayIdx;
+      const hiLo =
+        t.hi !== null && t.lo !== null ? `${t.hi}${tempUnit()} / ${t.lo}${tempUnit()}` : "—";
+      return `
+        <button
+          type="button"
+          class="ff-day-tile"
+          role="tab"
+          aria-selected="${selected ? "true" : "false"}"
+          data-day-idx="${t.idx}"
+          title="Select day"
+        >
+          <div class="ff-day-top">
+            <div>
+              <div class="ff-day-name">${esc(t.dayName)}</div>
+              <div class="ff-day-date">${esc(t.dateStr)}</div>
+            </div>
+            <div>${t.ico || ""}</div>
+          </div>
+          <div class="ff-day-mid">
+            <div class="ff-day-hilo">${esc(hiLo)}</div>
+          </div>
+          <div class="ff-day-metrics">
+            <div class="ff-day-metric">Rain <strong>${esc(String(t.rain))}%</strong></div>
+            <div class="ff-day-metric">Wind <strong>${esc(String(t.wind))} mph</strong></div>
+          </div>
+        </button>
+      `;
+    }).join("");
+
+    verdictDayStrip.querySelectorAll("[data-day-idx]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.getAttribute("data-day-idx"));
+        if (!Number.isFinite(idx)) return;
+        verdictSelectedDayIdx = idx;
+
+        // Sync with existing tee-time date state so Step 4 stays consistent.
+        const dates = getAvailableDates(norm).filter(d => d.hasValidTimes).slice(0, 5);
+        const chosen = dates[idx] || dates[0] || null;
+        if (chosen?.date) selectedTeeDate = chosen.date;
+
+        updateVerdictWindowControls(norm);
+      });
+    });
+  }
+
+  function setVerdictChips(list) {
+    if (!verdictChips) return;
+    const items = Array.isArray(list) ? list.filter(Boolean).slice(0, 4) : [];
+    verdictChips.innerHTML = items.map((t) => `<span class="ff-verdict-chip">${esc(t)}</span>`).join("");
+  }
+
+  function updateVerdictWindowControls(norm) {
+    if (!norm || !verdictWindowTools || !verdictTeeTimeSelect || !verdictDurationSelect) return;
+
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    if (hourly.length === 0) {
+      verdictWindowTools.hidden = true;
+      return;
+    }
+
+    verdictWindowTools.hidden = false;
+
+    // Ensure duration is valid
+    const dur = Number(verdictDurationSelect.value || verdictDurationHours);
+    verdictDurationHours = Number.isFinite(dur) ? dur : 4;
+
+    // Determine selected date (sync with Step 4 state if present)
+    const dates = getAvailableDates(norm).filter(d => d.hasValidTimes).slice(0, 5);
+    if (!selectedTeeDate || !dates.some(d => d.dateKey === selectedTeeDate.toDateString())) {
+      selectedTeeDate = dates[verdictSelectedDayIdx]?.date || dates[0]?.date || null;
+    }
+
+    // Build hour-step tee time options
+    const options = selectedTeeDate
+      ? getValidTeeTimesForDateWithDuration(selectedTeeDate, norm, 60, verdictDurationHours)
+      : [];
+
+    // Render select options
+    verdictTeeTimeSelect.innerHTML = options.map(o => `<option value="${o.value}">${esc(o.label)}</option>`).join("");
+
+    // Pick selected time: keep if still valid, else default to first (nearest hour)
+    const optValues = new Set(options.map(o => o.value));
+    if (!selectedTeeTime || !optValues.has(selectedTeeTime)) {
+      selectedTeeTime = options[0]?.value || null;
+    }
+    if (selectedTeeTime) verdictTeeTimeSelect.value = String(selectedTeeTime);
+
+    // Update verdict based on window (reuses existing decision logic)
+    renderVerdictForSelectedWindow(norm);
+
+    // Keep Step 4 strip in sync
+    renderTeeTimeStrip(norm);
+  }
+
+  function renderVerdictForSelectedWindow(norm) {
+    if (!verdictCard || !verdictLabel || !verdictReason || !verdictIcon) return;
+
+    const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+    if (!selectedTeeTime || hourly.length === 0) return;
+
+    const decision = computeTeeTimeDecision(hourly, selectedTeeTime, verdictDurationHours);
+
+    // Map decision status to existing verdict styling (UI-only)
+    verdictCard.classList.remove("ff-verdict--play", "ff-verdict--maybe", "ff-verdict--no", "ff-verdict--neutral", "ff-verdict--nighttime");
+    if (decision.status === "PLAY") verdictCard.classList.add("ff-verdict--play");
+    else if (decision.status === "AVOID") verdictCard.classList.add("ff-verdict--no");
+    else if (decision.status === "UNKNOWN") verdictCard.classList.add("ff-verdict--neutral");
+    else verdictCard.classList.add("ff-verdict--maybe"); // RISKY/DELAY
+
+    verdictIcon.textContent = decision.icon || "—";
+
+    const friendly = (() => {
+      if (decision.status === "PLAY") return "Playable";
+      if (decision.status === "RISKY") return "Risky";
+      if (decision.status === "DELAY") return "Delay";
+      if (decision.status === "AVOID") return "Not recommended";
+      return "No data";
+    })();
+
+    verdictLabel.innerHTML = `<span class="ff-verdict-label-prefix">Tee time</span>${esc(friendly)} <span class="ff-info-icon" title="Click for more info">ℹ️</span>`;
+
+    // Short summary + key chips
+    const summaryParts = [];
+    if (decision.label) summaryParts.push(decision.label);
+    if (decision.message) summaryParts.push(decision.message);
+    verdictReason.textContent = summaryParts.filter(Boolean).join(" · ") || decision.summary || "—";
+    setVerdictChips(Array.isArray(decision.reasons) && decision.reasons.length ? decision.reasons : []);
+
+    // Window label + value
+    if (verdictMetaLabel) verdictMetaLabel.textContent = "Selected window";
+    if (verdictBestTime) {
+      const tzOff = norm?.timezoneOffset || 0;
+      const start = fmtTimeCourse(selectedTeeTime, tzOff);
+      const end = fmtTimeCourse(selectedTeeTime + Math.round(verdictDurationHours * 3600), tzOff);
+      verdictBestTime.textContent = `${start}–${end}`;
+    }
+
+    // Missing data note
+    if (verdictWindowNote) {
+      const expectedHours = Math.max(1, Math.floor(verdictDurationHours));
+      const got = Array.isArray(hourly)
+        ? hourly.filter(h => typeof h?.dt === "number" && h.dt >= selectedTeeTime && h.dt < selectedTeeTime + (verdictDurationHours * 3600)).length
+        : 0;
+      const shouldWarn = decision.status === "UNKNOWN" || got < expectedHours;
+      verdictWindowNote.hidden = !shouldWarn;
+      if (shouldWarn) verdictWindowNote.textContent = "Using the nearest available forecast hours for this window.";
+    }
+  }
+
   // Alias for backward compatibility
   function calculateTeeTimeDecision(hourlyForecast, teeTimeUnix, timezoneOffset = 0) {
     return computeTeeTimeDecision(hourlyForecast, teeTimeUnix, roundDurationHours);
@@ -2708,6 +2975,30 @@
 
     // UI-only enhancement; does not affect verdict logic.
     updateStickyVerdictBar(norm);
+
+    // UI-only enhancement; does not affect verdict logic.
+    // Adds compact 5-day strip + tee time picker and drives the verdict display from that window.
+    if (norm) {
+      try {
+        renderVerdictDayStrip(norm);
+        // Wire up change handlers once
+        if (verdictDurationSelect && !verdictDurationSelect.dataset.wired) {
+          verdictDurationSelect.dataset.wired = "1";
+          verdictDurationSelect.addEventListener("change", () => updateVerdictWindowControls(lastNorm));
+        }
+        if (verdictTeeTimeSelect && !verdictTeeTimeSelect.dataset.wired) {
+          verdictTeeTimeSelect.dataset.wired = "1";
+          verdictTeeTimeSelect.addEventListener("change", () => {
+            selectedTeeTime = Number(verdictTeeTimeSelect.value);
+            updateVerdictWindowControls(lastNorm);
+          });
+        }
+        updateVerdictWindowControls(norm);
+      } catch (e) {
+        // Fail safe: do not break the app if UI enhancement fails
+        if (verdictWindowTools) verdictWindowTools.hidden = true;
+      }
+    }
   }
 
   /* ---------- StickyVerdictBar (UI-only) ---------- */

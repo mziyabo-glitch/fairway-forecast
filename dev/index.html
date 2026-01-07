@@ -338,8 +338,24 @@
             <div class="ff-verdict-text">
               <div id="verdictLabel" class="ff-verdict-label">Loading… <span class="ff-info-icon" title="Click for more info">ℹ️</span></div>
               <div id="verdictReason" class="ff-verdict-reason">—</div>
+              <div id="verdictChips" class="ff-verdict-chips" aria-label="Key reasons"></div>
 
               <div class="ff-verdict-quick-stats" id="verdictQuickStats"></div>
+
+              <!-- UI-only enhancement; does not affect verdict logic -->
+              <div id="verdictWindowTools" class="ff-verdict-window-tools" hidden>
+                <div id="verdictDayStrip" class="ff-day-strip" role="tablist" aria-label="Select a day"></div>
+                <div class="ff-verdict-tee-row" aria-label="Select tee time window">
+                  <label class="ff-label ff-label-inline" for="verdictTeeTime">Tee time</label>
+                  <select id="verdictTeeTime" class="ff-select ff-select-inline"></select>
+                  <select id="verdictDuration" class="ff-select ff-select-inline" aria-label="Round length">
+                    <option value="3.5">3h 30m</option>
+                    <option value="4" selected>4h</option>
+                    <option value="5">5h</option>
+                  </select>
+                </div>
+                <div id="verdictWindowNote" class="ff-hint ff-verdict-note" hidden></div>
+              </div>
 
               <div class="ff-verdict-time" id="verdictTime">
                 <span id="localTime">—</span>
@@ -349,7 +365,7 @@
               <div class="ff-time-hint">Course local time</div>
 
               <div class="ff-verdict-meta">
-                <span>Recommended tee time</span>
+                <span id="verdictMetaLabel">Recommended tee time</span>
                 <strong id="verdictBestTime">—</strong>
               </div>
               

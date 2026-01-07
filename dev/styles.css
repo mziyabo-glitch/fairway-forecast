@@ -2618,6 +2618,114 @@ button, input, select{ font: inherit; }
 }
 
 /* =========================================================
+   Verdict window tools (5-day + tee time) — UI-only enhancement
+   Does not affect verdict logic.
+   ========================================================= */
+.ff-verdict-window-tools{
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.ff-day-strip{
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 2px 8px 2px;
+  scroll-snap-type: x mandatory;
+}
+.ff-day-tile{
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  min-width: 128px;
+  max-width: 148px;
+  text-align: left;
+  border: 1px solid rgba(7,21,18,.12);
+  border-radius: 14px;
+  background: rgba(255,255,255,.72);
+  padding: 10px 10px;
+  box-shadow: none;
+  cursor: pointer;
+}
+.ff-day-tile[aria-selected="true"]{
+  border-color: rgba(15,118,110,.55);
+  background: rgba(17,94,89,.10);
+}
+.ff-day-top{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.ff-day-name{
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: .2px;
+}
+.ff-day-date{
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.ff-day-mid{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.ff-day-hilo{
+  font-weight: 900;
+  font-size: 12px;
+}
+.ff-day-metrics{
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.ff-day-metric strong{
+  color: var(--text);
+  font-weight: 900;
+}
+.ff-verdict-tee-row{
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ff-label-inline{
+  margin: 0;
+  font-size: 12px;
+}
+.ff-select-inline{
+  min-width: 96px;
+  padding: 10px 10px;
+}
+.ff-verdict-chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ff-verdict-chip{
+  border: 1px solid rgba(7,21,18,.14);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(255,255,255,.7);
+  color: var(--text);
+}
+.ff-verdict-note{
+  margin-top: 8px;
+}
+
+/* =========================================================
    StickyVerdictBar — UI-only enhancement; does not affect verdict logic
    ========================================================= */
 .ff-sticky-verdict{
