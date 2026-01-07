@@ -2231,14 +2231,15 @@ button, input, select{ font: inherit; }
   padding: 10px 14px;
   border-radius: 14px;
   border: 1px solid var(--line);
-  background: var(--surface-2);
+  /* Option A: make this a normal dropdown input (no "track" look) */
+  background: var(--surface);
   font-weight: 700;
   font-size: 14px;
   color: var(--text);
   cursor: pointer;
   min-height: 44px;
   min-width: 120px;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2351635F' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -2247,14 +2248,18 @@ button, input, select{ font: inherit; }
 }
 
 .ff-tee-select:hover {
-  border-color: var(--brand);
-  background-color: var(--surface);
+  border-color: rgba(7, 21, 18, 0.18);
 }
 
 .ff-tee-select:focus {
   outline: none;
+  border-color: rgba(7, 21, 18, 0.24);
+  box-shadow: none;
+}
+
+.ff-tee-select:focus-visible {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(15,118,110,.15);
+  box-shadow: 0 0 0 3px rgba(15,118,110,.12);
 }
 
 /* Metrics row */
@@ -2380,7 +2385,7 @@ button, input, select{ font: inherit; }
   
   .ff-tee-select {
     width: 100%;
-    text-align: center;
+    text-align: left;
   }
   
   .ff-tee-strip-metrics {
