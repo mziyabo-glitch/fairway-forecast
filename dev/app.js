@@ -2310,9 +2310,6 @@
       if (shouldWarn) verdictWindowNote.textContent = "Using the nearest available forecast hours for this window.";
     }
 
-    // UI-only enhancement; does not affect verdict logic.
-    // Keep sticky bar aligned with the selected window verdict.
-    updateStickyVerdictBar(norm);
   }
 
   // Alias for backward compatibility
@@ -2604,11 +2601,7 @@
 
     selectEl.addEventListener("change", () => {
       selectedTeeTime = Number(selectEl.value);
-      if (lastNorm) {
-        renderTeeTimeStrip(lastNorm);
-        // UI-only enhancement; does not affect verdict logic.
-        updateStickyVerdictBar(lastNorm);
-      }
+      if (lastNorm) renderTeeTimeStrip(lastNorm);
     });
   }
 
@@ -2980,9 +2973,6 @@
     }
 
     // UI-only enhancement; does not affect verdict logic.
-    updateStickyVerdictBar(norm);
-
-    // UI-only enhancement; does not affect verdict logic.
     // Adds compact 5-day strip + tee time picker and drives the verdict display from that window.
     if (norm) {
       try {
@@ -3005,97 +2995,6 @@
         if (verdictWindowTools) verdictWindowTools.hidden = true;
       }
     }
-  }
-
-  /* ---------- StickyVerdictBar (UI-only) ---------- */
-  const stickyVerdict = {
-    barEl: null,
-    spacerEl: null,
-    labelEl: null,
-    timeEl: null,
-    iconEl: null,
-    isVisible: false,
-  };
-
-  function ensureStickyVerdictBar() {
-    if (stickyVerdict.barEl) return;
-
-    const wrap = document.querySelector(".ff-wrap") || document.body;
-
-    const spacer = document.createElement("div");
-    spacer.className = "ff-sticky-verdict-spacer";
-    spacer.hidden = true;
-    spacer.setAttribute("aria-hidden", "true");
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "ff-sticky-verdict";
-    btn.hidden = true;
-    btn.setAttribute("aria-label", "View full verdict details");
-
-    btn.innerHTML = `
-      <span class="ff-sticky-verdict-left">
-        <span class="ff-sticky-verdict-icon" aria-hidden="true">—</span>
-        <span class="ff-sticky-verdict-label">—</span>
-      </span>
-      <span class="ff-sticky-verdict-time">—</span>
-    `;
-
-    btn.addEventListener("click", () => {
-      document.getElementById("verdict-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    document.body.appendChild(btn);
-    wrap.appendChild(spacer);
-
-    stickyVerdict.barEl = btn;
-    stickyVerdict.spacerEl = spacer;
-    stickyVerdict.iconEl = btn.querySelector(".ff-sticky-verdict-icon");
-    stickyVerdict.labelEl = btn.querySelector(".ff-sticky-verdict-label");
-    stickyVerdict.timeEl = btn.querySelector(".ff-sticky-verdict-time");
-  }
-
-  function normalizeVerdictLabelForSticky() {
-    // Reuse existing rendered label to avoid duplicating verdict logic/mapping.
-    const raw = (verdictLabel?.textContent || "").replaceAll("ℹ️", "").trim();
-    return raw.replace(/^Best window/i, "").replace(/^Tee time/i, "").trim();
-  }
-
-  function updateStickyVerdictBar(norm) {
-    ensureStickyVerdictBar();
-    if (!stickyVerdict.barEl || !stickyVerdict.spacerEl) return;
-
-    const hasTeeTime = Number.isFinite(selectedTeeTime) && selectedTeeTime > 0;
-    const decision = verdictWindowDecision;
-    const icon = (decision?.icon || (verdictIcon?.textContent || "")).trim();
-    const labelRaw = decision?.statusLabel || normalizeVerdictLabelForSticky();
-    const label = String(labelRaw || "").trim();
-
-    const hasVerdict = Boolean(norm) && icon && icon !== "—" && label && label !== "—";
-
-    const shouldShow = hasTeeTime && hasVerdict;
-
-    if (!shouldShow) {
-      stickyVerdict.barEl.hidden = true;
-      stickyVerdict.spacerEl.hidden = true;
-      stickyVerdict.isVisible = false;
-      return;
-    }
-
-    const tzOffset = norm?.timezoneOffset || 0;
-    const teeLabel = formatTeeLabel(selectedTeeTime, tzOffset);
-
-    if (stickyVerdict.iconEl) stickyVerdict.iconEl.textContent = icon;
-    if (stickyVerdict.labelEl) stickyVerdict.labelEl.textContent = label;
-    if (stickyVerdict.timeEl) stickyVerdict.timeEl.textContent = teeLabel;
-
-    stickyVerdict.barEl.hidden = false;
-    stickyVerdict.spacerEl.hidden = false;
-    stickyVerdict.isVisible = true;
-
-    // Prevent content from being covered by the fixed bar.
-    const h = stickyVerdict.barEl.offsetHeight || 0;
-    if (h > 0) stickyVerdict.spacerEl.style.height = `${h}px`;
   }
 
   // Calculate combined challenge rating (course difficulty + weather)
