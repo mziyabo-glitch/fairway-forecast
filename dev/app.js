@@ -123,6 +123,7 @@
   // Verdict window UI state (UI-only enhancement; does not affect verdict logic)
   let verdictSelectedDayIdx = 0; // 0-4
   let verdictDurationHours = 4;
+  let verdictWindowDecision = null; // last computed window decision for sticky bar
 
   /* ---------- SAFE HTML ---------- */
   const esc = (s) =>
@@ -2261,6 +2262,7 @@
     if (!selectedTeeTime || hourly.length === 0) return;
 
     const decision = computeTeeTimeDecision(hourly, selectedTeeTime, verdictDurationHours);
+    verdictWindowDecision = decision || null;
 
     // Map decision status to existing verdict styling (UI-only)
     verdictCard.classList.remove("ff-verdict--play", "ff-verdict--maybe", "ff-verdict--no", "ff-verdict--neutral", "ff-verdict--nighttime");
@@ -2307,6 +2309,10 @@
       verdictWindowNote.hidden = !shouldWarn;
       if (shouldWarn) verdictWindowNote.textContent = "Using the nearest available forecast hours for this window.";
     }
+
+    // UI-only enhancement; does not affect verdict logic.
+    // Keep sticky bar aligned with the selected window verdict.
+    updateStickyVerdictBar(norm);
   }
 
   // Alias for backward compatibility
@@ -3052,7 +3058,7 @@
   function normalizeVerdictLabelForSticky() {
     // Reuse existing rendered label to avoid duplicating verdict logic/mapping.
     const raw = (verdictLabel?.textContent || "").replaceAll("ℹ️", "").trim();
-    return raw.replace(/^Best window/i, "").trim();
+    return raw.replace(/^Best window/i, "").replace(/^Tee time/i, "").trim();
   }
 
   function updateStickyVerdictBar(norm) {
@@ -3060,8 +3066,10 @@
     if (!stickyVerdict.barEl || !stickyVerdict.spacerEl) return;
 
     const hasTeeTime = Number.isFinite(selectedTeeTime) && selectedTeeTime > 0;
-    const icon = (verdictIcon?.textContent || "").trim();
-    const label = normalizeVerdictLabelForSticky();
+    const decision = verdictWindowDecision;
+    const icon = (decision?.icon || (verdictIcon?.textContent || "")).trim();
+    const labelRaw = decision?.statusLabel || normalizeVerdictLabelForSticky();
+    const label = String(labelRaw || "").trim();
 
     const hasVerdict = Boolean(norm) && icon && icon !== "—" && label && label !== "—";
 
