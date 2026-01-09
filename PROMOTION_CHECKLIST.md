@@ -32,7 +32,7 @@ This makes production use the same static dataset implementation as DEV.
   - [ ] `dev/config.js` → `config.js`
 
 - [ ] Update paths inside the copied `index.html`:
-  - [ ] Change `../manifest.json` → `/manifest.json`
+  - [ ] Change `../manifest.json` → `/manifest.webmanifest`
   - [ ] Change `../icons/...` → `/icons/...`
   - [ ] Keep dataset path pointing to `/data/courses` (or `./data/courses` depending on how `DATASET_BASE_PATH` is set)
 
