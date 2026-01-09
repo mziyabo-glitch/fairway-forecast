@@ -442,6 +442,51 @@
 
   </main>
 
+  <!-- PWA INSTALL CTA (shows only when installable / iOS A2HS) -->
+  <div id="pwaInstallBanner" class="ff-pwa-banner" hidden>
+    <div class="ff-pwa-banner__text">
+      <div class="ff-pwa-banner__title">Install Fairway Weather</div>
+      <div id="pwaInstallBannerBody" class="ff-pwa-banner__body">Get faster access and offline support.</div>
+    </div>
+    <div class="ff-pwa-banner__actions">
+      <button id="pwaInstallAction" class="ff-btn ff-btn-apply" type="button">Install</button>
+      <button id="pwaInstallDismiss" class="ff-btn ff-btn-ghost" type="button">Not now</button>
+    </div>
+  </div>
+
+  <style>
+    .ff-pwa-banner[hidden] { display: none !important; }
+    .ff-pwa-banner {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom));
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      background: rgba(11, 31, 42, 0.92);
+      color: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .ff-pwa-banner__title { font-weight: 800; letter-spacing: 0.2px; font-size: 13px; line-height: 1.15; }
+    .ff-pwa-banner__body { font-size: 12px; opacity: 0.92; line-height: 1.25; margin-top: 2px; }
+    .ff-pwa-banner__actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .ff-pwa-banner__actions .ff-btn { white-space: nowrap; }
+    body.ff-pwa-banner-on { padding-bottom: 92px; }
+    @media (max-width: 420px) {
+      .ff-pwa-banner { align-items: flex-start; }
+      .ff-pwa-banner__actions { width: 100%; justify-content: flex-start; }
+    }
+  </style>
+
   <!-- PREMIUM EXPLAINER MODAL -->
   <div id="infoModal" class="ff-modal" hidden>
     <div class="ff-modal-backdrop"></div>
@@ -467,6 +512,101 @@
             console.warn("[PWA] Service worker registration failed:", err);
           }
         );
+      });
+    })();
+  </script>
+  <script>
+    (function () {
+      var DISMISS_KEY = "fw_pwa_install_dismissed_at";
+      var DISMISS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+      var deferredPrompt = null;
+
+      function isStandalone() {
+        return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+      }
+
+      function isIos() {
+        var ua = window.navigator.userAgent || "";
+        return /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+      }
+
+      function isSafari() {
+        var ua = window.navigator.userAgent || "";
+        return /Safari/.test(ua) && !/Chrome|CriOS|Edg|OPR|FxiOS/.test(ua);
+      }
+
+      function shouldShow() {
+        if (isStandalone()) return false;
+        try {
+          var ts = Number(localStorage.getItem(DISMISS_KEY) || "0");
+          if (ts && Date.now() - ts < DISMISS_MS) return false;
+        } catch (_) {}
+        return true;
+      }
+
+      function setBannerVisible(visible) {
+        var banner = document.getElementById("pwaInstallBanner");
+        if (!banner) return;
+        if (visible) {
+          banner.hidden = false;
+          document.body.classList.add("ff-pwa-banner-on");
+        } else {
+          banner.hidden = true;
+          document.body.classList.remove("ff-pwa-banner-on");
+        }
+      }
+
+      function dismissBanner() {
+        try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch (_) {}
+        setBannerVisible(false);
+      }
+
+      function wireButtons(actionMode) {
+        var action = document.getElementById("pwaInstallAction");
+        var dismiss = document.getElementById("pwaInstallDismiss");
+        if (dismiss) dismiss.addEventListener("click", dismissBanner);
+        if (!action) return;
+
+        action.addEventListener("click", function () {
+          if (actionMode === "prompt" && deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(function () {
+              deferredPrompt = null;
+              dismissBanner();
+            });
+            return;
+          }
+          window.alert("To install: tap the Share button in Safari, then 'Add to Home Screen'.");
+        });
+      }
+
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (!shouldShow()) return;
+        var body = document.getElementById("pwaInstallBannerBody");
+        if (body) body.textContent = "Install for faster access (and offline support).";
+        var action = document.getElementById("pwaInstallAction");
+        if (action) action.textContent = "Install";
+        wireButtons("prompt");
+        setBannerVisible(true);
+      });
+
+      window.addEventListener("load", function () {
+        if (!shouldShow()) return;
+        if (isIos() && isSafari() && !isStandalone()) {
+          var body = document.getElementById("pwaInstallBannerBody");
+          if (body) body.textContent = "On iPhone/iPad: Share → Add to Home Screen.";
+          var action = document.getElementById("pwaInstallAction");
+          if (action) action.textContent = "How to install";
+          wireButtons("ios");
+          setBannerVisible(true);
+        }
+      });
+
+      window.addEventListener("appinstalled", function () {
+        deferredPrompt = null;
+        setBannerVisible(false);
       });
     })();
   </script>
