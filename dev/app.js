@@ -257,8 +257,25 @@
 
     if (societyControls) societyControls.style.display = mode === "society" ? "block" : "none";
 
+    // Update duration subtitle
+    const durationSubtitle = $("durationSubtitle");
+    if (durationSubtitle) {
+      if (mode === "9") {
+        durationSubtitle.textContent = "9-hole round (~2 hours)";
+      } else if (mode === "society") {
+        durationSubtitle.textContent = "Society tee sheet selected";
+      } else {
+        durationSubtitle.textContent = "18-hole round (~4 hours)";
+      }
+    }
+
     // Re-render tee strip and tee sheet if available
-    if (lastNorm) renderTeeTimeStrip(lastNorm);
+    if (lastNorm) {
+      renderTeeTimeStrip(lastNorm);
+      // Also update weather timeline and pro-tip (if functions are available)
+      if (typeof renderWeatherTimeline === "function") renderWeatherTimeline(lastNorm);
+      if (typeof renderProTip === "function") renderProTip(lastNorm);
+    }
   }
 
   function renderTeeSheet(norm) {
@@ -4276,6 +4293,18 @@
         renderTeeTimeStrip(lastNorm);
         clearSearchResults();
         renderAll();
+
+        // Update dashboard components
+        updateBreadcrumb();
+        showDashboardSections(true);
+        renderWeatherTimeline(lastNorm);
+        renderProTip(lastNorm);
+
+        // Re-init Lucide icons
+        if (typeof lucide !== "undefined") {
+          lucide.createIcons();
+        }
+
         console.log("[Weather] Render complete");
       } catch (renderErr) {
         console.error("[Weather] Render error:", renderErr);
@@ -4485,6 +4514,433 @@
     if (e.key === "Escape") closeInfoModal();
   });
 
+  /* =========================================================
+     REFACTORED DASHBOARD UI (At-a-Glance)
+     ========================================================= */
+
+  // DOM elements for new dashboard
+  const courseSelectorToggle = $("courseSelectorToggle");
+  const courseSelectorPanel = $("courseSelectorPanel");
+  const breadcrumbCountry = $("breadcrumbCountry");
+  const breadcrumbCourse = $("breadcrumbCourse");
+  const durationSection = $("durationSection");
+  const weatherTimelineSection = $("weatherTimelineSection");
+  const weatherTimelineTable = $("weatherTimelineTable");
+  const weatherTimelineBody = $("weatherTimelineBody");
+  const proTipCallout = $("proTipCallout");
+  const proTipText = $("proTipText");
+  const verdictCardNew = $("verdictCardNew");
+  const timelineSubtitle = $("timelineSubtitle");
+  const metricsTimeLabel = $("metricsTimeLabel");
+  const durationSubtitle = $("durationSubtitle");
+
+  // Toggle course selector panel
+  courseSelectorToggle?.addEventListener("click", () => {
+    const isExpanded = courseSelectorToggle.getAttribute("aria-expanded") === "true";
+    courseSelectorToggle.setAttribute("aria-expanded", !isExpanded);
+    if (courseSelectorPanel) {
+      courseSelectorPanel.style.display = isExpanded ? "none" : "block";
+    }
+  });
+
+  // Update breadcrumb when country/course changes
+  function updateBreadcrumb() {
+    // Update country text
+    if (breadcrumbCountry) {
+      const countryObj = COUNTRIES.find(c => c.code === currentCountry);
+      const countryName = countryObj?.name || "Select Location";
+      breadcrumbCountry.textContent = countryName;
+    }
+
+    // Update course text
+    if (breadcrumbCourse) {
+      if (selectedCourse) {
+        breadcrumbCourse.textContent = selectedCourse.name || "Course Selected";
+      } else {
+        breadcrumbCourse.textContent = "Choose Course";
+      }
+    }
+  }
+
+  // Show dashboard sections when course is selected
+  function showDashboardSections(show = true) {
+    if (durationSection) {
+      durationSection.style.display = show ? "block" : "none";
+    }
+    if (weatherTimelineSection) {
+      weatherTimelineSection.style.display = show ? "block" : "none";
+    }
+
+    // Collapse course selector when course selected
+    if (show && courseSelectorToggle && courseSelectorPanel) {
+      courseSelectorToggle.setAttribute("aria-expanded", "false");
+      courseSelectorPanel.style.display = "none";
+    }
+  }
+
+  /**
+   * Render Weather Timeline table with hourly data
+   * @param {Object} norm - Normalized weather data
+   */
+  function renderWeatherTimeline(norm) {
+    if (!weatherTimelineBody || !norm) return;
+
+    const hourly = Array.isArray(norm.hourly) ? norm.hourly : [];
+    const tzOffset = norm?.timezoneOffset || 0;
+
+    // Get the window based on selected tee time and round duration
+    if (!selectedTeeTime) {
+      weatherTimelineBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);">Select a tee time to see weather timeline</td></tr>`;
+      return;
+    }
+
+    const windowHours = roundDurationHours;
+    const windowEnd = selectedTeeTime + (windowHours * 3600);
+
+    // Filter hourly data within the window (1-hour increments)
+    const windowData = hourly.filter(h => {
+      const dt = h?.dt;
+      return typeof dt === "number" && dt >= selectedTeeTime && dt < windowEnd;
+    });
+
+    if (windowData.length === 0) {
+      weatherTimelineBody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--muted);">No forecast data for this window</td></tr>`;
+      return;
+    }
+
+    // Get Lucide icon name based on weather
+    function getWeatherIcon(weather) {
+      const main = (weather?.[0]?.main || "").toLowerCase();
+      const desc = (weather?.[0]?.description || "").toLowerCase();
+
+      if (main.includes("rain") || main.includes("drizzle")) return "cloud-rain";
+      if (main.includes("storm") || main.includes("thunder")) return "cloud-lightning";
+      if (main.includes("snow")) return "cloud-snow";
+      if (main.includes("cloud")) return "cloud";
+      if (main.includes("fog") || main.includes("mist")) return "cloud-fog";
+      return "sun";
+    }
+
+    // Build header row dynamically
+    const headerRow = `
+      <tr>
+        <th>Time</th>
+        <th>Sky</th>
+        <th>Temp</th>
+        <th>Wind</th>
+        <th>Gusts</th>
+        <th>Rain</th>
+      </tr>
+    `;
+
+    // Update table header
+    const thead = weatherTimelineTable?.querySelector("thead");
+    if (thead) {
+      thead.innerHTML = headerRow;
+    }
+
+    // Build body rows
+    const rows = windowData.map((h, idx) => {
+      const time = fmtTimeCourse(h.dt, tzOffset);
+      const icon = getWeatherIcon(h.weather);
+      const temp = typeof h.temp === "number" ? `${roundNum(h.temp)}${tempUnit()}` : "—";
+      const wind = typeof h.wind_speed === "number" ? `${roundNum(h.wind_speed, 1)}` : "—";
+      const gust = typeof (h.wind_gust ?? h.gust) === "number" ? `${roundNum(h.wind_gust ?? h.gust, 1)}` : "—";
+      const rain = typeof h.pop === "number" ? `${Math.round(h.pop * 100)}%` : "—";
+
+      // Calculate estimated hole based on position in round
+      const holesPerHour = roundMode === "9" ? 4.5 : 4.5; // ~4.5 holes per hour
+      const estimatedHole = Math.round((idx + 0.5) * holesPerHour);
+
+      return `
+        <tr data-hour="${idx}">
+          <td>${esc(time)}</td>
+          <td><div class="ff-timeline-icon"><i data-lucide="${icon}"></i></div></td>
+          <td>${esc(temp)}</td>
+          <td>${esc(wind)}</td>
+          <td>${esc(gust)}</td>
+          <td>${esc(rain)}</td>
+        </tr>
+      `;
+    }).join("");
+
+    weatherTimelineBody.innerHTML = rows;
+
+    // Re-initialize Lucide icons in timeline
+    if (typeof lucide !== "undefined") {
+      lucide.createIcons();
+    }
+
+    // Update timeline subtitle
+    if (timelineSubtitle) {
+      const startTime = fmtTimeCourse(selectedTeeTime, tzOffset);
+      const endTime = fmtTimeCourse(windowEnd, tzOffset);
+      timelineSubtitle.textContent = `${roundMode === "9" ? "9 holes" : "18 holes"} · ${startTime} → Finish approx. ${endTime}`;
+    }
+
+    // Update metrics time label
+    if (metricsTimeLabel) {
+      metricsTimeLabel.textContent = `(Current selection: ${fmtTimeCourse(selectedTeeTime, tzOffset)})`;
+    }
+  }
+
+  /**
+   * Generate Pro-Tip based on weather timeline analysis
+   * @param {Object} norm - Normalized weather data
+   * @returns {Object|null} Pro-tip data or null if no tip needed
+   */
+  function generateProTip(norm) {
+    if (!selectedTeeTime || !norm) return null;
+
+    const hourly = Array.isArray(norm.hourly) ? norm.hourly : [];
+    const tzOffset = norm?.timezoneOffset || 0;
+    const windowHours = roundDurationHours;
+    const windowEnd = selectedTeeTime + (windowHours * 3600);
+
+    // Get hourly data within the window
+    const windowData = hourly.filter(h => {
+      const dt = h?.dt;
+      return typeof dt === "number" && dt >= selectedTeeTime && dt < windowEnd;
+    });
+
+    if (windowData.length < 2) return null;
+
+    const holesPerHour = roundMode === "9" ? 4.5 : 4.5;
+
+    // Check for wind increase > 5mph
+    let maxWindIncrease = 0;
+    let windIncreaseHour = -1;
+    for (let i = 1; i < windowData.length; i++) {
+      const prevWind = windowData[i - 1]?.wind_speed || 0;
+      const currWind = windowData[i]?.wind_speed || 0;
+      // Convert to mph if metric
+      const prevMph = units() === "metric" ? prevWind * 2.237 : prevWind;
+      const currMph = units() === "metric" ? currWind * 2.237 : currWind;
+      const increase = currMph - prevMph;
+
+      if (increase > maxWindIncrease) {
+        maxWindIncrease = increase;
+        windIncreaseHour = i;
+      }
+    }
+
+    // Check for rain probability crossing 30%
+    let rainCrossingHour = -1;
+    for (let i = 0; i < windowData.length; i++) {
+      const pop = windowData[i]?.pop || 0;
+      const prevPop = i > 0 ? (windowData[i - 1]?.pop || 0) : 0;
+
+      // Check if rain crosses 30% threshold
+      if (pop >= 0.3 && prevPop < 0.3 && i > 0) {
+        rainCrossingHour = i;
+        break;
+      }
+    }
+
+    // Generate tip message
+    let tip = null;
+
+    if (maxWindIncrease > 5 && windIncreaseHour > 0) {
+      const estimatedHole = Math.round(windIncreaseHour * holesPerHour);
+      const backNine = roundMode === "18" && estimatedHole > 9;
+      tip = {
+        type: "wind",
+        message: `Wind picks up around ${backNine ? "the back 9" : `hole ${estimatedHole}`}. Consider club up for approach shots.`
+      };
+    }
+
+    if (rainCrossingHour > 0) {
+      const estimatedHole = Math.round(rainCrossingHour * holesPerHour);
+      const backNine = roundMode === "18" && estimatedHole > 9;
+      const message = `Playable start, but rain expected around ${backNine ? "the back 9" : `hole ${estimatedHole}`}. Pack waterproofs.`;
+
+      // Rain tip takes priority if both conditions exist
+      tip = {
+        type: "rain",
+        message
+      };
+    }
+
+    // Check for deteriorating conditions overall
+    if (!tip && windowData.length >= 2) {
+      const firstHour = windowData[0];
+      const lastHour = windowData[windowData.length - 1];
+
+      const firstPop = firstHour?.pop || 0;
+      const lastPop = lastHour?.pop || 0;
+      const firstWind = firstHour?.wind_speed || 0;
+      const lastWind = lastHour?.wind_speed || 0;
+
+      // Convert to mph
+      const firstWindMph = units() === "metric" ? firstWind * 2.237 : firstWind;
+      const lastWindMph = units() === "metric" ? lastWind * 2.237 : lastWind;
+
+      if (lastPop > firstPop + 0.2 || lastWindMph > firstWindMph + 8) {
+        tip = {
+          type: "deteriorating",
+          message: `Conditions may deteriorate later in the round. Your ${roundMode === "9" ? "front 9" : "back 9"} looks breezy.`
+        };
+      }
+    }
+
+    return tip;
+  }
+
+  /**
+   * Render Pro-Tip callout
+   * @param {Object} norm - Normalized weather data
+   */
+  function renderProTip(norm) {
+    if (!proTipCallout || !proTipText) return;
+
+    const tip = generateProTip(norm);
+
+    if (tip) {
+      proTipText.textContent = tip.message;
+      proTipCallout.style.display = "block";
+    } else {
+      proTipCallout.style.display = "none";
+    }
+  }
+
+  /**
+   * Update verdict card styling based on status
+   * @param {string} status - PLAY, RISKY, DELAY, AVOID
+   */
+  function updateVerdictCardStyle(status) {
+    if (!verdictCardNew) return;
+
+    // Remove all status classes
+    verdictCardNew.classList.remove("ff-verdict-card--play", "ff-verdict-card--caution", "ff-verdict-card--avoid");
+
+    // Add appropriate class
+    if (status === "PLAY") {
+      verdictCardNew.classList.add("ff-verdict-card--play");
+    } else if (status === "RISKY" || status === "DELAY") {
+      verdictCardNew.classList.add("ff-verdict-card--caution");
+    } else if (status === "AVOID") {
+      verdictCardNew.classList.add("ff-verdict-card--avoid");
+    } else {
+      verdictCardNew.classList.add("ff-verdict-card--play"); // Default to green
+    }
+
+    // Update Lucide icon
+    const lucideIcon = verdictCardNew?.querySelector(".ff-verdict-lucide");
+    if (lucideIcon && typeof lucide !== "undefined") {
+      if (status === "PLAY") {
+        lucideIcon.setAttribute("data-lucide", "check-circle");
+      } else if (status === "RISKY" || status === "DELAY") {
+        lucideIcon.setAttribute("data-lucide", "alert-triangle");
+      } else if (status === "AVOID") {
+        lucideIcon.setAttribute("data-lucide", "x-circle");
+      }
+      lucide.createIcons();
+    }
+  }
+
+  /**
+   * Update the metrics grid with warning/danger styling
+   * @param {Object} decision - Decision object from computeTeeTimeDecision
+   */
+  function updateMetricsWarnings(decision) {
+    const metricsGrid = $("teeTimeMetrics");
+    if (!metricsGrid || !decision?.metrics) return;
+
+    const cards = metricsGrid.querySelectorAll(".ff-metric-card");
+    cards.forEach(card => {
+      card.classList.remove("ff-metric-card--warning", "ff-metric-card--danger");
+    });
+
+    const { maxPrecipProb, avgWind, maxGust } = decision.metrics;
+
+    // Rain warnings
+    const rainCard = metricsGrid.querySelector(".ff-metric-card:has([id='teeMetricRain'])") ||
+                     Array.from(cards).find(c => c.querySelector("#teeMetricRain"));
+    if (rainCard) {
+      if (maxPrecipProb >= 60) {
+        rainCard.classList.add("ff-metric-card--danger");
+      } else if (maxPrecipProb >= 30) {
+        rainCard.classList.add("ff-metric-card--warning");
+      }
+    }
+
+    // Wind warnings
+    const windCard = metricsGrid.querySelector(".ff-metric-card:has([id='teeMetricWind'])") ||
+                     Array.from(cards).find(c => c.querySelector("#teeMetricWind"));
+    if (windCard) {
+      if (avgWind >= 25) {
+        windCard.classList.add("ff-metric-card--danger");
+      } else if (avgWind >= 15) {
+        windCard.classList.add("ff-metric-card--warning");
+      }
+    }
+
+    // Gust warnings
+    const gustCard = metricsGrid.querySelector(".ff-metric-card:has([id='teeMetricGust'])") ||
+                     Array.from(cards).find(c => c.querySelector("#teeMetricGust"));
+    if (gustCard) {
+      if (maxGust >= 35) {
+        gustCard.classList.add("ff-metric-card--danger");
+      } else if (maxGust >= 25) {
+        gustCard.classList.add("ff-metric-card--warning");
+      }
+    }
+  }
+
+  // Hook into existing renderTeeTimeStrip to also update dashboard
+  const originalRenderTeeTimeStrip = renderTeeTimeStrip;
+  renderTeeTimeStrip = function(norm) {
+    // Call original
+    originalRenderTeeTimeStrip(norm);
+
+    // Update dashboard components
+    renderWeatherTimeline(norm);
+    renderProTip(norm);
+
+    // Update verdict card style based on current decision
+    if (selectedTeeTime && norm) {
+      const hourly = Array.isArray(norm.hourly) ? norm.hourly : [];
+      const decision = computeTeeTimeDecision(hourly, selectedTeeTime, roundDurationHours);
+      updateVerdictCardStyle(decision.status);
+      updateMetricsWarnings(decision);
+    }
+
+    // Initialize Lucide icons
+    if (typeof lucide !== "undefined") {
+      lucide.createIcons();
+    }
+  };
+
+  // Hook into course selection to update breadcrumb and show dashboard
+  const originalSelectCourse = window.selectCourse || function() {};
+  if (typeof selectCourse !== "undefined") {
+    const origSelect = selectCourse;
+    selectCourse = function(course) {
+      origSelect(course);
+      updateBreadcrumb();
+      showDashboardSections(true);
+    };
+  }
+
+  // Update breadcrumb when country changes
+  countrySelect?.addEventListener("change", () => {
+    setTimeout(updateBreadcrumb, 100);
+  });
+
+  // Initialize Lucide icons on page load
+  function initLucideIcons() {
+    if (typeof lucide !== "undefined") {
+      lucide.createIcons();
+    } else {
+      // Retry after a short delay if lucide isn't loaded yet
+      setTimeout(() => {
+        if (typeof lucide !== "undefined") {
+          lucide.createIcons();
+        }
+      }, 500);
+    }
+  }
+
   /* ---------- INIT ---------- */
   try {
     console.log("🚀 [Init] Starting Fairway Forecast (DEV)...");
@@ -4506,7 +4962,13 @@
     
     renderAll();
     console.log("✅ [Init] Fairway Forecast (DEV) ready!");
-    
+
+    // Initialize Lucide icons
+    initLucideIcons();
+
+    // Initialize breadcrumb
+    updateBreadcrumb();
+
     // Show ready state in UI
     if (searchInput && !USE_STATIC_DATASETS) {
       searchInput.placeholder = 'e.g. Swindon, GB or "golf club"';
