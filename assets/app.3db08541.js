@@ -884,11 +884,17 @@
   }
 
   function setStateSelectorVisible(visible) {
-    if (!stateSelectRow || !stateSelect) return;
-    stateSelectRow.style.display = visible ? "block" : "none";
-    if (!visible) {
+    // Update both the old stateSelectRow and new inline stateSelectWrap
+    if (stateSelectRow) {
+      stateSelectRow.style.display = visible ? "block" : "none";
+    }
+    const stateSelectWrap = $("stateSelectWrap");
+    if (stateSelectWrap) {
+      stateSelectWrap.style.display = visible ? "block" : "none";
+    }
+    if (stateSelect && !visible) {
       stateSelect.value = "";
-      stateSelect.innerHTML = "";
+      stateSelect.innerHTML = '<option value="">All states</option>';
     }
   }
 
