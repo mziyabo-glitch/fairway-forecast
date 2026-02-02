@@ -3250,3 +3250,329 @@ button, input, select{ font: inherit; }
     text-align: center;
   }
 }
+
+/* =========================================================
+   POLISHED STEP-BASED DASHBOARD (Matching Mockup)
+   ========================================================= */
+
+/* Course Header */
+.ff-course-header {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.ff-course-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ff-course-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ff-course-selector-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ff-course-name {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ff-course-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+
+/* Step Sections */
+.ff-step-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.ff-step-header {
+  margin-bottom: 12px;
+}
+
+.ff-step-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--forest-primary);
+  margin-bottom: 4px;
+}
+
+.ff-step-sub {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Duration Toggles - Pill Style */
+.ff-duration-toggles {
+  display: flex;
+  gap: 8px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.ff-duration-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ff-duration-btn:hover {
+  background: var(--surface);
+}
+
+.ff-duration-btn.active {
+  background: var(--forest-primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
+}
+
+.ff-duration-holes {
+  font-weight: 800;
+}
+
+.ff-duration-time {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* Timeline Table - Compact */
+.ff-timeline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 12px 0;
+}
+
+.ff-timeline-table th {
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+
+.ff-timeline-table th:first-child {
+  text-align: left;
+  width: 50px;
+}
+
+.ff-timeline-table td {
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+}
+
+.ff-timeline-table td:first-child {
+  text-align: left;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ff-timeline-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ff-sky-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--forest-primary);
+}
+
+/* Pro Tip - Yellow/Amber */
+.ff-pro-tip {
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  display: block;
+}
+
+.ff-pro-tip-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.ff-pro-tip-icon {
+  width: 16px;
+  height: 16px;
+  color: #D97706;
+}
+
+.ff-pro-tip-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #D97706;
+}
+
+.ff-pro-tip-text {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400E;
+  line-height: 1.4;
+}
+
+/* Metrics Grid - 2x2 */
+.ff-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ff-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.ff-metric-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.ff-icon-rain { color: #3B82F6; }
+.ff-icon-wind { color: #6B7280; }
+.ff-icon-temp { color: #EF4444; }
+.ff-icon-gust { color: #8B5CF6; }
+
+.ff-metric-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ff-metric-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  margin-left: auto;
+}
+
+/* Verdict Card - Forest Green */
+.ff-verdict-section {
+  margin: 12px 0;
+}
+
+.ff-verdict-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px;
+  background: var(--forest-primary);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ff-verdict-card:hover {
+  background: var(--forest-dark);
+  transform: translateY(-1px);
+}
+
+.ff-verdict-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ff-verdict-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.ff-verdict-lucide {
+  width: 24px;
+  height: 24px;
+  color: #fff;
+}
+
+.ff-verdict-label {
+  font-size: 15px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.ff-verdict-reason {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ff-verdict-note {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* Caution/Risky - Amber */
+.ff-verdict-card--caution {
+  background: #D97706;
+}
+
+.ff-verdict-card--caution:hover {
+  background: #B45309;
+}
+
+/* Avoid - Red */
+.ff-verdict-card--avoid {
+  background: #DC2626;
+}
+
+.ff-verdict-card--avoid:hover {
+  background: #B91C1C;
+}

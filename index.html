@@ -163,24 +163,26 @@
         </div>
       </header>
 
-      <!-- ================= CONDENSED COURSE SELECTOR (Dashboard Header) ================= -->
-      <section class="ff-course-breadcrumb" aria-label="Course Selection">
-        <div class="ff-breadcrumb-row">
-          <button type="button" id="courseSelectorToggle" class="ff-breadcrumb-btn" aria-expanded="false" aria-controls="courseSelectorPanel">
-            <span class="ff-breadcrumb-text">
-              <span id="breadcrumbCountry" class="ff-breadcrumb-country">Select Location</span>
-              <i data-lucide="chevron-right" class="ff-breadcrumb-chevron"></i>
-              <span id="breadcrumbCourse" class="ff-breadcrumb-course">Choose Course</span>
-            </span>
-            <i data-lucide="chevron-down" class="ff-breadcrumb-expand"></i>
+      <!-- ================= COURSE HEADER ================= -->
+      <section class="ff-course-header" id="courseHeaderSection" style="display:none;">
+        <div class="ff-course-header-row">
+          <span class="ff-course-label">Course:</span>
+          <button type="button" id="courseSelectorToggle" class="ff-course-selector-btn">
+            <span id="selectedCourseName" class="ff-course-name">Select a course</span>
+            <i data-lucide="chevron-down" class="ff-course-chevron"></i>
           </button>
-          <button id="btnGeo" class="ff-btn ff-btn-icon" type="button" title="Use my location" aria-label="Use my location">
+        </div>
+      </section>
+
+      <!-- ================= COURSE SELECTOR PANEL (Initially visible) ================= -->
+      <section class="ff-course-breadcrumb" id="courseSelectorSection" aria-label="Course Selection">
+        <div class="ff-breadcrumb-row">
+          <button type="button" id="btnGeo" class="ff-btn ff-btn-icon" type="button" title="Use my location" aria-label="Use my location">
             <i data-lucide="locate"></i>
           </button>
         </div>
 
-        <!-- Expandable Course Selection Panel -->
-        <div id="courseSelectorPanel" class="ff-course-panel" style="display:none;">
+        <div id="courseSelectorPanel" class="ff-course-panel">
           <div class="ff-panel-section">
             <label class="ff-panel-label">Country / Region</label>
             <select id="countrySelect" class="ff-select ff-select-country">
@@ -214,11 +216,11 @@
         </div>
       </section>
 
-      <!-- ================= DURATION SELECTION (Top of Main Body) ================= -->
-      <section id="durationSection" class="ff-duration-section" style="display:none;" aria-label="Round Duration">
-        <div class="ff-section-header">
-          <span class="ff-section-title">Plan Your Round</span>
-          <span class="ff-section-sub" id="durationSubtitle">Select duration to see your weather window</span>
+      <!-- ================= STEP 1: PLAN YOUR ROUND ================= -->
+      <section id="durationSection" class="ff-step-section" style="display:none;" aria-label="Round Duration">
+        <div class="ff-step-header">
+          <span class="ff-step-label">STEP 1: Plan Your Round</span>
+          <span class="ff-step-sub" id="durationSubtitle">Select duration to see your window:</span>
         </div>
 
         <div class="ff-duration-toggles" role="group" aria-label="Round duration">
@@ -232,7 +234,6 @@
           </button>
         </div>
 
-        <!-- Society tee sheet toggle (hidden by default) -->
         <button type="button" class="ff-chip ff-chip-society" id="roundPresetSociety" style="display:none;">
           Society tee sheet
         </button>
@@ -243,25 +244,11 @@
         </div>
       </section>
 
-      <!-- ================= WEATHER TIMELINE (New Component) ================= -->
-      <section id="weatherTimelineSection" class="ff-timeline-section" style="display:none;" aria-label="Weather Timeline">
-        <div class="ff-section-header">
-          <span class="ff-section-title">The Verdict Timeline</span>
-          <span class="ff-section-sub" id="timelineSubtitle">Showing weather for your round window</span>
-        </div>
-
-        <!-- Date Chips -->
-        <div class="ff-tee-date-row">
-          <div class="ff-tee-date-chips" id="teeDateChips" role="group" aria-label="Select date"></div>
-        </div>
-
-        <!-- Tee Time Selector -->
-        <div class="ff-timeline-tee-row">
-          <div class="ff-timeline-tee-label">
-            <i data-lucide="clock" class="ff-icon-sm"></i>
-            <span>Tee Time</span>
-          </div>
-          <select id="teeTimeSelect" class="ff-tee-select" aria-label="Select tee time"></select>
+      <!-- ================= STEP 2: THE VERDICT TIMELINE ================= -->
+      <section id="weatherTimelineSection" class="ff-step-section" style="display:none;" aria-label="Weather Timeline">
+        <div class="ff-step-header">
+          <span class="ff-step-label">STEP 2: The Verdict Timeline</span>
+          <span class="ff-step-sub" id="timelineSubtitle">Showing weather for a 14:00 Tee Time. Finish approx. 18:00.</span>
         </div>
 
         <!-- Weather Timeline Table -->
@@ -269,78 +256,102 @@
           <table class="ff-timeline-table" id="weatherTimelineTable">
             <thead>
               <tr>
-                <th>Time</th>
-                <!-- Dynamic columns populated by JS -->
+                <th></th>
+                <th>14:00</th>
+                <th>15:00</th>
+                <th>16:7</th>
+                <th>2:17</th>
+                <th>18:00</th>
               </tr>
             </thead>
             <tbody id="weatherTimelineBody">
-              <!-- Dynamic rows populated by JS -->
+              <tr class="ff-timeline-row-sky">
+                <td>Sky</td>
+                <td><i data-lucide="sun" class="ff-sky-icon"></i></td>
+                <td><i data-lucide="sun" class="ff-sky-icon"></i></td>
+                <td><i data-lucide="sun" class="ff-sky-icon"></i></td>
+                <td><i data-lucide="cloud-rain" class="ff-sky-icon"></i></td>
+                <td><i data-lucide="cloud-drizzle" class="ff-sky-icon"></i></td>
+              </tr>
+              <tr>
+                <td>Temp</td>
+                <td>27°C</td>
+                <td>25°C</td>
+                <td>23°</td>
+                <td>231</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td>Wind</td>
+                <td>4mph</td>
+                <td>5mph</td>
+                <td>8mph</td>
+                <td>12mph</td>
+                <td>15md</td>
+              </tr>
             </tbody>
           </table>
         </div>
 
         <!-- Pro-Tip Callout -->
-        <div id="proTipCallout" class="ff-pro-tip" style="display:none;">
+        <div id="proTipCallout" class="ff-pro-tip">
           <div class="ff-pro-tip-header">
             <i data-lucide="alert-triangle" class="ff-pro-tip-icon"></i>
-            <span class="ff-pro-tip-title">Pro Tip</span>
+            <span class="ff-pro-tip-title">Pro Tip:</span>
           </div>
-          <p class="ff-pro-tip-text" id="proTipText"></p>
+          <p class="ff-pro-tip-text" id="proTipText">Your back 9 looks breezy. Rain expected around the 16th hole.</p>
         </div>
 
-        <!-- Detailed Metrics -->
-        <div class="ff-detailed-metrics" id="detailedMetricsSection">
-          <div class="ff-metrics-header">
-            <span class="ff-metrics-title">Detailed Metrics</span>
-            <span class="ff-metrics-sub" id="metricsTimeLabel">(Current selection)</span>
+        <!-- STEP 3: Detailed Metrics -->
+        <div class="ff-step-header" style="margin-top: 16px;">
+          <span class="ff-step-label">STEP 3: Detailed Metrics</span>
+          <span class="ff-step-sub" id="metricsTimeLabel">(Current selection: 14:05)</span>
+        </div>
+
+        <div class="ff-metrics-grid" id="teeTimeMetrics">
+          <div class="ff-metric-card">
+            <i data-lucide="droplets" class="ff-metric-icon ff-icon-rain"></i>
+            <span class="ff-metric-label">Rain:</span>
+            <strong class="ff-metric-value" id="teeMetricRain">10%</strong>
           </div>
-          <div class="ff-metrics-grid" id="teeTimeMetrics">
-            <div class="ff-metric-card">
-              <i data-lucide="cloud-rain" class="ff-metric-icon"></i>
-              <span class="ff-metric-label">Rain</span>
-              <strong class="ff-metric-value" id="teeMetricRain">—</strong>
-            </div>
-            <div class="ff-metric-card">
-              <i data-lucide="wind" class="ff-metric-icon"></i>
-              <span class="ff-metric-label">Wind</span>
-              <strong class="ff-metric-value" id="teeMetricWind">—</strong>
-            </div>
-            <div class="ff-metric-card">
-              <i data-lucide="thermometer" class="ff-metric-icon"></i>
-              <span class="ff-metric-label">Temp</span>
-              <strong class="ff-metric-value" id="teeMetricTemp">—</strong>
-            </div>
-            <div class="ff-metric-card">
-              <i data-lucide="zap" class="ff-metric-icon"></i>
-              <span class="ff-metric-label">Gusts</span>
-              <strong class="ff-metric-value" id="teeMetricGust">—</strong>
-            </div>
+          <div class="ff-metric-card">
+            <i data-lucide="wind" class="ff-metric-icon ff-icon-wind"></i>
+            <span class="ff-metric-label">Wind:</span>
+            <strong class="ff-metric-value" id="teeMetricWind">4 mph</strong>
+          </div>
+          <div class="ff-metric-card">
+            <i data-lucide="thermometer" class="ff-metric-icon ff-icon-temp"></i>
+            <span class="ff-metric-label">Temp:</span>
+            <strong class="ff-metric-value" id="teeMetricTemp">26°C</strong>
+          </div>
+          <div class="ff-metric-card">
+            <i data-lucide="wind" class="ff-metric-icon ff-icon-gust"></i>
+            <span class="ff-metric-label">Gusts:</span>
+            <strong class="ff-metric-value" id="teeMetricGust">5 mph</strong>
           </div>
         </div>
       </section>
 
-      <!-- ================= VERDICT CARD (Sticky Bottom) ================= -->
+      <!-- ================= VERDICT CARD (Bottom) ================= -->
       <section id="teeTimeStripSection" class="ff-verdict-section" style="display:none;" aria-label="Play Verdict">
         <div class="ff-verdict-card" id="verdictCardNew">
           <div class="ff-verdict-status" id="teeTimeStatus">
             <span class="ff-verdict-icon" id="teeTimeIcon">
               <i data-lucide="check-circle" class="ff-verdict-lucide"></i>
             </span>
-            <div class="ff-verdict-content">
-              <span class="ff-verdict-label" id="teeTimeLabel">PLAYABLE</span>
-              <span class="ff-verdict-reason" id="teeTimeSummary">Solid Window</span>
-            </div>
-          </div>
-          <div class="ff-tee-selected-time" id="teeSelectedTime">
-            <span id="teeSelectedLabel">Today · 14:00</span>
+            <span class="ff-verdict-label" id="teeTimeLabel">VERDICT: PLAYABLE</span>
+            <span class="ff-verdict-reason" id="teeTimeSummary">(Solid Window)</span>
           </div>
         </div>
         <div class="ff-verdict-note">(Button color: Solid Forest Green)</div>
       </section>
 
-      <!-- Hidden legacy section for tee sheet -->
+      <!-- Hidden elements -->
       <div id="teeSheetSlot" class="ff-tee-sheet" style="display:none;"></div>
+      <div id="teeDateChips" style="display:none;"></div>
+      <select id="teeTimeSelect" style="display:none;"></select>
       <div class="ff-tee-applied-msg" id="teeAppliedMsg" style="display:none;">Applied from Round Planner</div>
+      <div id="teeSelectedTime" style="display:none;"><span id="teeSelectedLabel"></span></div>
 
       <!-- Units selector -->
       <div class="ff-units-row" style="margin-top: 6px;">
