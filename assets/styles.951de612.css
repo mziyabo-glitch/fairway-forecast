@@ -3891,3 +3891,300 @@ button, input, select{ font: inherit; }
     transition: none;
   }
 }
+
+/* =========================================================
+   UI POLISH - Sleeker buttons, better fit
+   ========================================================= */
+
+/* Hide verdict note */
+.ff-verdict-note {
+  display: none;
+}
+
+/* Course selector row - sleek inline design */
+.ff-course-breadcrumb {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.ff-breadcrumb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Sleek location button - pill style */
+.ff-btn-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--forest-primary);
+}
+
+.ff-btn-icon:hover {
+  background: var(--forest-primary);
+  border-color: var(--forest-primary);
+  color: #fff;
+}
+
+.ff-btn-icon i {
+  width: 18px;
+  height: 18px;
+}
+
+/* Course panel - tighter */
+.ff-course-panel {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.ff-panel-section {
+  margin-bottom: 10px;
+}
+
+/* Step sections - compact */
+.ff-step-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.ff-step-header {
+  margin-bottom: 10px;
+}
+
+.ff-step-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.ff-step-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Duration toggles - SHORTER */
+.ff-duration-toggles {
+  display: flex;
+  gap: 8px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.ff-duration-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--muted);
+}
+
+.ff-duration-btn.active {
+  background: var(--forest-primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(45, 106, 79, 0.25);
+}
+
+.ff-duration-holes {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.ff-duration-time {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* Timeline section - fit width */
+.ff-timeline-scroll {
+  margin: 0 -14px;
+  padding: 0 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ff-timeline-table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  margin: 10px 0;
+}
+
+.ff-timeline-table th,
+.ff-timeline-table td {
+  padding: 6px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ff-timeline-table th:first-child,
+.ff-timeline-table td:first-child {
+  text-align: left;
+  width: 40px;
+  min-width: 40px;
+}
+
+/* Pro tip - compact */
+.ff-pro-tip {
+  padding: 10px 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+}
+
+/* Metrics grid - tighter */
+.ff-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.ff-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.ff-metric-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.ff-metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ff-metric-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  margin-left: auto;
+}
+
+/* Verdict card - sleek */
+.ff-verdict-section {
+  margin: 10px 0 0 0;
+}
+
+.ff-verdict-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  background: var(--forest-primary);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ff-verdict-card:active {
+  transform: scale(0.98);
+}
+
+.ff-verdict-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ff-verdict-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.ff-verdict-lucide {
+  width: 22px;
+  height: 22px;
+  color: #fff;
+}
+
+.ff-verdict-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.ff-verdict-reason {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Ensure everything fits */
+.ff-shell {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.ff-wrap {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Mobile polish */
+@media (max-width: 400px) {
+  .ff-step-section {
+    padding: 12px;
+  }
+
+  .ff-duration-btn {
+    padding: 8px 10px;
+    min-height: 40px;
+  }
+
+  .ff-duration-holes {
+    font-size: 13px;
+  }
+
+  .ff-duration-time {
+    font-size: 11px;
+  }
+
+  .ff-metric-card {
+    padding: 8px 10px;
+  }
+
+  .ff-btn-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .ff-btn-icon i {
+    width: 16px;
+    height: 16px;
+  }
+}
