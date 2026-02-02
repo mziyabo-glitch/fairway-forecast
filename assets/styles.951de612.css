@@ -3576,3 +3576,318 @@ button, input, select{ font: inherit; }
 .ff-verdict-card--avoid:hover {
   background: #B91C1C;
 }
+
+/* =========================================================
+   MOBILE-FRIENDLY IMPROVEMENTS
+   ========================================================= */
+
+/* Base mobile adjustments */
+@media (max-width: 480px) {
+  .ff-shell {
+    padding: 14px 12px;
+    border-radius: 24px;
+  }
+
+  /* Course selector */
+  .ff-course-breadcrumb {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .ff-breadcrumb-row {
+    justify-content: flex-end;
+  }
+
+  .ff-btn-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  /* Step sections */
+  .ff-step-section {
+    padding: 14px 12px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+  }
+
+  .ff-step-label {
+    font-size: 13px;
+  }
+
+  .ff-step-sub {
+    font-size: 11px;
+  }
+
+  /* Duration toggles - full width pills */
+  .ff-duration-toggles {
+    padding: 3px;
+    border-radius: 10px;
+  }
+
+  .ff-duration-btn {
+    padding: 14px 10px;
+    min-height: 48px;
+    border-radius: 8px;
+  }
+
+  .ff-duration-holes {
+    font-size: 13px;
+  }
+
+  .ff-duration-time {
+    font-size: 11px;
+  }
+
+  /* Timeline table - better mobile scroll */
+  .ff-timeline-scroll {
+    margin: 0 -12px;
+    padding: 0 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ff-timeline-table {
+    font-size: 11px;
+  }
+
+  .ff-timeline-table th,
+  .ff-timeline-table td {
+    padding: 8px 10px;
+    min-width: 55px;
+  }
+
+  .ff-timeline-table th:first-child,
+  .ff-timeline-table td:first-child {
+    min-width: 45px;
+    position: sticky;
+    left: 0;
+    background: var(--surface);
+    z-index: 1;
+  }
+
+  .ff-sky-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Pro tip */
+  .ff-pro-tip {
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+
+  .ff-pro-tip-title {
+    font-size: 11px;
+  }
+
+  .ff-pro-tip-text {
+    font-size: 11px;
+  }
+
+  /* Metrics grid - 2x2 but tighter */
+  .ff-metrics-grid {
+    gap: 6px;
+  }
+
+  .ff-metric-card {
+    padding: 10px;
+    border-radius: 10px;
+    gap: 6px;
+  }
+
+  .ff-metric-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .ff-metric-label {
+    font-size: 10px;
+  }
+
+  .ff-metric-value {
+    font-size: 13px;
+  }
+
+  /* Verdict card - larger touch target */
+  .ff-verdict-card {
+    padding: 16px;
+    border-radius: 12px;
+    min-height: 56px;
+  }
+
+  .ff-verdict-lucide {
+    width: 22px;
+    height: 22px;
+  }
+
+  .ff-verdict-label {
+    font-size: 14px;
+  }
+
+  .ff-verdict-reason {
+    font-size: 12px;
+  }
+
+  .ff-verdict-note {
+    font-size: 9px;
+  }
+
+  /* Course header */
+  .ff-course-header {
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .ff-course-selector-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .ff-course-name {
+    max-width: 160px;
+  }
+
+  /* Inputs and selects - larger touch targets */
+  .ff-input,
+  .ff-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom */
+    padding: 10px 12px;
+  }
+
+  .ff-panel-label {
+    font-size: 10px;
+  }
+}
+
+/* Extra small screens (iPhone SE, etc) */
+@media (max-width: 375px) {
+  .ff-shell {
+    padding: 12px 10px;
+  }
+
+  .ff-step-section {
+    padding: 12px 10px;
+  }
+
+  .ff-duration-btn {
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 8px;
+  }
+
+  .ff-duration-holes {
+    font-size: 12px;
+  }
+
+  .ff-duration-time {
+    font-size: 10px;
+  }
+
+  .ff-timeline-table th,
+  .ff-timeline-table td {
+    padding: 6px 8px;
+    min-width: 48px;
+  }
+
+  .ff-metrics-grid {
+    gap: 4px;
+  }
+
+  .ff-metric-card {
+    padding: 8px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .ff-metric-value {
+    margin-left: 0;
+  }
+
+  .ff-course-name {
+    max-width: 120px;
+    font-size: 12px;
+  }
+}
+
+/* Landscape phone */
+@media (max-height: 500px) and (orientation: landscape) {
+  .ff-step-section {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+
+  .ff-step-header {
+    margin-bottom: 8px;
+  }
+
+  .ff-duration-btn {
+    padding: 10px 12px;
+    min-height: 40px;
+  }
+
+  .ff-pro-tip {
+    padding: 8px 10px;
+    margin: 8px 0;
+  }
+
+  .ff-verdict-card {
+    padding: 12px 16px;
+    min-height: 48px;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+  .ff-duration-btn:active {
+    transform: scale(0.98);
+  }
+
+  .ff-verdict-card:active {
+    transform: scale(0.98);
+  }
+
+  .ff-metric-card:active {
+    background: var(--surface);
+  }
+
+  .ff-course-selector-btn:active {
+    background: var(--surface);
+  }
+}
+
+/* Safe area support for notched phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .ff-verdict-section {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .ff-wrap {
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
+  }
+}
+
+/* High contrast / accessibility */
+@media (prefers-contrast: high) {
+  .ff-step-label {
+    color: #000;
+  }
+
+  .ff-metric-label {
+    color: #333;
+  }
+
+  .ff-verdict-card {
+    border: 2px solid #000;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .ff-duration-btn,
+  .ff-verdict-card,
+  .ff-metric-card {
+    transition: none;
+  }
+}
