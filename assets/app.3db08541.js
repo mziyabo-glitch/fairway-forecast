@@ -4163,12 +4163,34 @@
     }
   });
 
-  // Round presets
+  // Round presets (original - hidden section)
   roundPreset18?.addEventListener("click", () => setRoundMode("18"));
   roundPreset9?.addEventListener("click", () => setRoundMode("9"));
   roundPresetSociety?.addEventListener("click", () => setRoundMode("society"));
   societyGroups?.addEventListener("input", () => {
     if (lastNorm) renderTeeTimeStrip(lastNorm);
+  });
+
+  // Inline duration toggle (new compact version)
+  const durToggle18 = $("durToggle18");
+  const durToggle9 = $("durToggle9");
+
+  function updateDurationToggles(mode) {
+    // Update inline toggles
+    if (durToggle18) durToggle18.classList.toggle("active", mode === "18");
+    if (durToggle9) durToggle9.classList.toggle("active", mode === "9");
+    // Also sync original buttons
+    if (roundPreset18) roundPreset18.classList.toggle("active", mode === "18");
+    if (roundPreset9) roundPreset9.classList.toggle("active", mode === "9");
+  }
+
+  durToggle18?.addEventListener("click", () => {
+    setRoundMode("18");
+    updateDurationToggles("18");
+  });
+  durToggle9?.addEventListener("click", () => {
+    setRoundMode("9");
+    updateDurationToggles("9");
   });
 
   // DEV intentionally avoids any external golf-course APIs.
@@ -4313,8 +4335,9 @@
 
   // Show dashboard sections when course is selected
   function showDashboardSections(show = true) {
+    // Keep durationSection always hidden - toggle moved inline to timeline
     if (durationSection) {
-      durationSection.style.display = show ? "block" : "none";
+      durationSection.style.display = "none";
     }
     if (weatherTimelineSection) {
       weatherTimelineSection.style.display = show ? "block" : "none";

@@ -222,7 +222,8 @@
       </section>
 
       <!-- ================= STEP 1: PLAN YOUR ROUND ================= -->
-      <section id="durationSection" class="ff-step-card" style="display:none;" aria-label="Round Duration">
+      <!-- Duration section hidden - toggle moved inline -->
+      <section id="durationSection" class="ff-step-card" style="display:none !important;" aria-label="Round Duration" hidden>
         <div class="ff-step-title">Plan Your Round</div>
         <div class="ff-step-desc" id="durationSubtitle">Select duration to see your window</div>
 
@@ -245,10 +246,19 @@
         </div>
       </section>
 
-      <!-- ================= STEP 2: THE VERDICT TIMELINE ================= -->
+      <!-- ================= THE VERDICT TIMELINE ================= -->
       <section id="weatherTimelineSection" class="ff-step-card" style="display:none;" aria-label="Weather Timeline">
-        <div class="ff-step-title">The Verdict Timeline</div>
-        <div class="ff-step-desc" id="timelineSubtitle">Weather for your round window</div>
+        <div class="ff-timeline-header">
+          <div class="ff-timeline-title-row">
+            <div class="ff-step-title">The Verdict Timeline</div>
+            <!-- Inline duration toggle -->
+            <div class="ff-duration-toggle" role="group" aria-label="Round duration">
+              <button type="button" class="ff-dur-btn active" id="durToggle18" data-duration="18">18</button>
+              <button type="button" class="ff-dur-btn" id="durToggle9" data-duration="9">9</button>
+            </div>
+          </div>
+          <div class="ff-step-desc" id="timelineSubtitle">Weather for your round window</div>
+        </div>
 
         <!-- Date chips -->
         <div class="ff-date-chips" id="teeDateChips" role="group" aria-label="Select date"></div>
