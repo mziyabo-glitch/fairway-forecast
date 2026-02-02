@@ -2633,13 +2633,31 @@ button, input, select{ font: inherit; }
   --sage-light: #a7c4bc;
   --sage-muted: #cad2c5;
 
-  /* Verdict status colors */
+  /* Verdict status colors - Semantic tokens */
   --status-play: #2d6a4f;
+  --status-play-light: #40916c;
   --status-play-bg: rgba(45, 106, 79, 0.12);
-  --status-caution: #d4a017;
-  --status-caution-bg: rgba(212, 160, 23, 0.12);
-  --status-avoid: #c0362c;
-  --status-avoid-bg: rgba(192, 54, 44, 0.12);
+  --status-play-shadow: rgba(45, 106, 79, 0.35);
+
+  --status-caution: #D97706;
+  --status-caution-light: #F59E0B;
+  --status-caution-bg: rgba(217, 119, 6, 0.12);
+  --status-caution-shadow: rgba(217, 119, 6, 0.35);
+
+  --status-delay: #EA580C;
+  --status-delay-light: #F97316;
+  --status-delay-bg: rgba(234, 88, 12, 0.12);
+  --status-delay-shadow: rgba(234, 88, 12, 0.35);
+
+  --status-avoid: #DC2626;
+  --status-avoid-light: #EF4444;
+  --status-avoid-bg: rgba(220, 38, 38, 0.12);
+  --status-avoid-shadow: rgba(220, 38, 38, 0.35);
+
+  --status-unsafe: #991B1B;
+  --status-unsafe-light: #B91C1C;
+  --status-unsafe-bg: rgba(153, 27, 27, 0.12);
+  --status-unsafe-shadow: rgba(153, 27, 27, 0.35);
 }
 
 /* ---------- Course Breadcrumb Header ---------- */
@@ -4820,81 +4838,119 @@ button, input, select{ font: inherit; }
   position: sticky;
   bottom: 0;
   z-index: 50;
-  padding: 12px 0;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 0;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   background: linear-gradient(to top, var(--bg) 60%, transparent);
-  margin: 0 -16px;
-  padding-left: 16px;
-  padding-right: 16px;
+  margin: 0 -14px;
+  padding-left: 14px;
+  padding-right: 14px;
 }
 
 .ff-verdict-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
-  background: var(--forest-primary);
-  border-radius: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, var(--status-play), var(--status-play-light));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 4px 16px rgba(45, 106, 79, 0.3);
+  box-shadow: 0 4px 20px var(--status-play-shadow);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
 }
 
 .ff-verdict-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(45, 106, 79, 0.4);
 }
 
 .ff-verdict-card:active {
   transform: scale(0.98);
 }
 
-.ff-verdict-card.caution {
-  background: #D97706;
-  box-shadow: 0 4px 20px rgba(217, 119, 6, 0.3);
+/* PLAY - Green/Teal (default) */
+.ff-verdict-card.play,
+.ff-verdict-card--play {
+  background: linear-gradient(135deg, var(--status-play), var(--status-play-light));
+  box-shadow: 0 4px 20px var(--status-play-shadow);
 }
 
-.ff-verdict-card.avoid {
-  background: #DC2626;
-  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+/* CAUTION/RISKY - Amber */
+.ff-verdict-card.caution,
+.ff-verdict-card--caution {
+  background: linear-gradient(135deg, var(--status-caution), var(--status-caution-light));
+  box-shadow: 0 4px 20px var(--status-caution-shadow);
+}
+
+/* DELAY - Orange/Red */
+.ff-verdict-card.delay,
+.ff-verdict-card--delay {
+  background: linear-gradient(135deg, var(--status-delay), var(--status-delay-light));
+  box-shadow: 0 4px 20px var(--status-delay-shadow);
+}
+
+/* AVOID - Red */
+.ff-verdict-card.avoid,
+.ff-verdict-card--avoid {
+  background: linear-gradient(135deg, var(--status-avoid), var(--status-avoid-light));
+  box-shadow: 0 4px 20px var(--status-avoid-shadow);
+}
+
+/* UNSAFE - Deep Red */
+.ff-verdict-card.unsafe,
+.ff-verdict-card--unsafe {
+  background: linear-gradient(135deg, var(--status-unsafe), var(--status-unsafe-light));
+  box-shadow: 0 4px 20px var(--status-unsafe-shadow);
 }
 
 .ff-verdict-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   color: #fff;
   flex-shrink: 0;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .ff-verdict-text {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .ff-verdict-status {
   display: block;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   color: #fff;
   letter-spacing: 0.3px;
+  line-height: 1.2;
 }
 
 .ff-verdict-desc {
   display: block;
   font-size: 11px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
-  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .ff-verdict-time {
-  padding: 5px 10px;
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 11px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
+  white-space: nowrap;
+  align-self: flex-start;
   white-space: nowrap;
 }
 
