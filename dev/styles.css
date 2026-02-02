@@ -2683,3 +2683,636 @@ button, input, select{ font: inherit; }
   .ff-sticky-verdict{ display: none; }
 }
 
+/* =========================================================
+   REFACTORED DASHBOARD UI (At-a-Glance)
+   Forest/Sage Green palette with high-density layout
+   ========================================================= */
+
+/* ---------- Forest/Sage Green Palette ---------- */
+:root {
+  --forest-dark: #1a4d3e;
+  --forest-primary: #2d6a4f;
+  --forest-light: #40916c;
+  --sage-dark: #52796f;
+  --sage-primary: #74a892;
+  --sage-light: #a7c4bc;
+  --sage-muted: #cad2c5;
+
+  /* Verdict status colors */
+  --status-play: #2d6a4f;
+  --status-play-bg: rgba(45, 106, 79, 0.12);
+  --status-caution: #d4a017;
+  --status-caution-bg: rgba(212, 160, 23, 0.12);
+  --status-avoid: #c0362c;
+  --status-avoid-bg: rgba(192, 54, 44, 0.12);
+}
+
+/* ---------- Course Breadcrumb Header ---------- */
+.ff-course-breadcrumb {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 12px 14px;
+  margin-bottom: var(--gap);
+}
+
+.ff-breadcrumb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ff-breadcrumb-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+
+.ff-breadcrumb-btn:hover {
+  background: var(--surface);
+  border-color: var(--forest-primary);
+}
+
+.ff-breadcrumb-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ff-breadcrumb-country {
+  color: var(--forest-primary);
+  font-weight: 800;
+}
+
+.ff-breadcrumb-chevron {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.ff-breadcrumb-course {
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ff-breadcrumb-expand {
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.ff-breadcrumb-btn[aria-expanded="true"] .ff-breadcrumb-expand {
+  transform: rotate(180deg);
+}
+
+.ff-btn-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ff-btn-icon:hover {
+  background: var(--forest-primary);
+  border-color: var(--forest-primary);
+  color: #fff;
+}
+
+.ff-btn-icon i {
+  width: 20px;
+  height: 20px;
+}
+
+/* Course Selection Panel */
+.ff-course-panel {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  animation: slideUp 0.2s ease;
+}
+
+.ff-panel-section {
+  margin-bottom: 12px;
+}
+
+.ff-panel-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+/* ---------- Duration Selection ---------- */
+.ff-duration-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 16px;
+  margin-bottom: var(--gap);
+}
+
+.ff-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 14px;
+}
+
+.ff-section-title {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.ff-section-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ff-duration-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ff-duration-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  background: var(--surface-2);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 72px;
+}
+
+.ff-duration-btn:hover {
+  background: var(--surface);
+  border-color: var(--forest-light);
+}
+
+.ff-duration-btn.active {
+  background: linear-gradient(135deg, var(--forest-primary), var(--forest-dark));
+  border-color: var(--forest-dark);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(45, 106, 79, 0.3);
+}
+
+.ff-duration-holes {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.ff-duration-time {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.ff-chip-society {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* ---------- Weather Timeline ---------- */
+.ff-timeline-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 16px;
+  margin-bottom: var(--gap);
+}
+
+.ff-timeline-tee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+.ff-timeline-tee-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ff-icon-sm {
+  width: 16px;
+  height: 16px;
+}
+
+/* Timeline Table Scroll */
+.ff-timeline-scroll {
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 0 16px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.ff-timeline-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ff-timeline-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ff-timeline-scroll::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+
+.ff-timeline-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: max-content;
+}
+
+.ff-timeline-table th,
+.ff-timeline-table td {
+  padding: 10px 14px;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.ff-timeline-table th {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  background: var(--surface-2);
+}
+
+.ff-timeline-table th:first-child {
+  border-radius: 12px 0 0 0;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.ff-timeline-table th:last-child {
+  border-radius: 0 12px 0 0;
+}
+
+.ff-timeline-table td {
+  font-size: 13px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.ff-timeline-table td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  z-index: 1;
+  font-weight: 800;
+  color: var(--forest-primary);
+}
+
+.ff-timeline-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ff-timeline-table tbody tr:last-child td:first-child {
+  border-radius: 0 0 0 12px;
+}
+
+.ff-timeline-table tbody tr:last-child td:last-child {
+  border-radius: 0 0 12px 0;
+}
+
+/* Timeline Weather Icons */
+.ff-timeline-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto;
+}
+
+.ff-timeline-icon i {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- Pro-Tip Callout ---------- */
+.ff-pro-tip {
+  background: var(--status-caution-bg);
+  border: 1px solid var(--status-caution);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-top: 14px;
+}
+
+.ff-pro-tip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ff-pro-tip-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--status-caution);
+}
+
+.ff-pro-tip-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--status-caution);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ff-pro-tip-text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ---------- Detailed Metrics Grid ---------- */
+.ff-detailed-metrics {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.ff-metrics-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ff-metrics-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.ff-metrics-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ff-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.ff-metric-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: var(--surface-2);
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.ff-metric-card:hover {
+  background: var(--surface);
+  transform: translateY(-1px);
+}
+
+.ff-metric-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--forest-primary);
+}
+
+.ff-metric-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.ff-metric-value {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+/* Warning/Danger states for metrics */
+.ff-metric-card--warning {
+  background: var(--status-caution-bg);
+  border-color: var(--status-caution);
+}
+
+.ff-metric-card--warning .ff-metric-icon {
+  color: var(--status-caution);
+}
+
+.ff-metric-card--warning .ff-metric-value {
+  color: var(--status-caution);
+}
+
+.ff-metric-card--danger {
+  background: var(--status-avoid-bg);
+  border-color: var(--status-avoid);
+}
+
+.ff-metric-card--danger .ff-metric-icon {
+  color: var(--status-avoid);
+}
+
+.ff-metric-card--danger .ff-metric-value {
+  color: var(--status-avoid);
+}
+
+/* ---------- Verdict Card (Sticky Bottom) ---------- */
+.ff-verdict-section {
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+  margin: 0 -16px;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--surface) 80%, transparent);
+  pointer-events: none;
+}
+
+.ff-verdict-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  /* Default: Playable (Forest Green) */
+  background: linear-gradient(135deg, var(--forest-primary), var(--forest-dark));
+  border: 2px solid var(--forest-dark);
+  box-shadow: 0 8px 24px rgba(45, 106, 79, 0.35);
+}
+
+.ff-verdict-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(45, 106, 79, 0.45);
+}
+
+/* Verdict status variants */
+.ff-verdict-card--play {
+  background: linear-gradient(135deg, var(--forest-primary), var(--forest-dark));
+  border-color: var(--forest-dark);
+  box-shadow: 0 8px 24px rgba(45, 106, 79, 0.35);
+}
+
+.ff-verdict-card--caution {
+  background: linear-gradient(135deg, #d4a017, #b8860b);
+  border-color: #b8860b;
+  box-shadow: 0 8px 24px rgba(212, 160, 23, 0.35);
+}
+
+.ff-verdict-card--avoid {
+  background: linear-gradient(135deg, #c0362c, #9b2c23);
+  border-color: #9b2c23;
+  box-shadow: 0 8px 24px rgba(192, 54, 44, 0.35);
+}
+
+.ff-verdict-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ff-verdict-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+.ff-verdict-lucide {
+  width: 22px;
+  height: 22px;
+  color: #fff;
+}
+
+.ff-verdict-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ff-verdict-section .ff-verdict-label {
+  font-size: 15px;
+  font-weight: 900;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ff-verdict-section .ff-verdict-reason {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ff-verdict-section .ff-tee-selected-time {
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+  color: #fff;
+}
+
+.ff-verdict-note {
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 6px;
+  opacity: 0.7;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 520px) {
+  .ff-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ff-breadcrumb-text {
+    font-size: 12px;
+  }
+
+  .ff-verdict-card {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .ff-verdict-status {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ff-verdict-section .ff-tee-selected-time {
+    width: 100%;
+    text-align: center;
+  }
+}
+
