@@ -2270,7 +2270,8 @@
     }
 
     if (iconEl) iconEl.textContent = decision.icon;
-    if (labelEl) labelEl.textContent = decision.statusLabel;
+    // Show full label (e.g., "DELAY — Heavy rain") in status, message in desc
+    if (labelEl) labelEl.textContent = decision.label || decision.statusLabel;
 
     // Update selected tee time display
     const selectedLabelEl = $("teeSelectedLabel");
@@ -2335,12 +2336,9 @@
       }
     }
 
-    // Update summary
+    // Update summary - show message only (label is shown in status)
     if (summaryEl) {
-      const parts = [];
-      if (decision.label) parts.push(esc(decision.label));
-      if (decision.message) parts.push(esc(decision.message));
-      summaryEl.innerHTML = parts.length ? parts.join("<br>") : "Select a tee time to see conditions for your round.";
+      summaryEl.textContent = decision.message || "Select a tee time to see conditions.";
     }
 
     // Society tee sheet (optional)
@@ -4586,35 +4584,52 @@
 
   /**
    * Update verdict card styling based on status
-   * @param {string} status - PLAY, RISKY, DELAY, AVOID
+   * UK-tuned: PLAY (green), CAUTION/RISKY (amber), DELAY (orange), AVOID/UNSAFE (red)
+   * @param {string} status - PLAY, RISKY, DELAY, AVOID, UNSAFE
    */
   function updateVerdictCardStyle(status) {
     if (!verdictCardNew) return;
 
-    // Remove all status classes
-    verdictCardNew.classList.remove("ff-verdict-card--play", "ff-verdict-card--caution", "ff-verdict-card--avoid");
+    // Remove all status classes (both naming conventions for compatibility)
+    verdictCardNew.classList.remove(
+      "ff-verdict-card--play", "ff-verdict-card--caution", "ff-verdict-card--delay", "ff-verdict-card--avoid", "ff-verdict-card--unsafe",
+      "play", "caution", "delay", "avoid", "unsafe"
+    );
 
-    // Add appropriate class
+    // Map status to appropriate styling class
+    // PLAY = green, RISKY = amber, DELAY = orange/red, AVOID/UNSAFE = deep red
+    let statusClass = "play";
+    let iconName = "check-circle";
+
     if (status === "PLAY") {
-      verdictCardNew.classList.add("ff-verdict-card--play");
-    } else if (status === "RISKY" || status === "DELAY") {
-      verdictCardNew.classList.add("ff-verdict-card--caution");
+      statusClass = "play";
+      iconName = "check-circle";
+    } else if (status === "RISKY" || status === "CAUTION") {
+      statusClass = "caution";
+      iconName = "alert-triangle";
+    } else if (status === "DELAY") {
+      // DELAY is more severe than CAUTION - use orange/red
+      statusClass = "delay";
+      iconName = "pause-circle";
     } else if (status === "AVOID") {
-      verdictCardNew.classList.add("ff-verdict-card--avoid");
+      statusClass = "avoid";
+      iconName = "x-circle";
+    } else if (status === "UNSAFE") {
+      statusClass = "unsafe";
+      iconName = "ban";
     } else {
-      verdictCardNew.classList.add("ff-verdict-card--play"); // Default to green
+      // Unknown status - default to caution (never green for unknown)
+      statusClass = "caution";
+      iconName = "help-circle";
     }
 
-    // Update Lucide icon
-    const lucideIcon = verdictCardNew?.querySelector(".ff-verdict-lucide");
+    // Add both class formats for compatibility
+    verdictCardNew.classList.add(`ff-verdict-card--${statusClass}`, statusClass);
+
+    // Update Lucide icon with transition
+    const lucideIcon = verdictCardNew?.querySelector(".ff-verdict-icon");
     if (lucideIcon && typeof lucide !== "undefined") {
-      if (status === "PLAY") {
-        lucideIcon.setAttribute("data-lucide", "check-circle");
-      } else if (status === "RISKY" || status === "DELAY") {
-        lucideIcon.setAttribute("data-lucide", "alert-triangle");
-      } else if (status === "AVOID") {
-        lucideIcon.setAttribute("data-lucide", "x-circle");
-      }
+      lucideIcon.setAttribute("data-lucide", iconName);
       lucide.createIcons();
     }
   }
