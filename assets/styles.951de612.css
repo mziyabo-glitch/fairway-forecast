@@ -4560,6 +4560,47 @@ button, input, select{ font: inherit; }
   margin-bottom: 2px;
 }
 
+/* Timeline header with inline duration toggle */
+.ff-timeline-header {
+  margin-bottom: 10px;
+}
+
+.ff-timeline-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ff-duration-toggle {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.ff-dur-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ff-dur-btn:hover {
+  color: var(--text);
+}
+
+.ff-dur-btn.active {
+  background: var(--forest-primary);
+  color: #fff;
+}
+
 .ff-step-desc {
   font-size: 11px;
   font-weight: 500;
