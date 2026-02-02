@@ -5,8 +5,8 @@
 
 /* eslint-disable no-restricted-globals */
 
-const STATIC_CACHE = "fairwayweather-v3";
-const API_CACHE = "fairwayweather-api-v3";
+const STATIC_CACHE = "fairwayweather-v4";
+const API_CACHE = "fairwayweather-api-v4";
 const PRECACHE_URLS = [
   "/",
   "/manifest.webmanifest",

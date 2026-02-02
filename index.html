@@ -165,6 +165,18 @@
 
       <!-- ================= SEARCH BAR (Always Visible) ================= -->
       <section class="ff-search-section" aria-label="Course Search">
+        <!-- Country selector inline -->
+        <div class="ff-country-row">
+          <select id="countrySelect" class="ff-country-select" aria-label="Select country">
+            <!-- Options populated by JS -->
+          </select>
+          <div id="stateSelectWrap" class="ff-state-wrap" style="display:none;">
+            <select id="stateSelect" class="ff-state-select" aria-label="Select state">
+              <option value="">All states</option>
+            </select>
+          </div>
+        </div>
+
         <div class="ff-search-bar">
           <div class="ff-search-input-wrap">
             <i data-lucide="search" class="ff-search-icon"></i>
@@ -195,27 +207,14 @@
         <section id="searchResultsSlot" class="ff-search-results ff-hidden" aria-live="polite" aria-label="Search results"></section>
       </section>
 
-      <!-- ================= COUNTRY/REGION SELECTOR (Collapsible) ================= -->
+      <!-- ================= COUNTRY/REGION SELECTOR (Hidden - kept for JS compatibility) ================= -->
       <section id="courseSelectorSection" class="ff-country-section" style="display:none;">
         <div class="ff-country-header" id="countryToggleBtn">
           <span class="ff-country-label">Browse by region</span>
           <i data-lucide="chevron-down" class="ff-country-chevron"></i>
         </div>
         <div id="courseSelectorPanel" class="ff-country-panel">
-          <div class="ff-panel-field">
-            <label class="ff-field-label">Country / Region</label>
-            <select id="countrySelect" class="ff-select">
-              <!-- Options populated by JS -->
-            </select>
-          </div>
-
-          <div id="stateSelectRow" class="ff-panel-field" style="display: none;">
-            <label class="ff-field-label">State</label>
-            <select id="stateSelect" class="ff-select">
-              <option value="">Select a state...</option>
-            </select>
-          </div>
-
+          <div id="stateSelectRow" class="ff-panel-field" style="display: none;"></div>
           <div class="ff-osm-credit">
             Course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
           </div>
