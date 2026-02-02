@@ -4037,13 +4037,25 @@
   }
 
   /* ---------- GEOLOCATION ---------- */
+  function setGeoLoading(isLoading) {
+    if (geoBtn) {
+      if (isLoading) {
+        geoBtn.classList.add("loading");
+        geoBtn.setAttribute("aria-busy", "true");
+      } else {
+        geoBtn.classList.remove("loading");
+        geoBtn.removeAttribute("aria-busy");
+      }
+    }
+  }
+
   function useMyLocation() {
     if (!navigator.geolocation) {
       showError("Geolocation not supported on this device.");
       return;
     }
 
-    setBtnLoading(true);
+    setGeoLoading(true);
     showMessage("Getting your location…");
 
     navigator.geolocation.getCurrentPosition(
@@ -4058,11 +4070,11 @@
         } catch (e) {
           showError("Could not use your location.", e?.message || "Unknown error");
         } finally {
-          setBtnLoading(false);
+          setGeoLoading(false);
         }
       },
       (err) => {
-        setBtnLoading(false);
+        setGeoLoading(false);
         showError("Location permission denied.", err?.message || "Allow location and try again.");
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
@@ -4158,6 +4170,31 @@
   // DEV intentionally avoids any external golf-course APIs.
 
   geoBtn?.addEventListener("click", useMyLocation);
+
+  // Change course button - reset to search mode
+  const changeCourseBtn = $("changeCourseBtn");
+  changeCourseBtn?.addEventListener("click", () => {
+    // Reset selected course
+    selectedCourse = null;
+    lastNorm = null;
+
+    // Hide dashboard sections
+    showDashboardSections(false);
+
+    // Clear search input
+    if (searchInput) {
+      searchInput.value = "";
+      searchInput.focus();
+    }
+
+    // Clear results and verdict
+    clearSearchResults();
+    if (verdictCard) verdictCard.style.display = "none";
+    if (resultsEl) resultsEl.innerHTML = "";
+
+    // Re-init icons
+    if (typeof lucide !== "undefined") lucide.createIcons();
+  });
 
   unitsSelect?.addEventListener("change", () => {
     if (!selectedCourse) return;
@@ -4283,6 +4320,36 @@
     if (show && courseSelectorToggle && courseSelectorPanel) {
       courseSelectorToggle.setAttribute("aria-expanded", "false");
       courseSelectorPanel.style.display = "none";
+    }
+
+    // Show/hide selected course display and search input
+    const selectedCourseDisplay = $("selectedCourseDisplay");
+    const searchInputWrap = searchInput?.closest(".ff-search-bar");
+
+    if (show && selectedCourse) {
+      // Show selected course info
+      if (selectedCourseDisplay) {
+        selectedCourseDisplay.style.display = "flex";
+        const nameEl = $("selectedCourseName");
+        const locEl = $("selectedCourseLocation");
+        if (nameEl) nameEl.textContent = selectedCourse.name || "Selected Course";
+        if (locEl) {
+          const parts = [selectedCourse.city, selectedCourse.state, selectedCourse.country].filter(Boolean);
+          locEl.textContent = parts.join(", ") || "";
+        }
+      }
+      // Hide search input when course selected
+      if (searchInputWrap) {
+        searchInputWrap.style.display = "none";
+      }
+    } else {
+      // Hide selected course info, show search
+      if (selectedCourseDisplay) {
+        selectedCourseDisplay.style.display = "none";
+      }
+      if (searchInputWrap) {
+        searchInputWrap.style.display = "";
+      }
     }
   }
 
