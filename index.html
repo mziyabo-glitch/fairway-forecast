@@ -163,74 +163,76 @@
         </div>
       </header>
 
-      <!-- ================= COURSE HEADER ================= -->
-      <section class="ff-course-header" id="courseHeaderSection" style="display:none;">
-        <div class="ff-course-header-row">
-          <span class="ff-course-label">Course:</span>
-          <button type="button" id="courseSelectorToggle" class="ff-course-selector-btn">
-            <span id="selectedCourseName" class="ff-course-name">Select a course</span>
-            <i data-lucide="chevron-down" class="ff-course-chevron"></i>
-          </button>
-        </div>
-      </section>
-
-      <!-- ================= COURSE SELECTOR PANEL (Initially visible) ================= -->
-      <section class="ff-course-breadcrumb" id="courseSelectorSection" aria-label="Course Selection">
-        <div class="ff-breadcrumb-row">
-          <button type="button" id="btnGeo" class="ff-btn ff-btn-icon" type="button" title="Use my location" aria-label="Use my location">
-            <i data-lucide="locate"></i>
-          </button>
-        </div>
-
-        <div id="courseSelectorPanel" class="ff-course-panel">
-          <div class="ff-panel-section">
-            <label class="ff-panel-label">Country / Region</label>
-            <select id="countrySelect" class="ff-select ff-select-country">
-              <!-- Options populated by JS -->
-            </select>
-
-            <div id="stateSelectRow" class="ff-state-row" style="display: none;">
-              <label class="ff-panel-label" style="margin-top:12px;">State</label>
-              <select id="stateSelect" class="ff-select ff-select-state">
-                <option value="">Select a state...</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="ff-panel-section">
-            <label class="ff-panel-label">Course</label>
+      <!-- ================= SEARCH BAR (Always Visible) ================= -->
+      <section class="ff-search-section" aria-label="Course Search">
+        <div class="ff-search-bar">
+          <div class="ff-search-input-wrap">
+            <i data-lucide="search" class="ff-search-icon"></i>
             <input
               id="searchInput"
-              class="ff-input"
+              class="ff-search-input"
               type="search"
-              placeholder='Search course name...'
+              placeholder="Search golf courses..."
               autocomplete="off"
               inputmode="search"
             />
-            <section id="searchResultsSlot" class="ff-search-results" aria-live="polite" aria-label="Search results"></section>
+          </div>
+          <button type="button" id="btnGeo" class="ff-geo-btn" title="Use my location" aria-label="Use my location">
+            <i data-lucide="map-pin" class="ff-geo-icon"></i>
+          </button>
+        </div>
+
+        <!-- Course display when selected -->
+        <div id="selectedCourseDisplay" class="ff-selected-course" style="display:none;">
+          <div class="ff-selected-course-info">
+            <span class="ff-selected-course-name" id="selectedCourseName">Course Name</span>
+            <span class="ff-selected-course-location" id="selectedCourseLocation">Location</span>
+          </div>
+          <button type="button" id="changeCourseBtn" class="ff-change-course-btn">Change</button>
+        </div>
+
+        <!-- Search Results (separate container) -->
+        <section id="searchResultsSlot" class="ff-search-results ff-hidden" aria-live="polite" aria-label="Search results"></section>
+      </section>
+
+      <!-- ================= COUNTRY/REGION SELECTOR (Collapsible) ================= -->
+      <section id="courseSelectorSection" class="ff-country-section" style="display:none;">
+        <div class="ff-country-header" id="countryToggleBtn">
+          <span class="ff-country-label">Browse by region</span>
+          <i data-lucide="chevron-down" class="ff-country-chevron"></i>
+        </div>
+        <div id="courseSelectorPanel" class="ff-country-panel">
+          <div class="ff-panel-field">
+            <label class="ff-field-label">Country / Region</label>
+            <select id="countrySelect" class="ff-select">
+              <!-- Options populated by JS -->
+            </select>
           </div>
 
-          <div class="ff-hint ff-osm-attribution" style="margin-top:8px;">
-            Course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>
+          <div id="stateSelectRow" class="ff-panel-field" style="display: none;">
+            <label class="ff-field-label">State</label>
+            <select id="stateSelect" class="ff-select">
+              <option value="">Select a state...</option>
+            </select>
+          </div>
+
+          <div class="ff-osm-credit">
+            Course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
           </div>
         </div>
       </section>
 
       <!-- ================= STEP 1: PLAN YOUR ROUND ================= -->
-      <section id="durationSection" class="ff-step-section" style="display:none;" aria-label="Round Duration">
-        <div class="ff-step-header">
-          <span class="ff-step-label">STEP 1: Plan Your Round</span>
-          <span class="ff-step-sub" id="durationSubtitle">Select duration to see your window:</span>
-        </div>
+      <section id="durationSection" class="ff-step-card" style="display:none;" aria-label="Round Duration">
+        <div class="ff-step-title">Plan Your Round</div>
+        <div class="ff-step-desc" id="durationSubtitle">Select duration to see your window</div>
 
-        <div class="ff-duration-toggles" role="group" aria-label="Round duration">
-          <button type="button" class="ff-duration-btn active" id="roundPreset18" data-duration="18">
-            <span class="ff-duration-holes">18 Holes</span>
-            <span class="ff-duration-time">(~4h)</span>
+        <div class="ff-duration-pills" role="group" aria-label="Round duration">
+          <button type="button" class="ff-pill active" id="roundPreset18" data-duration="18">
+            18 Holes <span class="ff-pill-sub">(~4h)</span>
           </button>
-          <button type="button" class="ff-duration-btn" id="roundPreset9" data-duration="9">
-            <span class="ff-duration-holes">9 Holes</span>
-            <span class="ff-duration-time">(~2h)</span>
+          <button type="button" class="ff-pill" id="roundPreset9" data-duration="9">
+            9 Holes <span class="ff-pill-sub">(~2h)</span>
           </button>
         </div>
 
@@ -238,124 +240,106 @@
           Society tee sheet
         </button>
         <div id="societyControls" class="ff-society" style="display:none;">
-          <label class="ff-label" for="societyGroups">Groups</label>
+          <label class="ff-field-label" for="societyGroups">Groups</label>
           <input id="societyGroups" class="ff-input" type="number" min="2" max="60" step="1" value="12" />
-          <div class="ff-hint">Generates an 8‑minute tee sheet starting from your selected tee time.</div>
+          <div class="ff-hint">8‑minute spacing from your tee time.</div>
         </div>
       </section>
 
       <!-- ================= STEP 2: THE VERDICT TIMELINE ================= -->
-      <section id="weatherTimelineSection" class="ff-step-section" style="display:none;" aria-label="Weather Timeline">
-        <div class="ff-step-header">
-          <span class="ff-step-label">STEP 2: The Verdict Timeline</span>
-          <span class="ff-step-sub" id="timelineSubtitle">Showing weather for a 14:00 Tee Time. Finish approx. 18:00.</span>
+      <section id="weatherTimelineSection" class="ff-step-card" style="display:none;" aria-label="Weather Timeline">
+        <div class="ff-step-title">The Verdict Timeline</div>
+        <div class="ff-step-desc" id="timelineSubtitle">Weather for your round window</div>
+
+        <!-- Date chips -->
+        <div class="ff-date-chips" id="teeDateChips" role="group" aria-label="Select date"></div>
+
+        <!-- Tee time selector -->
+        <div class="ff-tee-time-row">
+          <label class="ff-tee-label">
+            <i data-lucide="clock" class="ff-tee-icon"></i>
+            Tee Time
+          </label>
+          <select id="teeTimeSelect" class="ff-tee-select" aria-label="Select tee time"></select>
         </div>
 
         <!-- Weather Timeline Table -->
-        <div class="ff-timeline-scroll" id="weatherTimelineScroll">
+        <div class="ff-timeline-wrap" id="weatherTimelineScroll">
           <table class="ff-timeline-table" id="weatherTimelineTable">
             <thead>
-              <tr>
-                <th></th>
-                <th>14:00</th>
-                <th>15:00</th>
-                <th>16:7</th>
-                <th>2:17</th>
-                <th>18:00</th>
-              </tr>
+              <tr><th></th></tr>
             </thead>
-            <tbody id="weatherTimelineBody">
-              <tr class="ff-timeline-row-sky">
-                <td>Sky</td>
-                <td><i data-lucide="sun" class="ff-sky-icon"></i></td>
-                <td><i data-lucide="sun" class="ff-sky-icon"></i></td>
-                <td><i data-lucide="sun" class="ff-sky-icon"></i></td>
-                <td><i data-lucide="cloud-rain" class="ff-sky-icon"></i></td>
-                <td><i data-lucide="cloud-drizzle" class="ff-sky-icon"></i></td>
-              </tr>
-              <tr>
-                <td>Temp</td>
-                <td>27°C</td>
-                <td>25°C</td>
-                <td>23°</td>
-                <td>231</td>
-                <td></td>
-              </tr>
-              <tr>
-                <td>Wind</td>
-                <td>4mph</td>
-                <td>5mph</td>
-                <td>8mph</td>
-                <td>12mph</td>
-                <td>15md</td>
-              </tr>
-            </tbody>
+            <tbody id="weatherTimelineBody"></tbody>
           </table>
         </div>
 
         <!-- Pro-Tip Callout -->
-        <div id="proTipCallout" class="ff-pro-tip">
-          <div class="ff-pro-tip-header">
-            <i data-lucide="alert-triangle" class="ff-pro-tip-icon"></i>
-            <span class="ff-pro-tip-title">Pro Tip:</span>
-          </div>
-          <p class="ff-pro-tip-text" id="proTipText">Your back 9 looks breezy. Rain expected around the 16th hole.</p>
+        <div id="proTipCallout" class="ff-pro-tip" style="display:none;">
+          <i data-lucide="alert-triangle" class="ff-pro-tip-icon"></i>
+          <span class="ff-pro-tip-text" id="proTipText"></span>
         </div>
 
-        <!-- STEP 3: Detailed Metrics -->
-        <div class="ff-step-header" style="margin-top: 16px;">
-          <span class="ff-step-label">STEP 3: Detailed Metrics</span>
-          <span class="ff-step-sub" id="metricsTimeLabel">(Current selection: 14:05)</span>
-        </div>
-
-        <div class="ff-metrics-grid" id="teeTimeMetrics">
-          <div class="ff-metric-card">
-            <i data-lucide="droplets" class="ff-metric-icon ff-icon-rain"></i>
-            <span class="ff-metric-label">Rain:</span>
-            <strong class="ff-metric-value" id="teeMetricRain">10%</strong>
-          </div>
-          <div class="ff-metric-card">
-            <i data-lucide="wind" class="ff-metric-icon ff-icon-wind"></i>
-            <span class="ff-metric-label">Wind:</span>
-            <strong class="ff-metric-value" id="teeMetricWind">4 mph</strong>
-          </div>
-          <div class="ff-metric-card">
-            <i data-lucide="thermometer" class="ff-metric-icon ff-icon-temp"></i>
-            <span class="ff-metric-label">Temp:</span>
-            <strong class="ff-metric-value" id="teeMetricTemp">26°C</strong>
-          </div>
-          <div class="ff-metric-card">
-            <i data-lucide="wind" class="ff-metric-icon ff-icon-gust"></i>
-            <span class="ff-metric-label">Gusts:</span>
-            <strong class="ff-metric-value" id="teeMetricGust">5 mph</strong>
+        <!-- Detailed Metrics -->
+        <div class="ff-metrics-section">
+          <div class="ff-metrics-title">Detailed Metrics <span class="ff-metrics-sub" id="metricsTimeLabel"></span></div>
+          <div class="ff-metrics-grid" id="teeTimeMetrics">
+            <div class="ff-metric">
+              <i data-lucide="droplets" class="ff-metric-icon rain"></i>
+              <div class="ff-metric-data">
+                <span class="ff-metric-label">Rain</span>
+                <strong class="ff-metric-value" id="teeMetricRain">—</strong>
+              </div>
+            </div>
+            <div class="ff-metric">
+              <i data-lucide="wind" class="ff-metric-icon wind"></i>
+              <div class="ff-metric-data">
+                <span class="ff-metric-label">Wind</span>
+                <strong class="ff-metric-value" id="teeMetricWind">—</strong>
+              </div>
+            </div>
+            <div class="ff-metric">
+              <i data-lucide="thermometer" class="ff-metric-icon temp"></i>
+              <div class="ff-metric-data">
+                <span class="ff-metric-label">Temp</span>
+                <strong class="ff-metric-value" id="teeMetricTemp">—</strong>
+              </div>
+            </div>
+            <div class="ff-metric">
+              <i data-lucide="wind" class="ff-metric-icon gust"></i>
+              <div class="ff-metric-data">
+                <span class="ff-metric-label">Gusts</span>
+                <strong class="ff-metric-value" id="teeMetricGust">—</strong>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- ================= VERDICT CARD (Bottom) ================= -->
-      <section id="teeTimeStripSection" class="ff-verdict-section" style="display:none;" aria-label="Play Verdict">
+      <!-- ================= VERDICT CARD ================= -->
+      <section id="teeTimeStripSection" class="ff-verdict-wrap" style="display:none;" aria-label="Play Verdict">
         <div class="ff-verdict-card" id="verdictCardNew">
-          <div class="ff-verdict-status" id="teeTimeStatus">
-            <span class="ff-verdict-icon" id="teeTimeIcon">
-              <i data-lucide="check-circle" class="ff-verdict-lucide"></i>
-            </span>
-            <span class="ff-verdict-label" id="teeTimeLabel">VERDICT: PLAYABLE</span>
-            <span class="ff-verdict-reason" id="teeTimeSummary">(Solid Window)</span>
+          <i data-lucide="check-circle" class="ff-verdict-icon" id="teeTimeIcon"></i>
+          <div class="ff-verdict-text">
+            <span class="ff-verdict-status" id="teeTimeLabel">PLAY</span>
+            <span class="ff-verdict-desc" id="teeTimeSummary">Good conditions</span>
+          </div>
+          <div class="ff-verdict-time" id="teeSelectedTime">
+            <span id="teeSelectedLabel"></span>
           </div>
         </div>
       </section>
 
-      <!-- Hidden elements -->
-      <div id="teeSheetSlot" class="ff-tee-sheet" style="display:none;"></div>
-      <div id="teeDateChips" style="display:none;"></div>
-      <select id="teeTimeSelect" style="display:none;"></select>
-      <div class="ff-tee-applied-msg" id="teeAppliedMsg" style="display:none;">Applied from Round Planner</div>
-      <div id="teeSelectedTime" style="display:none;"><span id="teeSelectedLabel"></span></div>
+      <!-- Hidden elements for compatibility -->
+      <div id="teeSheetSlot" style="display:none;"></div>
+      <div id="teeAppliedMsg" style="display:none;"></div>
+      <div id="courseHeaderSection" style="display:none;"></div>
+      <div id="breadcrumbCountry" style="display:none;"></div>
+      <div id="breadcrumbCourse" style="display:none;"></div>
 
       <!-- Units selector -->
-      <div class="ff-units-row" style="margin-top: 6px;">
-        <label class="ff-label" for="unitsSelect">Units</label>
-        <select id="unitsSelect" class="ff-select">
+      <div class="ff-units-row">
+        <label class="ff-field-label" for="unitsSelect">Units</label>
+        <select id="unitsSelect" class="ff-select ff-select-sm">
           <option value="metric">°C / m·s</option>
           <option value="imperial">°F / mph</option>
         </select>
