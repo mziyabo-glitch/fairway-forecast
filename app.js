@@ -1110,7 +1110,7 @@
 
     // hourly from forecast list
     if (Array.isArray(raw?.list) && raw.list.length) {
-      norm.hourly = raw.list.slice(0, 16).map((it) => ({
+      norm.hourly = raw.list.slice(0, 40).map((it) => ({
         dt: it.dt,
         temp: it?.main?.temp ?? null,
         pop: typeof it?.pop === "number" ? it.pop : 0,
@@ -1540,7 +1540,7 @@
   /**
    * Get the number of distinct forecast days available
    * @param {Object} norm - Normalized weather data
-   * @returns {number} Number of days with forecast data (max 7)
+   * @returns {number} Number of days with forecast data (up to 5-day API window, max 7 calendar days)
    */
   function getForecastDaysAvailable(norm) {
     const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
@@ -3228,7 +3228,7 @@
     const windValues = hourly.map(h => typeof h.wind_speed === "number" ? h.wind_speed : 0);
     const rainValues = hourly.map(h => typeof h.rain_mm === "number" ? h.rain_mm : 0);
 
-    const cards = hourly.slice(0, 16).map((h) => {
+    const cards = hourly.slice(0, 40).map((h) => {
       const time = h?.dt ? fmtTimeCourse(h.dt, tzOff) : "";
       const t = typeof h.temp === "number" ? `${Math.round(h.temp)}${tempUnit()}` : "";
       const popValue = typeof h.pop === "number" ? h.pop : 0;
@@ -3254,7 +3254,7 @@
     }).join("");
 
     return `<div class="ff-card">
-      <div class="ff-card-title">Hourly Forecast</div>
+      <div class="ff-card-title">Hourly Forecast · 3-hour intervals</div>
       <div class="ff-hourly-scroll">
         ${cards}
       </div>
@@ -3298,7 +3298,7 @@
     }).join("");
 
     return `<div class="ff-card">
-      <div class="ff-card-title">Daily${daysToShow === 7 ? " · up to 7 days" : ` · ${daysToShow} day${daysToShow !== 1 ? "s" : ""}`}</div>
+      <div class="ff-card-title">Daily${daysToShow >= 5 ? " · up to 5 days" : ` · ${daysToShow} day${daysToShow !== 1 ? "s" : ""}`}</div>
       <div class="ff-table-wrap">
         <table class="ff-table">
           <thead>
@@ -4247,7 +4247,7 @@
   verdictCard?.addEventListener("click", () => {
     openInfoModal(
       "Decision & playability explained",
-      "The decision (Play / Playable (tough) / No-play) and the playability score use the same ingredients: wind strength, rain chance and mm, temperature comfort and remaining daylight. 9–10 means ideal conditions, 6–8 is playable with some compromises, and 0–5 suggests most golfers will find it poor. The suggested best tee time is picked from today’s daylight hours where rain and wind are lowest and temperature is closest to a comfortable target."
+      "The decision (Play / Playable (tough) / No-play) and the playability score use the same ingredients: wind strength, rain chance and mm, temperature comfort and remaining daylight. 9–10 means ideal conditions, 6–8 is playable with some compromises, and 0–5 suggests most golfers will find it poor. The suggested best tee time is picked from daylight hours where rain and wind are lowest and temperature is closest to a comfortable target. Forecasts cover up to 5 days ahead — use the date chips to plan your round."
     );
   });
 
