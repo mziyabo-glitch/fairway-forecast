@@ -468,6 +468,53 @@
     }
   }
 
+  // Skeleton placeholder shown while the forecast is loading (reduces
+  // perceived latency and layout shift vs. a plain "Loading…" line).
+  function showForecastSkeleton() {
+    const host = forecastSlot || resultsEl;
+    if (!host) return;
+    host.innerHTML = `
+      <div class="ff-skeleton-card" aria-hidden="true">
+        <div class="ff-skeleton-row">
+          <div class="ff-skeleton ff-skeleton--icon"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+            <div class="ff-skeleton ff-skeleton--line md"></div>
+            <div class="ff-skeleton ff-skeleton--line sm"></div>
+          </div>
+        </div>
+        <div class="ff-skeleton-grid">
+          <div class="ff-skeleton ff-skeleton--block"></div>
+          <div class="ff-skeleton ff-skeleton--block"></div>
+          <div class="ff-skeleton ff-skeleton--block"></div>
+          <div class="ff-skeleton ff-skeleton--block"></div>
+        </div>
+      </div>
+      <span class="ff-sr-only">Loading forecast…</span>`;
+  }
+
+  // Error card with a retry action, used for weather fetch failures.
+  function showWeatherError(msg, hint = "") {
+    const host = forecastSlot || resultsEl;
+    if (!host) {
+      showError(msg, hint);
+      return;
+    }
+    const hintHtml = hint ? `<div class="ff-sub muted" style="margin-top:8px">${esc(hint)}</div>` : "";
+    host.innerHTML = `<div class="ff-card">
+      <div class="ff-big">⚠️</div>
+      <div>${esc(msg)}</div>${hintHtml}
+      <button type="button" id="weatherRetryBtn" class="ff-btn" style="margin-top:12px;">Try again</button>
+    </div>`;
+    const retryBtn = document.getElementById("weatherRetryBtn");
+    retryBtn?.addEventListener("click", () => { void loadWeatherForSelected(); });
+  }
+
+  // Online/offline awareness for this PWA.
+  function updateOnlineStatus() {
+    const banner = $("offlineBanner");
+    if (banner) banner.hidden = navigator.onLine;
+  }
+
   function renderStarRating(rating, maxRating = 5) {
     if (typeof rating !== "number" || !Number.isFinite(rating)) return "";
     const fullStars = Math.floor(rating);
@@ -3987,7 +4034,7 @@
       return;
     }
 
-    showMessage("Loading forecast…");
+    showForecastSkeleton();
     nearbyCourses = []; // Clear nearby courses
 
     try {
@@ -4030,12 +4077,14 @@
       }
     } catch (err) {
       console.error("[Weather] Error:", err?.name, err?.message, err);
-      if (err?.name === "AbortError" || err?.name === "TimeoutError") {
-        showError("Weather request timed out.", "Try again.");
+      if (!navigator.onLine) {
+        showWeatherError("You're offline.", "Reconnect to load the latest forecast.");
+      } else if (err?.name === "AbortError" || err?.name === "TimeoutError") {
+        showWeatherError("Weather request timed out.", "Check your connection and try again.");
       } else if (err?.status === 429) {
-        showError("Weather provider rate limited.", "Wait a moment and try again.");
+        showWeatherError("Weather provider rate limited.", "Wait a moment and try again.");
       } else {
-        showError("Weather fetch failed.", err?.message || "Unknown error");
+        showWeatherError("Weather fetch failed.", err?.message || "Unknown error");
       }
     }
   }
@@ -4773,6 +4822,11 @@
 
     // Initialize breadcrumb
     updateBreadcrumb();
+
+    // Online/offline awareness
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    updateOnlineStatus();
 
     // Show ready state in UI
     if (searchInput && !USE_STATIC_DATASETS) {
