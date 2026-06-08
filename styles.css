@@ -24,6 +24,17 @@
 
   --shadow-soft: 0 14px 40px rgba(6,24,20,.14);
 
+  /* Raised/control surfaces (kept as tokens so dark mode can re-theme cleanly) */
+  --surface-input: #fff;
+  --card-fade: #fff;
+  --results-head: #EEF4F2;
+  --wicon-grad-1: #ffffff;
+  --wicon-grad-2: #f2faf7;
+
+  /* Keyboard focus ring */
+  --focus-ring: rgba(15,118,110,.55);
+  --focus-ring-soft: rgba(15,118,110,.22);
+
   --r-xl: 22px;
   --r-lg: 18px;
   --r-md: 14px;
@@ -605,7 +616,7 @@ button, input, select{ font: inherit; }
   border-radius:16px;
   border:1px solid var(--line);
   font-size:16px;
-  background:#fff;
+  background:var(--surface-input);
   min-width: 0;
   width: 100%;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
@@ -621,7 +632,7 @@ button, input, select{ font: inherit; }
 .ff-btn{
   border-radius:16px;
   border:1px solid var(--line);
-  background:#fff;
+  background:var(--surface-input);
   font-weight:700;
   font-size:15px;
   min-height:46px;
@@ -657,7 +668,7 @@ button, input, select{ font: inherit; }
   padding:0;
   display:grid;
   place-items:center;
-  background:#fff;
+  background:var(--surface-input);
 }
 
 .ff-units-row{
@@ -672,7 +683,7 @@ button, input, select{ font: inherit; }
   border:1px solid var(--line);
   padding:10px 12px;
   font-weight:700;
-  background:#fff;
+  background:var(--surface-input);
   min-height:44px;
 }
 
@@ -1004,19 +1015,19 @@ button, input, select{ font: inherit; }
 }
 
 .ff-verdict--play{
-  background:linear-gradient(180deg,rgba(31,111,92,.16),#fff);
+  background:linear-gradient(180deg,rgba(31,111,92,.16),var(--card-fade));
   border-color:rgba(31,111,92,.35);
 }
 .ff-verdict--no{
-  background:linear-gradient(180deg,rgba(192,54,44,.16),#fff);
+  background:linear-gradient(180deg,rgba(192,54,44,.16),var(--card-fade));
   border-color:rgba(192,54,44,.35);
 }
 .ff-verdict--maybe{
-  background:linear-gradient(180deg,rgba(245,158,11,.18),#fff);
+  background:linear-gradient(180deg,rgba(245,158,11,.18),var(--card-fade));
   border-color:rgba(245,158,11,.30);
 }
 .ff-verdict--nighttime{
-  background:linear-gradient(180deg,rgba(59,130,246,.12),#fff);
+  background:linear-gradient(180deg,rgba(59,130,246,.12),var(--card-fade));
   border-color:rgba(59,130,246,.25);
 }
 
@@ -1116,7 +1127,7 @@ button, input, select{ font: inherit; }
   align-items:center;
   justify-content:center;
   border-radius:20px;
-  background: radial-gradient(circle at 30% 20%, #ffffff, #f2faf7);
+  background: radial-gradient(circle at 30% 20%, var(--wicon-grad-1), var(--wicon-grad-2));
   box-shadow:0 10px 24px rgba(6,24,20,.22);
 }
 
@@ -1180,10 +1191,10 @@ button, input, select{ font: inherit; }
   overflow:hidden;
   border-radius:18px;
   border:1px solid var(--line);
-  background:#fff;
+  background:var(--surface-input);
 }
 #results thead th{
-  background:#EEF4F2;
+  background:var(--results-head);
   color:var(--muted);
   font-size:12.5px;
   font-weight:900;
@@ -3903,10 +3914,105 @@ button, input, select{ font: inherit; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   .ff-duration-btn,
   .ff-verdict-card,
   .ff-metric-card {
     transition: none;
+  }
+}
+
+/* =========================================================
+   KEYBOARD FOCUS RINGS (:focus-visible)
+   Low-specificity (:where) so components keep their own
+   focus styling; bare controls get a clear keyboard ring.
+   Pointer/touch focus stays clean.
+   ========================================================= */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+:where(a, button, input, select, textarea, summary, [tabindex]):focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skip-to-content link (revealed on keyboard focus) */
+.ff-skip-link {
+  position: absolute;
+  left: 12px;
+  top: -100px;
+  z-index: 1000;
+  padding: 10px 16px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+  text-decoration: none;
+  transition: top 0.18s ease;
+}
+.ff-skip-link:focus {
+  top: calc(12px + env(safe-area-inset-top));
+}
+
+/* =========================================================
+   DARK MODE (prefers-color-scheme)
+   Re-themes the entire app via the token system. Components
+   that read from CSS variables update automatically.
+   ========================================================= */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1512;
+    --surface: #121d1a;
+    --surface-2: #18241f;
+
+    --text: #e8f0ec;
+    --muted: #9fb2ab;
+    --line: rgba(255,255,255,.12);
+
+    --brand: #2dd4bf;
+    --brand-2: #14b8a6;
+    --brand-soft: rgba(45,212,191,.18);
+
+    --danger: #f87171;
+    --danger-soft: rgba(248,113,113,.16);
+
+    --shadow-soft: 0 14px 40px rgba(0,0,0,.45);
+
+    --surface-input: #16221e;
+    --card-fade: #121d1a;
+    --results-head: #16221e;
+    --wicon-grad-1: #1f2e29;
+    --wicon-grad-2: #16211d;
+
+    --focus-ring: rgba(45,212,191,.75);
+    --focus-ring-soft: rgba(45,212,191,.28);
+  }
+
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -220px, rgba(45,212,191,.10), transparent 65%),
+      linear-gradient(var(--bg), var(--bg));
+  }
+
+  /* Tinted header card needs a dark surface so text stays legible */
+  .ff-course-header {
+    background: var(--surface-2);
+    border-color: rgba(45,212,191,.28);
+  }
+
+  /* Results header readability */
+  #results thead th {
+    color: var(--muted);
+  }
+
+  /* Skip link sits on a light brand color in dark mode → use dark text */
+  .ff-skip-link {
+    color: #06231f;
   }
 }
 
@@ -4228,6 +4334,7 @@ button, input, select{ font: inherit; }
 .ff-state-select {
   flex: 1;
   padding: 8px 10px;
+  min-height: 44px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -4312,8 +4419,8 @@ button, input, select{ font: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   background: var(--surface-2);
   border: none;
   border-radius: 10px;
@@ -4401,6 +4508,7 @@ button, input, select{ font: inherit; }
 
 .ff-change-course-btn {
   padding: 6px 12px;
+  min-height: 44px;
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -4581,7 +4689,12 @@ button, input, select{ font: inherit; }
 }
 
 .ff-dur-btn {
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  min-height: 32px;
+  min-width: 32px;
   font-size: 11px;
   font-weight: 700;
   color: var(--muted);
@@ -4729,6 +4842,7 @@ button, input, select{ font: inherit; }
 
 .ff-tee-select {
   padding: 6px 10px;
+  min-height: 44px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -5046,8 +5160,8 @@ button, input, select{ font: inherit; }
   }
 
   .ff-geo-btn {
-    width: 38px;
-    height: 38px;
+    width: 44px;
+    height: 44px;
   }
 
   .ff-step-card {
