@@ -352,15 +352,6 @@
       <div id="breadcrumbCountry" style="display:none;"></div>
       <div id="breadcrumbCourse" style="display:none;"></div>
 
-      <!-- Units selector -->
-      <div class="ff-units-row">
-        <label class="ff-field-label" for="unitsSelect">Units</label>
-        <select id="unitsSelect" class="ff-select ff-select-sm">
-          <option value="metric">°C / m·s</option>
-          <option value="imperial">°F / mph</option>
-        </select>
-      </div>
-
       <!-- ================= LOCATION ================= -->
       <section aria-label="Location">
         <div class="ff-section-label">Location</div>
@@ -484,7 +475,16 @@
       <!-- ================= RESULTS (FORECAST ONLY) ================= -->
       <section id="results" class="ff-results" aria-live="polite">
         <div>
-          <div class="ff-section-label">Forecast</div>
+          <div class="ff-forecast-head">
+            <div class="ff-section-label">Forecast</div>
+            <div class="ff-units-inline">
+              <label class="ff-field-label" for="unitsSelect">Units</label>
+              <select id="unitsSelect" class="ff-select ff-select-sm">
+                <option value="metric">°C / m·s</option>
+                <option value="imperial">°F / mph</option>
+              </select>
+            </div>
+          </div>
           <div id="forecastSlot"></div>
         </div>
       </section>

@@ -770,6 +770,13 @@ button, input, select{ font: inherit; }
   border: 1px solid rgba(14,28,26,.08);
 }
 
+@media (prefers-color-scheme: dark) {
+  .ff-tabs{
+    background: rgba(18,29,26,.85);
+    border-color: rgba(255,255,255,.08);
+  }
+}
+
 .ff-tab{
   border-radius:18px;
   border:1px solid var(--line);
@@ -5121,6 +5128,30 @@ button, input, select{ font: inherit; }
 
 .ff-units-row .ff-field-label {
   font-size: 11px;
+}
+
+/* Forecast header: section label + inline units control */
+.ff-forecast-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ff-forecast-head .ff-section-label {
+  margin-bottom: 0;
+}
+.ff-units-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ff-units-inline .ff-field-label {
+  font-size: 11px;
+  white-space: nowrap;
+}
+.ff-units-inline .ff-select-sm {
+  min-height: 36px;
 }
 
 .ff-select-sm {
