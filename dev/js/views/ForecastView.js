@@ -33,6 +33,7 @@ export function renderForecastView(state) {
     tzOffset,
     rainAnalysis,
     impactCards,
+    betterTee,
     norm,
   } = state;
 
