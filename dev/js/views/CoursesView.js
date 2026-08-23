@@ -2,10 +2,11 @@ import { esc } from "../../../shared/utils.js";
 import { formatDistance } from "../../../shared/geo.js";
 import { renderFavouriteStar, wireFavouriteStars } from "../components/FavouriteStar.js";
 
-function courseRow(c, { favouriteIds = new Set(), showDistance = false } = {}) {
+function courseRow(c, { favouriteIds = new Set(), showDistance = false, distanceUnits = "metric" } = {}) {
   const loc =
     [...new Set([c.city, c.state, c.country].filter(Boolean))].join(", ") || c.location || "";
-  const dist = showDistance && Number.isFinite(c.distance) ? formatDistance(c.distance) : "";
+  const dist =
+    showDistance && Number.isFinite(c.distance) ? formatDistance(c.distance, distanceUnits) : "";
   return `
     <li class="fw-course-row">
       <button type="button" class="fw-course-result" data-course-id="${esc(c.id)}">
@@ -30,6 +31,7 @@ export function renderCoursesView({
   nearby = [],
   nearbyLoading = false,
   nearbyError = null,
+  distanceUnits = "metric",
 } = {}) {
   return `
     <div class="fw-view fw-view-courses">
@@ -46,7 +48,7 @@ export function renderCoursesView({
         <section class="fw-nearby-results" aria-label="Courses near you">
           <h2 class="fw-section-title">Near you</h2>
           <ul class="fw-course-results">
-            ${nearby.map((c) => courseRow(c, { favouriteIds, showDistance: true })).join("")}
+            ${nearby.map((c) => courseRow(c, { favouriteIds, showDistance: true, distanceUnits })).join("")}
           </ul>
         </section>`
           : ""

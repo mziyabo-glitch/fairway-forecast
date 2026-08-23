@@ -66,7 +66,7 @@ function getFocusable(container) {
 }
 
 function trapFocus(e, sheet) {
-  if (e.key !== "Tab" || sheet.hidden) return;
+  if (!sheet || sheet.hidden || e.key !== "Tab") return;
   const focusable = getFocusable(sheet);
   if (!focusable.length) return;
   const first = focusable[0];

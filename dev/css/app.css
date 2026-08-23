@@ -31,6 +31,11 @@ input {
   font: inherit;
 }
 
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
 /* Dev banner */
 .fw-dev-banner {
   display: flex;
@@ -1186,10 +1191,29 @@ input {
   box-shadow: var(--shadow-sm);
 }
 
+.fw-home-best-card {
+  width: 100%;
+  text-align: left;
+  min-height: var(--touch-min);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  padding: var(--space-md);
+  cursor: pointer;
+}
+
 .fw-home-best-line {
   margin: 0;
   font-size: var(--text-support);
   color: var(--text-secondary);
+}
+
+.fw-home-best-cta {
+  display: block;
+  margin-top: var(--space-sm);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--brand);
 }
 
 .fw-fav-list {
@@ -1235,11 +1259,29 @@ input {
 
 /* Forecast extras */
 .fw-forecast-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
   margin-bottom: var(--space-md);
 }
 
 .fw-forecast-actions .fw-btn {
   width: 100%;
+}
+
+.fw-tee-adjust {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: var(--text-support);
+  color: var(--text-secondary);
+}
+
+.fw-tee-adjust.is-material {
+  border-color: var(--status-risky);
+  background: var(--status-risky-bg);
 }
 
 .fw-hourly {
@@ -1258,31 +1300,52 @@ input {
   cursor: pointer;
 }
 
-.fw-hourly-table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+.fw-hourly-list {
+  list-style: none;
+  margin: 0 0 var(--space-sm);
+  padding: 0;
 }
 
-.fw-hourly-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-caption);
+.fw-hourly-row {
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--border);
 }
 
-.fw-hourly-table th,
-.fw-hourly-table td {
-  padding: 6px 8px;
-  text-align: left;
-  white-space: nowrap;
+.fw-hourly-primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm);
 }
 
-.fw-hourly-table th {
-  color: var(--text-muted);
+.fw-hourly-time {
+  font-weight: 700;
+  min-width: 3.2rem;
+}
+
+.fw-hourly-temp {
   font-weight: 600;
+}
+
+.fw-hourly-feels,
+.fw-hourly-secondary {
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+.fw-hourly-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: 4px;
 }
 
 .fw-hourly-icon {
   font-size: 1rem;
+}
+
+.fw-fav-score {
+  font-weight: 700;
 }
 
 /* Premium locks */
@@ -1369,6 +1432,14 @@ input {
 
   .fw-home-cards {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .fw-forecast-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fw-round-card-actions {
+    justify-content: flex-start;
   }
 }
 

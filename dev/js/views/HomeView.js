@@ -34,13 +34,12 @@ function renderFavCard(card) {
         </div>
         <p class="fw-fav-card-line">
           <span aria-hidden="true">${esc(s.icon || "🌤️")}</span>
-          ${s.temp != null ? `${esc(String(s.temp))}°` : ""}
-          · <strong class="fw-status-text-${esc(s.status?.key || "playable")}">${esc(s.verdict || "PLAYABLE")}</strong>
-          ${s.score != null ? ` ${esc(String(s.score))}` : ""}
+          <strong class="fw-status-text-${esc(s.status?.key || "playable")}">${esc(s.verdict || "PLAYABLE")}</strong>
+          ${s.score != null ? `<span class="fw-fav-score">${esc(String(s.score))}</span>` : ""}
         </p>
         <p class="fw-fav-card-meta">
-          ${s.bestTeeTime ? `Best: ${esc(s.bestTeeTime)}` : ""}
-          ${s.hint ? ` · ${esc(s.hint)}` : ""}
+          ${s.hint ? `${esc(s.hint)}` : "Check the forecast for this course."}
+          ${s.bestTeeTime ? ` · Best tee ${esc(s.bestTeeTime)}` : ""}
         </p>
       </button>
     </li>`;
@@ -130,12 +129,15 @@ export function renderHomeView(state = {}) {
           ? `
         <section class="fw-home-best-week" aria-label="Best golf this week">
           <h2 class="fw-section-title">Best golf this week</h2>
-          <p class="fw-home-best-line">
-            ${esc(bestDay.dayLabel || "This week")}
-            ${bestDay.bestTeeTime ? ` · ${esc(bestDay.bestTeeTime)}` : ""}
-            ${bestDay.score != null ? ` · ${esc(String(bestDay.score))}` : ""}
-            ${bestDay.verdict ? ` · ${esc(bestDay.verdict)}` : ""}
-          </p>
+          <button type="button" class="fw-home-best-card" data-action="best-week">
+            <span class="fw-home-best-line">
+              ${esc(bestDay.dayLabel || "This week")}
+              ${bestDay.bestTeeTime ? ` · ${esc(bestDay.bestTeeTime)}` : ""}
+              ${bestDay.score != null ? ` · ${esc(String(bestDay.score))}` : ""}
+              ${bestDay.verdict ? ` · ${esc(bestDay.verdict)}` : ""}
+            </span>
+            <span class="fw-home-best-cta">Open recommended tee</span>
+          </button>
         </section>`
           : ""
       }
@@ -164,6 +166,10 @@ export function wireHomeView(container, handlers) {
 
   container?.querySelector("[data-action='nearby']")?.addEventListener("click", () => {
     handlers.onNearby?.();
+  });
+
+  container?.querySelector("[data-action='best-week']")?.addEventListener("click", () => {
+    handlers.onOpenBestWeek?.();
   });
 
   container?.querySelectorAll("[data-course-id]").forEach((btn) => {

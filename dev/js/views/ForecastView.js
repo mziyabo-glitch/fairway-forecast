@@ -41,6 +41,8 @@ export function renderForecastView(state) {
     freshness = null,
     hourlyExpanded = false,
     roundSaved = false,
+    teeAdjusted = null,
+    isFavourite = false,
   } = state;
 
   if (noCourse) {
@@ -102,12 +104,26 @@ export function renderForecastView(state) {
   return `
     <div class="fw-view fw-view-forecast" ${weatherLoading ? 'aria-busy="true"' : ""}>
       ${freshness ? `<p class="fw-freshness" role="status">${esc(freshness)}</p>` : ""}
+      ${
+        teeAdjusted
+          ? `<p class="fw-tee-adjust ${teeAdjusted.material ? "is-material" : ""}" role="status">
+              ${
+                teeAdjusted.material
+                  ? "Saved tee isn’t available that day — showing the nearest valid time."
+                  : "Tee snapped to the nearest valid time on the same day."
+              }
+            </p>`
+          : ""
+      }
       <div id="fwDayStripMount">${dayStripHtml}</div>
       <div id="fwHeroMount">${heroHtml}</div>
       <div id="fwRoundMount">${roundHtml}</div>
       <div class="fw-forecast-actions">
-        <button type="button" class="fw-btn fw-btn-primary" id="fwSaveRound">
-          ${roundSaved ? "Round saved" : "Save this round"}
+        <button type="button" class="fw-btn fw-btn-primary" id="fwSaveRound" aria-live="polite">
+          ${roundSaved ? "✓ Round saved" : "Save this round"}
+        </button>
+        <button type="button" class="fw-btn fw-btn-secondary" id="fwForecastFav" aria-pressed="${isFavourite ? "true" : "false"}">
+          ${isFavourite ? "★ Favourited" : "☆ Favourite"}
         </button>
       </div>
       <div id="fwRainMount">${rainHtml}</div>
@@ -122,6 +138,7 @@ export function wireForecastView(container, handlers) {
   container?.querySelector("#fwGoCourses")?.addEventListener("click", () => handlers.onNavigate?.("courses"));
   container?.querySelector("#fwRetryForecast")?.addEventListener("click", () => handlers.onRetry?.());
   container?.querySelector("#fwSaveRound")?.addEventListener("click", () => handlers.onSaveRound?.());
+  container?.querySelector("#fwForecastFav")?.addEventListener("click", () => handlers.onToggleFavourite?.());
 
   wireDayForecastStrip(container.querySelector("#fwDayStripMount"), handlers.onDaySelect);
   wireGolfVerdictHero(container.querySelector("#fwHeroMount"), () => {

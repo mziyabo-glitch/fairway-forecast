@@ -39,8 +39,10 @@ import {
   getBestDayThisWeek,
   getWindowData,
   summarizeCoursePlayability,
+  isMaterialTeeShift,
 } from "../../shared/forecast-engine.js";
-import { weatherIdToIcon } from "../../shared/utils.js";
+import { weatherIdToIcon, scoreToVerdict } from "../../shared/utils.js";
+import { formatRadiusLabel } from "../../shared/geo.js";
 import { track, AnalyticsEvents } from "../../shared/analytics.js";
 
 const APP = window.APP_CONFIG || {};
@@ -81,9 +83,13 @@ class FairwayApp {
 
     this.favouriteSummaries = new Map();
     this.favouriteLoading = false;
+    this.roundSummaries = new Map();
+    this.roundLoading = false;
     this.hourlyExpanded = false;
     this.roundJustSaved = false;
     this.openedRoundId = null;
+    this.pendingRoundTee = null;
+    this.teeAdjusted = null;
     this.homeViewed = false;
   }
 
@@ -121,6 +127,8 @@ class FairwayApp {
     this.render();
     this.maybeTrackHome();
     this.loadFavouriteSummaries();
+    if (this.activeTab === "rounds") this.loadRoundSummaries();
+    if (this.activeTab === "forecast") track(AnalyticsEvents.FORECAST_VIEWED);
   }
 
   registerPwa() {
@@ -143,6 +151,7 @@ class FairwayApp {
     if (tab === "home") this.maybeTrackHome();
     if (tab === "forecast") track(AnalyticsEvents.FORECAST_VIEWED);
     if (tab === "home") this.loadFavouriteSummaries();
+    if (tab === "rounds") this.loadRoundSummaries();
   }
 
   maybeTrackHome() {
@@ -160,7 +169,7 @@ class FairwayApp {
       this.persistence.getFavourites(),
       this.persistence.getRecentCourses(),
       this.selectedCourse ? [this.selectedCourse] : [],
-      this.persistence.getRounds().map((r) => r.course),
+      this.persistence.getSavedRounds().map((r) => r.course),
     ];
     for (const list of pools) {
       const found = (list || []).find((c) => c && (c.id === courseId || favKey(c) === `id:${courseId}`));
@@ -178,6 +187,9 @@ class FairwayApp {
     this.persistence.saveLastCourse(course);
     this.error = null;
     this.openedRoundId = null;
+    this.pendingRoundTee = null;
+    this.teeAdjusted = null;
+    this.roundJustSaved = false;
     track(AnalyticsEvents.COURSE_SELECTED, { source, name: course.name });
     this.navigate("forecast");
     await this.loadWeather();
@@ -234,24 +246,48 @@ class FairwayApp {
     const windowHours = getRoundDurationHours(this.holes);
     const dates = getAvailableDates(this.norm, windowHours);
     const pref = this.persistence.getTeeTimePreference();
+    const tzOffset = this.norm?.timezoneOffset || 0;
+    const restoringRound = Boolean(this.openedRoundId && this.pendingRoundTee);
 
-    let dateInfo =
-      dates.find((d) => d.dateKey === this.selectedDateKey && d.hasValidTimes) ||
-      dates.find((d) => d.dateKey === pref.dateKey && d.hasValidTimes) ||
-      dates.find((d) => d.hasValidTimes) ||
-      dates[0];
+    let dateInfo = dates.find((d) => d.dateKey === this.selectedDateKey);
+    if (!restoringRound) {
+      dateInfo =
+        dates.find((d) => d.dateKey === this.selectedDateKey && d.hasValidTimes) ||
+        dates.find((d) => d.dateKey === pref.dateKey && d.hasValidTimes) ||
+        dates.find((d) => d.hasValidTimes) ||
+        dates[0];
+    }
 
     if (dateInfo) {
       this.selectedDateKey = dateInfo.dateKey;
       const teeTimes = getValidTeeTimesForDate(dateInfo.date, this.norm, windowHours);
-      const prefValid = pref.teeTime && teeTimes.some((t) => t.value === pref.teeTime);
-      this.selectedTeeTime = prefValid
-        ? pref.teeTime
-        : this.selectedTeeTime && teeTimes.some((t) => t.value === this.selectedTeeTime)
-          ? this.selectedTeeTime
-          : getDefaultTeeTime(dateInfo.date, this.norm, windowHours);
+      const requested = this.pendingRoundTee || this.selectedTeeTime || pref.teeTime;
+      const exact = requested && teeTimes.some((t) => t.value === requested);
+
+      if (exact) {
+        this.selectedTeeTime = requested;
+        if (restoringRound) this.teeAdjusted = null;
+      } else if (teeTimes.length) {
+        const nearest = findNearestValidTime(teeTimes, requested, tzOffset);
+        this.selectedTeeTime = nearest;
+        if (restoringRound) {
+          const material = isMaterialTeeShift(requested, nearest, tzOffset);
+          this.teeAdjusted = {
+            requested,
+            actual: nearest,
+            material,
+            sameDay: true,
+          };
+        }
+      } else {
+        this.selectedTeeTime = getDefaultTeeTime(dateInfo.date, this.norm, windowHours);
+        if (restoringRound) {
+          this.teeAdjusted = { requested, actual: this.selectedTeeTime, material: true, sameDay: true };
+        }
+      }
     }
 
+    this.pendingRoundTee = null;
     this.recalculateDayScores();
   }
 
@@ -360,6 +396,8 @@ class FairwayApp {
       freshness: formatForecastFreshness(this.weatherMeta),
       hourlyExpanded: this.hourlyExpanded,
       roundSaved: this.roundJustSaved,
+      teeAdjusted: this.teeAdjusted,
+      isFavourite: this.persistence.isFavourite(this.selectedCourse),
     };
   }
 
@@ -385,7 +423,14 @@ class FairwayApp {
       favouriteCards,
       freshness: forecast.freshness,
       weatherIcon: weatherIdToIcon(currentId),
+      distanceUnits: this.distanceUnits(),
     };
+  }
+
+  distanceUnits() {
+    const country = this.courseService.getCountry();
+    if (this.units === "imperial" || country === "us") return "imperial";
+    return "metric";
   }
 
   async loadFavouriteSummaries() {
@@ -408,6 +453,44 @@ class FairwayApp {
     await Promise.all(tasks);
     this.favouriteLoading = false;
     if (this.activeTab === "home") this.render();
+  }
+
+  async loadRoundSummaries() {
+    const upcoming = this.persistence.getUpcomingRounds().slice(0, FAV_FETCH_LIMIT);
+    if (!upcoming.length) return;
+    this.roundLoading = true;
+    const tasks = upcoming.map(async (round) => {
+      if (this.roundSummaries.has(round.id)) return;
+      const course = round.course;
+      if (!Number.isFinite(course?.lat) || !Number.isFinite(course?.lon)) return;
+      try {
+        const raw = await fetchWeather(this.apiBase, course.lat, course.lon, this.units);
+        const norm = normalizeWeather(raw);
+        const windowHours = getRoundDurationHours(round.holes === 9 ? 9 : 18);
+        const hourly = norm.hourly || [];
+        const windowData = getWindowData(hourly, round.teeTime, windowHours);
+        const verdict = computeGolfVerdict(
+          windowData,
+          hourly,
+          round.teeTime,
+          windowHours,
+          this.units,
+          course.country || this.courseService.getCountry(),
+          norm.timezoneOffset || 0
+        );
+        this.roundSummaries.set(round.id, {
+          score: verdict?.score ?? null,
+          verdict: verdict?.verdict || scoreToVerdict(verdict?.score),
+          message: verdict?.message || "",
+          freshness: formatForecastFreshness(getWeatherMeta(raw)),
+        });
+      } catch {
+        /* keep lastKnownForecast metadata on the card */
+      }
+    });
+    await Promise.all(tasks);
+    this.roundLoading = false;
+    if (this.activeTab === "rounds") this.render();
   }
 
   async onSearch(query) {
@@ -495,7 +578,7 @@ class FairwayApp {
       }
       this.nearbyResults = this.courseService.findNearby(latitude, longitude, 40, 12);
       if (!this.nearbyResults.length) {
-        this.nearbyError = "No courses found within 40 km. Try searching by name.";
+        this.nearbyError = `No courses found within ${formatRadiusLabel(40, this.distanceUnits())}. Try searching by name.`;
       }
       track(AnalyticsEvents.NEARBY_COURSES_USED, { count: this.nearbyResults.length });
     } catch {
@@ -525,6 +608,8 @@ class FairwayApp {
 
   onTeeTimeChange(teeTime) {
     this.selectedTeeTime = teeTime;
+    this.roundJustSaved = false;
+    this.teeAdjusted = null;
     this.persistence.saveTeeTimePreference(teeTime, this.selectedDateKey);
     track(AnalyticsEvents.TEE_TIME_CHANGED);
     this.render();
@@ -582,10 +667,21 @@ class FairwayApp {
       holes: this.holes,
       lastKnownForecast: createLastKnownForecast(forecast.verdict, this.weatherMeta?.fetchedAt),
     });
-    this.openedRoundId = record.id;
+    this.openedRoundId = record?.id || this.openedRoundId;
     this.roundJustSaved = true;
+    this.roundSummaries.delete(this.openedRoundId);
     track(AnalyticsEvents.ROUND_SAVED);
     this.render();
+  }
+
+  openBestWeek() {
+    const best = this.getForecastState().bestDay;
+    if (best?.dateKey) {
+      this.selectedDateKey = best.dateKey;
+      if (best.bestTeeTimeUnix) this.selectedTeeTime = best.bestTeeTimeUnix;
+      this.persistence.saveTeeTimePreference(this.selectedTeeTime, best.dateKey);
+    }
+    this.navigate("forecast");
   }
 
   async openRound(id) {
@@ -595,6 +691,8 @@ class FairwayApp {
     this.holes = round.holes === 9 ? 9 : 18;
     this.selectedDateKey = round.date;
     this.selectedTeeTime = round.teeTime;
+    this.pendingRoundTee = round.teeTime;
+    this.teeAdjusted = null;
     this.openedRoundId = round.id;
     this.persistence.saveLastCourse(round.course);
     this.persistence.saveHolesPreference(this.holes);
@@ -647,6 +745,7 @@ class FairwayApp {
         onNavigate: (tab) => this.navigate(tab),
         onSelectCourse: (id) => this.selectCourse(id, { source: "home" }),
         onGoForecast: () => this.navigate("forecast"),
+        onOpenBestWeek: () => this.openBestWeek(),
         onNearby: () => this.findNearbyCourses(),
         onToggleFavourite: (id) => this.toggleFavourite(id),
         onPremium: (id) => this.openPremium(id),
@@ -666,6 +765,7 @@ class FairwayApp {
         nearby: this.nearbyResults,
         nearbyLoading: this.nearbyLoading,
         nearbyError: this.nearbyError,
+        distanceUnits: this.distanceUnits(),
       });
       wireCoursesView(main, {
         onSearch: (q) => this.onSearch(q),
@@ -686,6 +786,7 @@ class FairwayApp {
         onHolesChange: (h) => this.onHolesChange(h),
         onUseBetterTee: (t) => this.onUseBetterTee(t),
         onSaveRound: () => this.saveCurrentRound(),
+        onToggleFavourite: () => this.toggleFavourite(this.selectedCourse),
         onWhyScore: () => track(AnalyticsEvents.WHY_SCORE_OPENED),
         onHourlyExpand: () => {
           this.hourlyExpanded = true;
@@ -701,6 +802,9 @@ class FairwayApp {
       main.innerHTML = renderRoundsView({
         upcoming: this.persistence.getUpcomingRounds(),
         past: this.persistence.getPastRounds(),
+        summaries: this.roundSummaries,
+        loading: this.roundLoading,
+        units: this.units,
       });
       wireRoundsView(main, {
         onOpen: (id) => this.openRound(id),

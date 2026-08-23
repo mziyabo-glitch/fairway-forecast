@@ -2,8 +2,8 @@
  * Caches the rebuild app shell. Never treats stale weather as current.
  */
 
-const STATIC_CACHE = "fairway-dev-static-v1";
-const DATA_CACHE = "fairway-dev-data-v1";
+const STATIC_CACHE = "fairway-dev-static-v2";
+const DATA_CACHE = "fairway-dev-data-v2";
 
 const PRECACHE_URLS = [
   "./",
@@ -17,9 +17,12 @@ const PRECACHE_URLS = [
   "../playability.js",
   "../icons/icon-192.png",
   "../icons/icon-512.png",
+  "../icons/icon-192-maskable.png",
+  "../icons/icon-512-maskable.png",
   "../icons/favicon.ico",
   "../data/courses/index.json",
   "../data/courses/gb.json",
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
 ];
 
 function isWeatherRequest(url) {
@@ -34,7 +37,17 @@ function isCourseData(url) {
   return url.origin === self.location.origin && url.pathname.includes("/data/courses/");
 }
 
+function isFontRequest(url) {
+  return (
+    url.hostname === "fonts.googleapis.com" ||
+    url.hostname === "fonts.gstatic.com" ||
+    url.pathname.endsWith(".woff2") ||
+    url.pathname.endsWith(".woff")
+  );
+}
+
 function isDevStatic(url) {
+  if (isFontRequest(url)) return true;
   if (url.origin !== self.location.origin) return false;
   const p = url.pathname;
   return (

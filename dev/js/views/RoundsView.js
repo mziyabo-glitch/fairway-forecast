@@ -1,8 +1,19 @@
-import { esc, fmtTimeCourse } from "../../../shared/utils.js";
+import { esc, fmtTimeCourse, scoreToVerdict } from "../../../shared/utils.js";
 
-function roundCard(round, { past = false } = {}) {
-  const course = round.course || {};
+function liveOrMeta(round, summaries) {
+  const live = summaries instanceof Map ? summaries.get(round.id) : summaries?.[round.id];
   const snap = round.lastKnownForecast || {};
+  const score = live?.score ?? snap.score;
+  const verdict = live?.verdict || (Number.isFinite(score) ? scoreToVerdict(score) : "");
+  const rain = live?.rainProbability ?? snap.rainProbability;
+  const message = live?.message || "";
+  const freshness = live?.freshness || null;
+  return { score, verdict, rain, message, freshness, live: Boolean(live) };
+}
+
+function roundCard(round, { past = false, summaries } = {}) {
+  const course = round.course || {};
+  const info = liveOrMeta(round, summaries);
   const time = Number.isFinite(round.teeTime) ? fmtTimeCourse(round.teeTime, 0) : "—";
   const holes = round.holes === 9 ? "9 holes" : "18 holes";
   return `
@@ -11,12 +22,24 @@ function roundCard(round, { past = false } = {}) {
         <strong>${esc(course.name || "Course")}</strong>
         <p class="fw-round-card-meta">${esc(round.date || "")} · ${esc(time)} · ${esc(holes)}</p>
         ${
-          snap.verdict
-            ? `<p class="fw-round-card-verdict">${esc(snap.verdict)}${snap.score != null ? ` · ${esc(String(snap.score))}` : ""}</p>`
+          info.verdict || info.score != null
+            ? `<p class="fw-round-card-verdict">${esc(info.verdict || "")}${info.score != null ? ` · ${esc(String(info.score))}` : ""}</p>`
             : ""
         }
-        ${snap.message ? `<p class="fw-round-card-msg">${esc(snap.message)}</p>` : ""}
-        <p class="fw-muted fw-round-refresh-note">Weather refreshes when you open the forecast.</p>
+        ${
+          info.rain != null
+            ? `<p class="fw-round-card-msg">Rain ${esc(String(info.rain))}%</p>`
+            : ""
+        }
+        ${info.message ? `<p class="fw-round-card-msg">${esc(info.message)}</p>` : ""}
+        ${info.freshness ? `<p class="fw-freshness">${esc(info.freshness)}</p>` : ""}
+        <p class="fw-muted fw-round-refresh-note">${
+          past
+            ? "Past round — weather is historical context only."
+            : info.live
+              ? "Latest weather for this tee window."
+              : "Opening the forecast always recalculates with latest weather."
+        }</p>
       </div>
       <div class="fw-round-card-actions">
         <button type="button" class="fw-btn fw-btn-primary" data-open-round="${esc(round.id)}">View forecast</button>
@@ -30,7 +53,7 @@ function roundCard(round, { past = false } = {}) {
     </li>`;
 }
 
-export function renderRoundsView({ upcoming = [], past = [] } = {}) {
+export function renderRoundsView({ upcoming = [], past = [], summaries, loading = false } = {}) {
   const empty = !upcoming.length && !past.length;
   return `
     <div class="fw-view fw-view-rounds">
@@ -45,12 +68,13 @@ export function renderRoundsView({ upcoming = [], past = [] } = {}) {
         </div>`
           : ""
       }
+      ${loading && upcoming.length ? `<p class="fw-muted">Refreshing latest weather…</p>` : ""}
       ${
         upcoming.length
           ? `
         <section class="fw-rounds-upcoming" aria-label="Upcoming rounds">
           <h2 class="fw-section-title">Upcoming</h2>
-          <ul class="fw-round-list">${upcoming.map((r) => roundCard(r)).join("")}</ul>
+          <ul class="fw-round-list">${upcoming.map((r) => roundCard(r, { summaries })).join("")}</ul>
         </section>`
           : ""
       }
@@ -59,7 +83,7 @@ export function renderRoundsView({ upcoming = [], past = [] } = {}) {
           ? `
         <section class="fw-rounds-past" aria-label="Past rounds">
           <h2 class="fw-section-title">Past</h2>
-          <ul class="fw-round-list">${past.map((r) => roundCard(r, { past: true })).join("")}</ul>
+          <ul class="fw-round-list">${past.map((r) => roundCard(r, { past: true, summaries })).join("")}</ul>
         </section>`
           : ""
       }
