@@ -635,7 +635,17 @@ export function calculateDayScore(norm, date, units = "metric", windowHours = 4,
     const dayHourly = (norm?.hourly || []).filter(
       (h) => typeof h?.dt === "number" && h.dt >= dayStart && h.dt < dayEnd
     );
-    if (!dayHourly.length) return { score: 0, status: scoreToStatus(0), weatherIcon: "☁️" };
+    if (!dayHourly.length) {
+      return {
+        score: 0,
+        bestScore: 0,
+        representativeScore: 0,
+        status: scoreToStatus(0),
+        weatherIcon: "☁️",
+        bestTeeTime: null,
+        bestTeeTimeUnix: null,
+      };
+    }
     const slice = dayHourly.slice(0, Math.ceil(windowHours));
     const v = computeGolfVerdict(slice, norm?.hourly, slice[0]?.dt, windowHours, units, countryCode);
     return {
@@ -936,12 +946,25 @@ export function getBestDayThisWeek(dayScores, days) {
         dayLabel: d.dayLabel,
         score: ds.bestScore,
         bestTeeTime: ds.bestTeeTime,
+        bestTeeTimeUnix: ds.bestTeeTimeUnix ?? null,
         verdict: scoreToVerdict(ds.bestScore),
         status: ds.status || scoreToStatus(ds.bestScore),
       };
     }
   }
   return best;
+}
+
+export function teeShiftMinutes(fromUnix, toUnix, tzOffset = 0) {
+  if (!Number.isFinite(fromUnix) || !Number.isFinite(toUnix)) return null;
+  let diff = Math.abs(courseMinutesOfDay(fromUnix, tzOffset) - courseMinutesOfDay(toUnix, tzOffset));
+  if (diff > 720) diff = 1440 - diff;
+  return diff;
+}
+
+export function isMaterialTeeShift(fromUnix, toUnix, tzOffset = 0, thresholdMin = 30) {
+  const diff = teeShiftMinutes(fromUnix, toUnix, tzOffset);
+  return diff != null && diff >= thresholdMin;
 }
 
 /** Compact “where should I play?” card for Home favourites — one fetch per course. */

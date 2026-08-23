@@ -5,6 +5,8 @@ import {
   analyzeRainDuringRound,
   calculateDayScore,
   getWindowData,
+  isMaterialTeeShift,
+  teeShiftMinutes,
 } from "../forecast-engine.js";
 import { rainIntensityCategory, scoreToVerdict } from "../utils.js";
 
@@ -207,7 +209,7 @@ describe("wettest period", () => {
 
 describe("day score strip", () => {
   it("evaluates tee windows not arbitrary midpoint", () => {
-    const base = Math.floor(Date.now() / 1000) + 86400;
+    const base = Date.UTC(2026, 7, 24) / 1000;
     const norm = {
       timezoneOffset: 0,
       sunrise: base + 6 * 3600,
@@ -221,9 +223,24 @@ describe("day score strip", () => {
         })
       ),
     };
-    const date = new Date(base * 1000);
+    const date = new Date(Date.UTC(2026, 7, 24));
     const ds = calculateDayScore(norm, date, "metric", 4, "gb");
     assert.ok(ds.bestScore >= 0);
     assert.ok(ds.bestTeeTime != null || ds.score > 0);
+  });
+});
+
+describe("same-day tee adjustment", () => {
+  it("treats a 15-minute snap as not material", () => {
+    const a = 1_800_000_000;
+    const b = a + 15 * 60;
+    assert.equal(teeShiftMinutes(a, b, 0), 15);
+    assert.equal(isMaterialTeeShift(a, b, 0), false);
+  });
+
+  it("treats a 45-minute snap as material", () => {
+    const a = 1_800_000_000;
+    const b = a + 45 * 60;
+    assert.equal(isMaterialTeeShift(a, b, 0), true);
   });
 });

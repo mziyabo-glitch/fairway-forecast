@@ -2,7 +2,7 @@
 
 const STORAGE_KEY = "fw_rebuild_prefs";
 const LEGACY_FAVS_KEY = "ff_favourites_v1";
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 const MAX_RECENT = 5;
 const MAX_FAVOURITES = 24;
 
@@ -39,6 +39,12 @@ function getStore() {
   return memoryStore();
 }
 
+function toCoord(value) {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 export function normalizeCourse(course) {
   if (!course) return null;
   const city = course.city ?? "";
@@ -50,8 +56,8 @@ export function normalizeCourse(course) {
     id: course.id ?? null,
     name: course.name ?? "",
     location,
-    lat: Number.isFinite(Number(course.lat)) ? Number(course.lat) : null,
-    lon: Number.isFinite(Number(course.lon)) ? Number(course.lon) : null,
+    lat: toCoord(course.lat),
+    lon: toCoord(course.lon),
     country,
     city,
     state,
@@ -69,21 +75,66 @@ export function favKey(course) {
   return `name:${(course?.name || "").toLowerCase()}`;
 }
 
-export function createLastKnownForecast(verdict, fetchedAt = Date.now()) {
-  const rainRisk =
-    typeof verdict?.metrics?.maxPrecipProb === "number"
-      ? verdict.metrics.maxPrecipProb
-      : typeof verdict?.maxPop === "number"
-        ? Math.round(verdict.maxPop <= 1 ? verdict.maxPop * 100 : verdict.maxPop)
-        : null;
+function pickFinite(...values) {
+  for (const v of values) {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
 
+/** Alert-ready metadata only — never treat as the live forecast. */
+export function createLastKnownForecast(verdict, checkedAt = Date.now()) {
+  const m = verdict?.metrics || {};
+  const rainProbability = pickFinite(
+    m.maxPrecipProb,
+    verdict?.rainProbability,
+    verdict?.maxPop != null ? (verdict.maxPop <= 1 ? verdict.maxPop * 100 : verdict.maxPop) : null
+  );
   return {
     score: Number.isFinite(verdict?.score) ? verdict.score : null,
-    verdict: verdict?.verdict ?? verdict?.status?.label ?? null,
-    rainRisk,
-    message: verdict?.message ?? "",
-    fetchedAt,
+    rainProbability,
+    rainMm: pickFinite(m.totalPrecipMm, verdict?.rainMm),
+    wind: pickFinite(m.avgWind, verdict?.wind),
+    gust: pickFinite(m.maxGust, verdict?.gust),
+    checkedAt: Number.isFinite(Number(checkedAt)) ? Number(checkedAt) : Date.now(),
   };
+}
+
+export function normalizeLastKnownForecast(snap) {
+  if (!snap || typeof snap !== "object") {
+    return {
+      score: null,
+      rainProbability: null,
+      rainMm: null,
+      wind: null,
+      gust: null,
+      checkedAt: null,
+    };
+  }
+  return {
+    score: Number.isFinite(Number(snap.score)) ? Number(snap.score) : null,
+    rainProbability: pickFinite(snap.rainProbability, snap.rainRisk),
+    rainMm: pickFinite(snap.rainMm),
+    wind: pickFinite(snap.wind),
+    gust: pickFinite(snap.gust),
+    checkedAt: pickFinite(snap.checkedAt, snap.fetchedAt),
+  };
+}
+
+export function resolveCourseRef(courseOrId) {
+  if (courseOrId == null || courseOrId === "") return null;
+  if (typeof courseOrId === "string" || typeof courseOrId === "number") {
+    return { id: String(courseOrId) };
+  }
+  return courseOrId;
+}
+
+export function sameRoundPlan(a, b) {
+  if (!a || !b) return false;
+  const aKey = favKey(a.course);
+  const bKey = favKey(b.course);
+  return aKey === bKey && String(a.date || "") === String(b.date || "") && Number(a.teeTime) === Number(b.teeTime);
 }
 
 export function isRoundPast(round, nowMs = Date.now()) {
@@ -126,12 +177,30 @@ function readRaw() {
       return prefs;
     }
     const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ...DEFAULT_PREFS };
+    }
     const prefs = {
       ...DEFAULT_PREFS,
-      ...parsed,
+      lastCourse: parsed.lastCourse ? normalizeCourse(parsed.lastCourse) : null,
+      recentCourses: Array.isArray(parsed.recentCourses)
+        ? parsed.recentCourses.map(normalizeCourse).filter(Boolean)
+        : [],
+      lastHolesPreference: parsed.lastHolesPreference === 9 ? 9 : 18,
+      lastTeeTimePreference: Number.isFinite(Number(parsed.lastTeeTimePreference))
+        ? Number(parsed.lastTeeTimePreference)
+        : null,
+      lastDateKey: typeof parsed.lastDateKey === "string" ? parsed.lastDateKey : null,
       version: STORAGE_VERSION,
-      favourites: Array.isArray(parsed.favourites) ? parsed.favourites : [],
-      savedRounds: Array.isArray(parsed.savedRounds) ? parsed.savedRounds : [],
+      favourites: Array.isArray(parsed.favourites)
+        ? parsed.favourites.map((f) => {
+            const course = normalizeCourse(f);
+            return course ? { ...course, addedAt: f?.addedAt || Date.now() } : null;
+          }).filter(Boolean)
+        : [],
+      savedRounds: Array.isArray(parsed.savedRounds)
+        ? parsed.savedRounds.map(normalizeSavedRound).filter(Boolean)
+        : [],
     };
     if (!prefs.favourites.length) {
       const legacy = migrateLegacyFavourites(store);
@@ -156,6 +225,25 @@ function writeRaw(prefs) {
 
 function uid(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeSavedRound(round) {
+  if (!round || typeof round !== "object") return null;
+  const course = normalizeCourse(round.course);
+  if (!course) return null;
+  return {
+    id: round.id || uid("rnd"),
+    course,
+    date: typeof round.date === "string" ? round.date : null,
+    teeTime: (() => {
+      if (round.teeTime == null || round.teeTime === "") return null;
+      const n = Number(round.teeTime);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    })(),
+    holes: round.holes === 9 ? 9 : 18,
+    createdAt: Number.isFinite(Number(round.createdAt)) ? Number(round.createdAt) : Date.now(),
+    lastKnownForecast: normalizeLastKnownForecast(round.lastKnownForecast),
+  };
 }
 
 export class PersistenceService {
@@ -213,9 +301,10 @@ export class PersistenceService {
     return (readRaw().favourites || []).map((f) => normalizeCourse(f)).filter(Boolean);
   }
 
-  isFavourite(course) {
-    if (!course) return false;
-    const key = favKey(course);
+  isFavourite(courseOrId) {
+    const ref = resolveCourseRef(courseOrId);
+    if (!ref) return false;
+    const key = favKey(ref);
     return (readRaw().favourites || []).some((f) => favKey(f) === key);
   }
 
@@ -232,10 +321,11 @@ export class PersistenceService {
     return prefs.favourites;
   }
 
-  removeFavourite(course) {
-    if (!course) return this.getFavourites();
+  removeFavourite(courseOrId) {
+    const ref = resolveCourseRef(courseOrId);
+    if (!ref) return this.getFavourites();
     const prefs = readRaw();
-    const key = favKey(course);
+    const key = favKey(ref);
     prefs.favourites = (prefs.favourites || []).filter((f) => favKey(f) !== key);
     writeRaw(prefs);
     return prefs.favourites;
@@ -253,6 +343,10 @@ export class PersistenceService {
 
   getRounds() {
     return [...(readRaw().savedRounds || [])];
+  }
+
+  getSavedRounds() {
+    return this.getRounds();
   }
 
   getRound(id) {
@@ -274,15 +368,7 @@ export class PersistenceService {
   saveRound(input) {
     const prefs = readRaw();
     const course = normalizeCourse(input.course);
-    const lastKnownForecast = input.lastKnownForecast
-      ? {
-          score: input.lastKnownForecast.score ?? null,
-          verdict: input.lastKnownForecast.verdict ?? null,
-          rainRisk: input.lastKnownForecast.rainRisk ?? null,
-          message: input.lastKnownForecast.message ?? "",
-          fetchedAt: input.lastKnownForecast.fetchedAt ?? Date.now(),
-        }
-      : createLastKnownForecast(null);
+    if (!course) return null;
 
     const record = {
       id: input.id || uid("rnd"),
@@ -291,32 +377,64 @@ export class PersistenceService {
       teeTime: Number.isFinite(Number(input.teeTime)) ? Number(input.teeTime) : null,
       holes: input.holes === 9 ? 9 : 18,
       createdAt: input.createdAt || Date.now(),
-      lastKnownForecast,
+      lastKnownForecast: normalizeLastKnownForecast(
+        input.lastKnownForecast || createLastKnownForecast(null)
+      ),
     };
 
-    const existing = (prefs.savedRounds || []).findIndex((r) => r.id === record.id);
-    if (existing >= 0) prefs.savedRounds[existing] = record;
-    else prefs.savedRounds = [record, ...(prefs.savedRounds || [])];
+    const byId = (prefs.savedRounds || []).findIndex((r) => r.id === record.id);
+    if (byId >= 0) {
+      record.createdAt = prefs.savedRounds[byId].createdAt || record.createdAt;
+      prefs.savedRounds[byId] = record;
+      writeRaw(prefs);
+      return record;
+    }
+
+    const dupIdx = (prefs.savedRounds || []).findIndex((r) => sameRoundPlan(r, record));
+    if (dupIdx >= 0) {
+      const existing = prefs.savedRounds[dupIdx];
+      const merged = {
+        ...existing,
+        ...record,
+        id: existing.id,
+        createdAt: existing.createdAt,
+        lastKnownForecast: record.lastKnownForecast,
+      };
+      prefs.savedRounds[dupIdx] = merged;
+      writeRaw(prefs);
+      return { ...merged, _updatedExisting: true };
+    }
+
+    prefs.savedRounds = [record, ...(prefs.savedRounds || [])];
     writeRaw(prefs);
     return record;
   }
 
-  updateRoundForecast(id, lastKnownForecast) {
+  updateRound(id, patch = {}) {
+    if (!id) return null;
     const prefs = readRaw();
     const idx = (prefs.savedRounds || []).findIndex((r) => r.id === id);
     if (idx < 0) return null;
-    prefs.savedRounds[idx] = {
-      ...prefs.savedRounds[idx],
-      lastKnownForecast: {
-        score: lastKnownForecast?.score ?? null,
-        verdict: lastKnownForecast?.verdict ?? null,
-        rainRisk: lastKnownForecast?.rainRisk ?? null,
-        message: lastKnownForecast?.message ?? "",
-        fetchedAt: lastKnownForecast?.fetchedAt ?? Date.now(),
-      },
-    };
+    const current = prefs.savedRounds[idx];
+    const next = normalizeSavedRound({
+      ...current,
+      ...patch,
+      id: current.id,
+      createdAt: current.createdAt,
+      course: patch.course ? normalizeCourse(patch.course) : current.course,
+      lastKnownForecast: patch.lastKnownForecast
+        ? normalizeLastKnownForecast(patch.lastKnownForecast)
+        : current.lastKnownForecast,
+    });
+    prefs.savedRounds[idx] = next;
     writeRaw(prefs);
-    return prefs.savedRounds[idx];
+    return next;
+  }
+
+  updateRoundForecast(id, lastKnownForecast) {
+    return this.updateRound(id, {
+      lastKnownForecast: normalizeLastKnownForecast(lastKnownForecast),
+    });
   }
 
   deleteRound(id) {

@@ -26,8 +26,26 @@ export function findNearbyCourses(
     .slice(0, maxResults);
 }
 
-export function formatDistance(km) {
+export function usesImperialDistance(unitsOrCountry = "metric") {
+  const key = String(unitsOrCountry || "").toLowerCase();
+  return key === "imperial" || key === "us" || key === "usa" || key === "mile" || key === "miles";
+}
+
+export function formatDistance(km, unitsOrCountry = "metric") {
   if (!Number.isFinite(km)) return "";
+  if (usesImperialDistance(unitsOrCountry)) {
+    const miles = km * 0.621371;
+    if (miles < 0.1) return `${Math.round(miles * 5280)} ft`;
+    return `${miles < 10 ? miles.toFixed(1) : Math.round(miles)} mi`;
+  }
   if (km < 1) return `${Math.round(km * 1000)} m`;
   return `${km < 10 ? km.toFixed(1) : Math.round(km)} km`;
+}
+
+export function formatRadiusLabel(radiusKm, unitsOrCountry = "metric") {
+  if (!Number.isFinite(radiusKm)) return "";
+  if (usesImperialDistance(unitsOrCountry)) {
+    return `${Math.round(radiusKm * 0.621371)} mi`;
+  }
+  return `${Math.round(radiusKm)} km`;
 }

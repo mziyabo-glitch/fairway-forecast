@@ -4,6 +4,7 @@ import { courseDateKey, courseLocalParts, getTodayCourseYMD, courseDayStartSec }
 
 const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
 const memCache = new Map();
+const inFlight = new Map();
 const SNAP_KEY = "fw_weather_snap_v1";
 const MAX_SNAPS = 8;
 
@@ -76,17 +77,19 @@ export function getWeatherMeta(raw) {
 
 export function formatForecastFreshness(meta, now = Date.now()) {
   if (!meta) return null;
-  if (meta.offline || meta.stale) {
-    if (Number.isFinite(meta.fetchedAt)) {
-      const d = new Date(meta.fetchedAt);
-      const hh = d.getHours().toString().padStart(2, "0");
-      const mm = d.getMinutes().toString().padStart(2, "0");
-      return `Last updated ${hh}:${mm}`;
-    }
-    return "Offline forecast";
+  const stale = Boolean(meta.offline || meta.stale);
+  if (!stale) return null;
+  if (Number.isFinite(meta.fetchedAt)) {
+    const d = new Date(meta.fetchedAt);
+    const hh = d.getHours().toString().padStart(2, "0");
+    const mm = d.getMinutes().toString().padStart(2, "0");
+    return `Offline forecast · Last updated ${hh}:${mm}`;
   }
-  if (meta.offline) return "Offline forecast";
-  return null;
+  return "Offline forecast";
+}
+
+export function weatherCacheKey(lat, lon, units = "metric") {
+  return `${units}|${Number(lat).toFixed(5)},${Number(lon).toFixed(5)}`;
 }
 
 export async function apiGet(apiBase, path) {
@@ -120,18 +123,7 @@ export async function apiGet(apiBase, path) {
   }
 }
 
-export async function fetchWeather(apiBase, lat, lon, units = "metric") {
-  const key = `${units}|${Number(lat).toFixed(5)},${Number(lon).toFixed(5)}`;
-  const fresh = cacheGetFresh(key, WEATHER_CACHE_TTL_MS);
-  if (fresh) {
-    return attachMeta(fresh.data, {
-      fromCache: true,
-      stale: false,
-      offline: false,
-      fetchedAt: fresh.t,
-    });
-  }
-
+async function fetchWeatherUncached(apiBase, lat, lon, units, key) {
   try {
     const data = await apiGet(
       apiBase,
@@ -158,6 +150,27 @@ export async function fetchWeather(apiBase, lat, lon, units = "metric") {
     }
     throw err;
   }
+}
+
+export async function fetchWeather(apiBase, lat, lon, units = "metric") {
+  const key = weatherCacheKey(lat, lon, units);
+  const fresh = cacheGetFresh(key, WEATHER_CACHE_TTL_MS);
+  if (fresh) {
+    return attachMeta(fresh.data, {
+      fromCache: true,
+      stale: false,
+      offline: false,
+      fetchedAt: fresh.t,
+    });
+  }
+
+  if (inFlight.has(key)) return inFlight.get(key);
+
+  const pending = fetchWeatherUncached(apiBase, lat, lon, units, key).finally(() => {
+    inFlight.delete(key);
+  });
+  inFlight.set(key, pending);
+  return pending;
 }
 
 export function normalizeWeather(raw) {
@@ -321,4 +334,5 @@ export async function geocodeCity(apiBase, query) {
 
 export function clearWeatherCache() {
   memCache.clear();
+  inFlight.clear();
 }

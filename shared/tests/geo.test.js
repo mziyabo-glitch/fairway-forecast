@@ -1,6 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { sortCoursesByDistance, findNearbyCourses, formatDistance } from "../geo.js";
+import {
+  sortCoursesByDistance,
+  findNearbyCourses,
+  formatDistance,
+  formatRadiusLabel,
+  usesImperialDistance,
+} from "../geo.js";
 
 const swindon = { lat: 51.568, lon: -1.772 };
 
@@ -38,9 +44,15 @@ describe("nearby course distance sorting", () => {
     assert.ok(!nearby.some((c) => c.id === "broome"));
   });
 
-  it("formats distances", () => {
+  it("formats distances in regional units", () => {
     assert.equal(formatDistance(0.4), "400 m");
     assert.equal(formatDistance(2.4), "2.4 km");
     assert.equal(formatDistance(18.2), "18 km");
+    assert.equal(formatDistance(2.4, "imperial"), "1.5 mi");
+    assert.equal(formatDistance(18.2, "us"), "11 mi");
+    assert.equal(formatRadiusLabel(40, "metric"), "40 km");
+    assert.equal(formatRadiusLabel(40, "us"), "25 mi");
+    assert.equal(usesImperialDistance("us"), true);
+    assert.equal(usesImperialDistance("gb"), false);
   });
 });
