@@ -4,19 +4,89 @@ import { courseDateKey, courseLocalParts, getTodayCourseYMD, courseDayStartSec }
 
 const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
 const memCache = new Map();
+const SNAP_KEY = "fw_weather_snap_v1";
+const MAX_SNAPS = 8;
 
-function cacheGet(key, ttlMs) {
+function cacheGetFresh(key, ttlMs) {
   const hit = memCache.get(key);
   if (!hit) return null;
-  if (Date.now() - hit.t > ttlMs) {
-    memCache.delete(key);
-    return null;
-  }
-  return hit.data;
+  if (Date.now() - hit.t > ttlMs) return null;
+  return hit;
+}
+
+function cacheGetAny(key) {
+  return memCache.get(key) || null;
 }
 
 function cacheSet(key, data) {
   memCache.set(key, { t: Date.now(), data });
+}
+
+function attachMeta(data, meta) {
+  if (data && typeof data === "object") {
+    data._fwMeta = meta;
+  }
+  return data;
+}
+
+function readSnaps() {
+  try {
+    if (typeof localStorage === "undefined") return {};
+    const raw = localStorage.getItem(SNAP_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSnap(key, data) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const snaps = readSnaps();
+    snaps[key] = { t: Date.now(), data };
+    const keys = Object.keys(snaps);
+    if (keys.length > MAX_SNAPS) {
+      keys
+        .sort((a, b) => (snaps[a].t || 0) - (snaps[b].t || 0))
+        .slice(0, keys.length - MAX_SNAPS)
+        .forEach((k) => delete snaps[k]);
+    }
+    localStorage.setItem(SNAP_KEY, JSON.stringify(snaps));
+  } catch {
+    /* ignore */
+  }
+}
+
+function readSnap(key) {
+  const snaps = readSnaps();
+  return snaps[key] || null;
+}
+
+export function getWeatherMeta(raw) {
+  return (
+    raw?._fwMeta || {
+      fromCache: false,
+      stale: false,
+      offline: false,
+      fetchedAt: null,
+    }
+  );
+}
+
+export function formatForecastFreshness(meta, now = Date.now()) {
+  if (!meta) return null;
+  if (meta.offline || meta.stale) {
+    if (Number.isFinite(meta.fetchedAt)) {
+      const d = new Date(meta.fetchedAt);
+      const hh = d.getHours().toString().padStart(2, "0");
+      const mm = d.getMinutes().toString().padStart(2, "0");
+      return `Last updated ${hh}:${mm}`;
+    }
+    return "Offline forecast";
+  }
+  if (meta.offline) return "Offline forecast";
+  return null;
 }
 
 export async function apiGet(apiBase, path) {
@@ -52,15 +122,42 @@ export async function apiGet(apiBase, path) {
 
 export async function fetchWeather(apiBase, lat, lon, units = "metric") {
   const key = `${units}|${Number(lat).toFixed(5)},${Number(lon).toFixed(5)}`;
-  const cached = cacheGet(key, WEATHER_CACHE_TTL_MS);
-  if (cached) return cached;
+  const fresh = cacheGetFresh(key, WEATHER_CACHE_TTL_MS);
+  if (fresh) {
+    return attachMeta(fresh.data, {
+      fromCache: true,
+      stale: false,
+      offline: false,
+      fetchedAt: fresh.t,
+    });
+  }
 
-  const data = await apiGet(
-    apiBase,
-    `/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=${units}`
-  );
-  cacheSet(key, data);
-  return data;
+  try {
+    const data = await apiGet(
+      apiBase,
+      `/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=${units}`
+    );
+    cacheSet(key, data);
+    writeSnap(key, data);
+    return attachMeta(data, {
+      fromCache: false,
+      stale: false,
+      offline: false,
+      fetchedAt: Date.now(),
+    });
+  } catch (err) {
+    const staleMem = cacheGetAny(key);
+    const snap = staleMem || readSnap(key);
+    if (snap?.data) {
+      return attachMeta(snap.data, {
+        fromCache: true,
+        stale: true,
+        offline: true,
+        fetchedAt: snap.t,
+      });
+    }
+    throw err;
+  }
 }
 
 export function normalizeWeather(raw) {

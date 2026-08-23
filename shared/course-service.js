@@ -1,8 +1,8 @@
 /** Static course datasets, search, and favourites */
 
-import { calculateDistance } from "./utils.js";
+import { findNearbyCourses } from "./geo.js";
+import { PersistenceService, favKey } from "./persistence.js";
 
-const LS_FAVS = "ff_favourites_v1";
 const LS_COUNTRY = "ff_country";
 const LS_STATE = "ff_state";
 
@@ -15,9 +15,23 @@ export class CourseService {
     this.currentDocs = [];
     this.coursesIndex = null;
     this.usStates = [];
-    this.currentCountry = localStorage.getItem(LS_COUNTRY) || config.defaultCountry || "gb";
-    this.currentState = localStorage.getItem(LS_STATE) || "";
+    this.currentCountry = (typeof localStorage !== "undefined" && localStorage.getItem(LS_COUNTRY)) || config.defaultCountry || "gb";
+    this.currentState = (typeof localStorage !== "undefined" && localStorage.getItem(LS_STATE)) || "";
     this.countries = config.countries || [];
+    this.persistence = config.persistence || new PersistenceService();
+  }
+
+  getCurrentDocsAsCourses() {
+    return (this.currentDocs || []).map((d) => ({
+      id: `static-${d.idx}`,
+      name: d.name,
+      lat: d.lat,
+      lon: d.lon,
+      country: this.currentCountry.toUpperCase(),
+      state: d.region,
+      city: d.region,
+      source: "osm",
+    }));
   }
 
   async loadCatalog() {
@@ -139,88 +153,28 @@ export class CourseService {
       }));
   }
 
-  findNearby(lat, lon, radiusKm = 10, maxResults = 5, excludeId = null) {
-    const nearby = [];
-    for (const d of this.currentDocs) {
-      if (!Number.isFinite(d.lat) || !Number.isFinite(d.lon)) continue;
-      const distance = calculateDistance(lat, lon, d.lat, d.lon);
-      if (distance === null || distance > radiusKm) continue;
-      const id = `static-${d.idx}`;
-      if (excludeId && id === excludeId) continue;
-      nearby.push({
-        id,
-        name: d.name,
-        lat: d.lat,
-        lon: d.lon,
-        country: this.currentCountry.toUpperCase(),
-        state: d.region,
-        city: d.region,
-        source: "osm",
-        distance,
-      });
-    }
-    nearby.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-    return nearby.slice(0, maxResults);
+  findNearby(lat, lon, radiusKm = 40, maxResults = 12, excludeId = null) {
+    return findNearbyCourses(this.getCurrentDocsAsCourses(), lat, lon, {
+      radiusKm,
+      maxResults,
+      excludeId,
+    });
   }
 
   loadFavourites() {
-    try {
-      const raw = localStorage.getItem(LS_FAVS);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-
-  saveFavourites(list) {
-    try {
-      localStorage.setItem(LS_FAVS, JSON.stringify(list));
-    } catch {
-      /* ignore */
-    }
+    return this.persistence.getFavourites();
   }
 
   favKey(course) {
-    const id = course?.id ? String(course.id) : "";
-    const lat = Number(course?.lat);
-    const lon = Number(course?.lon);
-    if (id) return `id:${id}`;
-    if (Number.isFinite(lat) && Number.isFinite(lon)) {
-      return `ll:${lat.toFixed(5)},${lon.toFixed(5)}`;
-    }
-    return `name:${(course?.name || "").toLowerCase()}`;
+    return favKey(course);
   }
 
   isFavourite(course) {
-    const key = this.favKey(course);
-    return this.loadFavourites().some((f) => f?.key === key);
+    return this.persistence.isFavourite(course);
   }
 
   toggleFavourite(course) {
-    if (!course) return this.loadFavourites();
-    const favs = this.loadFavourites();
-    const key = this.favKey(course);
-    const idx = favs.findIndex((f) => f?.key === key);
-
-    if (idx >= 0) {
-      favs.splice(idx, 1);
-    } else {
-      favs.unshift({
-        key,
-        id: course.id ?? null,
-        name: course.name ?? "",
-        city: course.city ?? "",
-        state: course.state ?? "",
-        country: course.country ?? "",
-        lat: course.lat ?? null,
-        lon: course.lon ?? null,
-        addedAt: Date.now(),
-      });
-      if (favs.length > 24) favs.length = 24;
-    }
-
-    this.saveFavourites(favs);
-    return favs;
+    this.persistence.toggleFavourite(course);
+    return this.persistence.getFavourites();
   }
 }

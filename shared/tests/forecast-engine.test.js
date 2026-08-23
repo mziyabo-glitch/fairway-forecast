@@ -111,6 +111,15 @@ describe("UK temperature scoring", () => {
       assert.match(v.message, /.+/);
     });
   }
+
+  it("−2°C in the UK is NOT AVOID", () => {
+    const window = Array.from({ length: 4 }, (_, i) =>
+      hourlyPoint({ dt: 1_700_000_000 + i * 3600, temp: -2, wind_speed: 2 })
+    );
+    const v = computeGolfVerdict(window, window, window[0].dt, 4, "metric", "gb");
+    assert.notEqual(v.verdict, "AVOID");
+    assert.ok(v.score >= 30, "UK −2°C should remain playable enough to not be AVOID");
+  });
 });
 
 describe("combination scenarios", () => {

@@ -97,6 +97,12 @@ export function weatherIdToIcon(weatherId) {
   return "🌦️";
 }
 
+export function windDegToCardinal(deg) {
+  if (!Number.isFinite(deg)) return "—";
+  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  return dirs[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
+}
+
 export function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;

@@ -932,8 +932,50 @@ export function getBestDayThisWeek(dayScores, days) {
         dayLabel: d.dayLabel,
         score: ds.bestScore,
         bestTeeTime: ds.bestTeeTime,
+        verdict: scoreToVerdict(ds.bestScore),
+        status: ds.status || scoreToStatus(ds.bestScore),
       };
     }
   }
   return best;
+}
+
+/** Compact “where should I play?” card for Home favourites — one fetch per course. */
+export function summarizeCoursePlayability(norm, units = "metric", countryCode = "gb") {
+  const windowHours = 4;
+  const dates = getAvailableDates(norm, windowHours);
+  const day = dates.find((d) => d.hasValidTimes) || dates[0];
+  if (!day) return null;
+
+  const ds = calculateDayScore(norm, day.date, units, windowHours, countryCode);
+  const current = norm?.current;
+  const icon = ds.weatherIcon || weatherIdToIcon(current?.weather?.[0]?.id);
+  const temp = Number.isFinite(current?.temp)
+    ? Math.round(current.temp)
+    : Number.isFinite(ds.score)
+      ? null
+      : null;
+
+  let hint = "Dry for most of the day";
+  const hourly = norm?.hourly || [];
+  if (ds.bestTeeTimeUnix) {
+    const rain = analyzeRainDuringRound(hourly, ds.bestTeeTimeUnix, windowHours, norm?.timezoneOffset || 0);
+    if (rain?.description && /rain|wet|shower/i.test(rain.description)) {
+      hint = rain.wettestPeriod ? `Rain after ${rain.hours?.[0]?.time || rain.wettestPeriod}` : rain.description;
+    } else if (rain?.hours?.length) {
+      const firstWet = rain.hours.find((h) => h.rainfallMm >= 0.3 || h.probability >= 55);
+      hint = firstWet ? `Rain after ${firstWet.time}` : "Dry for most of the day";
+    }
+  }
+
+  return {
+    icon,
+    temp,
+    score: ds.bestScore ?? ds.score,
+    verdict: scoreToVerdict(ds.bestScore ?? ds.score),
+    status: ds.status || scoreToStatus(ds.bestScore ?? ds.score),
+    bestTeeTime: ds.bestTeeTime,
+    hint,
+    dayLabel: day.dayLabel,
+  };
 }
