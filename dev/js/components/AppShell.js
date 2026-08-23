@@ -13,7 +13,7 @@ export function renderAppShell(activeTab = "home") {
   return `
     <div class="fw-dev-banner" role="status">
       <span class="fw-dev-dot" aria-hidden="true"></span>
-      <span>DEV — Rebuild Preview (Milestone 1.5)</span>
+      <span>DEV — Rebuild Preview (Milestone 2A)</span>
       <a href="/" class="fw-dev-link">Production</a>
     </div>
     <div class="fw-app">

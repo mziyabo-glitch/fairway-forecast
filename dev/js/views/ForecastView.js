@@ -12,6 +12,8 @@ import {
   renderScoreExplanationBody,
   wireBestTeeTimeCard,
 } from "../components/ScoreExplanation.js";
+import { renderHourlyForecast, wireHourlyForecast } from "../components/HourlyForecast.js";
+import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js";
 import { openSheet } from "../components/AppShell.js";
 import { esc } from "../../../shared/utils.js";
 
@@ -33,7 +35,12 @@ export function renderForecastView(state) {
     tzOffset,
     rainAnalysis,
     impactCards,
-    norm,
+    betterTee,
+    hourly = [],
+    units = "metric",
+    freshness = null,
+    hourlyExpanded = false,
+    roundSaved = false,
   } = state;
 
   if (noCourse) {
@@ -88,24 +95,37 @@ export function renderForecastView(state) {
   const rainHtml = showSkeleton ? renderRainTimelineSkeleton() : renderRainTimeline(rainAnalysis);
   const impactHtml = showSkeleton ? renderWeatherImpactCards(null) : renderWeatherImpactCards(impactCards);
   const betterHtml = !showSkeleton && betterTee ? renderBestTeeTimeCard(betterTee) : "";
+  const hourlyHtml = showSkeleton
+    ? ""
+    : renderHourlyForecast({ hourly, tzOffset, units, expanded: hourlyExpanded });
 
   return `
     <div class="fw-view fw-view-forecast" ${weatherLoading ? 'aria-busy="true"' : ""}>
+      ${freshness ? `<p class="fw-freshness" role="status">${esc(freshness)}</p>` : ""}
       <div id="fwDayStripMount">${dayStripHtml}</div>
       <div id="fwHeroMount">${heroHtml}</div>
       <div id="fwRoundMount">${roundHtml}</div>
+      <div class="fw-forecast-actions">
+        <button type="button" class="fw-btn fw-btn-primary" id="fwSaveRound">
+          ${roundSaved ? "Round saved" : "Save this round"}
+        </button>
+      </div>
       <div id="fwRainMount">${rainHtml}</div>
       <div id="fwImpactMount">${impactHtml}</div>
       <div id="fwBetterMount">${betterHtml}</div>
+      <div id="fwHourlyMount">${hourlyHtml}</div>
+      <div id="fwPremiumMount">${renderPremiumLocks()}</div>
     </div>`;
 }
 
 export function wireForecastView(container, handlers) {
   container?.querySelector("#fwGoCourses")?.addEventListener("click", () => handlers.onNavigate?.("courses"));
   container?.querySelector("#fwRetryForecast")?.addEventListener("click", () => handlers.onRetry?.());
+  container?.querySelector("#fwSaveRound")?.addEventListener("click", () => handlers.onSaveRound?.());
 
   wireDayForecastStrip(container.querySelector("#fwDayStripMount"), handlers.onDaySelect);
   wireGolfVerdictHero(container.querySelector("#fwHeroMount"), () => {
+    handlers.onWhyScore?.();
     openSheet(
       `Why ${handlers.getScore?.() ?? ""}?`,
       renderScoreExplanationBody({
@@ -125,4 +145,7 @@ export function wireForecastView(container, handlers) {
     const bt = handlers.getBetterTee?.();
     if (bt?.teeTime) handlers.onUseBetterTee?.(bt.teeTime) ?? handlers.onTeeTimeChange?.(bt.teeTime);
   });
+
+  wireHourlyForecast(container.querySelector("#fwHourlyMount"), handlers.onHourlyExpand);
+  wirePremiumLocks(container.querySelector("#fwPremiumMount"), (id) => handlers.onPremium?.(id));
 }

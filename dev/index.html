@@ -5,24 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="robots" content="noindex, nofollow" />
   <title>Fairway Weather — Rebuild Preview (DEV)</title>
-  <meta name="description" content="Mobile-first golf forecast rebuild preview." />
+  <meta name="description" content="Personalised golf weather — favourites, saved rounds, and play verdicts." />
   <meta name="theme-color" content="#1F6F78" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fairway" />
 
-  <link rel="icon" href="../icons/favicon.ico" />
+  <link rel="icon" href="/icons/favicon.ico" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="manifest" href="/dev/manifest.webmanifest" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
-  <script src="../playability.js"></script>
-  <script src="./config.js"></script>
+  <script src="/playability.js"></script>
+  <script src="/dev/config.js"></script>
 
-  <link rel="stylesheet" href="./css/tokens.css" />
-  <link rel="stylesheet" href="./css/app.css" />
+  <link rel="stylesheet" href="/dev/css/tokens.css" />
+  <link rel="stylesheet" href="/dev/css/app.css" />
+
+  <script
+    defer
+    src="https://static.cloudflareinsights.com/beacon.min.js"
+    data-cf-beacon='{"token": "ff6b1058ad0a4e808cf1853bbb80d0f6"}'
+  ></script>
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./js/app.js"></script>
+  <script type="module" src="/dev/js/app.js"></script>
 </body>
 </html>

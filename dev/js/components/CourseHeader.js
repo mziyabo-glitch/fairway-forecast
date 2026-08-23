@@ -1,6 +1,7 @@
 import { esc } from "../../../shared/utils.js";
+import { renderFavouriteStar, wireFavouriteStars } from "./FavouriteStar.js";
 
-export function renderCourseHeader(course, { onChange } = {}) {
+export function renderCourseHeader(course, { onChange, isFavourite = false } = {}) {
   if (!course) {
     return `
       <div class="fw-course-header fw-course-header--empty">
@@ -11,8 +12,8 @@ export function renderCourseHeader(course, { onChange } = {}) {
       </div>`;
   }
 
-  const parts = [course.city, course.state, course.country].filter(Boolean);
-  const location = parts.join(", ") || "Location unavailable";
+  const parts = [course.location, course.city, course.state, course.country].filter(Boolean);
+  const location = [...new Set(parts)].slice(0, 2).join(", ") || course.location || "Location unavailable";
 
   return `
     <div class="fw-course-header">
@@ -20,11 +21,14 @@ export function renderCourseHeader(course, { onChange } = {}) {
         <h1 class="fw-course-name">${esc(course.name)}</h1>
         <p class="fw-course-location">${esc(location)}</p>
       </div>
-      ${
-        onChange
-          ? `<button type="button" class="fw-btn-text" id="fwChangeCourse">Change</button>`
-          : ""
-      }
+      <div class="fw-course-header-actions">
+        ${renderFavouriteStar(isFavourite, { courseId: course.id })}
+        ${
+          onChange
+            ? `<button type="button" class="fw-btn-text" id="fwChangeCourse">Change</button>`
+            : ""
+        }
+      </div>
     </div>`;
 }
 
@@ -34,4 +38,5 @@ export function mountCourseHeader(container, course, handlers = {}) {
   document.getElementById("fwChangeCourse")?.addEventListener("click", () => {
     handlers.onChange?.();
   });
+  wireFavouriteStars(container, () => handlers.onToggleFavourite?.(course));
 }
