@@ -1,6 +1,6 @@
 import { esc } from "../../../shared/utils.js";
 
-export function renderGolfVerdictHero({ score, status, label, message, decision, onWhy }) {
+export function renderGolfVerdictHero({ score, status, label, message, decision }) {
   const statusKey = status?.key ?? "risky";
   const displayScore = Number.isFinite(score) ? score : "—";
 

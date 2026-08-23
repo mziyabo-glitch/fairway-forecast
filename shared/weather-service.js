@@ -1,7 +1,5 @@
 /** Weather API, caching, and normalization */
 
-import { clamp } from "./utils.js";
-
 const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
 const memCache = new Map();
 
