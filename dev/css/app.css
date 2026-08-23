@@ -753,6 +753,11 @@ input {
 }
 
 /* Sheet / modal */
+.fw-sheet[hidden],
+.fw-sheet-backdrop[hidden] {
+  display: none !important;
+}
+
 .fw-sheet-backdrop {
   position: fixed;
   inset: 0;

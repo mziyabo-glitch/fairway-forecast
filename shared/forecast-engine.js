@@ -384,7 +384,11 @@ export function buildGolfHeroMessage(metrics, factors, windowData, teeTimeUnix, 
     return "Calm and dry — a good window to go low.";
   }
 
-  return parts.slice(0, 2).join(". ") + ".";
+  const joined = parts
+    .slice(0, 2)
+    .map((p, i) => (i > 0 && p.startsWith("and ") ? p : p))
+    .join(parts[1]?.startsWith("and ") ? " " : ". ");
+  return /[.!?]$/.test(joined) ? joined : `${joined}.`;
 }
 
 function findDryUntilHour(windowData, teeTimeUnix, tzOffset) {

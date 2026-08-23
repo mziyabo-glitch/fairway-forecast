@@ -3,7 +3,8 @@ import { formatDistance } from "../../../shared/geo.js";
 import { renderFavouriteStar, wireFavouriteStars } from "../components/FavouriteStar.js";
 
 function courseRow(c, { favouriteIds = new Set(), showDistance = false } = {}) {
-  const loc = [c.city, c.state, c.country].filter(Boolean).join(", ") || c.location || "";
+  const loc =
+    [...new Set([c.city, c.state, c.country].filter(Boolean))].join(", ") || c.location || "";
   const dist = showDistance && Number.isFinite(c.distance) ? formatDistance(c.distance) : "";
   return `
     <li class="fw-course-row">

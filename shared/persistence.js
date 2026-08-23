@@ -43,17 +43,16 @@ export function normalizeCourse(course) {
   if (!course) return null;
   const city = course.city ?? "";
   const state = course.state ?? "";
-  const location =
-    course.location ||
-    [city, state, course.country].filter(Boolean).join(", ") ||
-    "";
+  const country = course.country ?? "";
+  const uniqueParts = [...new Set([city, state, country].filter(Boolean))];
+  const location = course.location || uniqueParts.join(", ") || "";
   return {
     id: course.id ?? null,
     name: course.name ?? "",
     location,
     lat: Number.isFinite(Number(course.lat)) ? Number(course.lat) : null,
     lon: Number.isFinite(Number(course.lon)) ? Number(course.lon) : null,
-    country: course.country ?? "",
+    country,
     city,
     state,
   };

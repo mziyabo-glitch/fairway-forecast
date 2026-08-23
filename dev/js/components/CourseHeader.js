@@ -12,8 +12,10 @@ export function renderCourseHeader(course, { onChange, isFavourite = false } = {
       </div>`;
   }
 
-  const parts = [course.location, course.city, course.state, course.country].filter(Boolean);
-  const location = [...new Set(parts)].slice(0, 2).join(", ") || course.location || "Location unavailable";
+  const location =
+    course.location ||
+    [course.city, course.state, course.country].filter(Boolean).join(", ") ||
+    "Location unavailable";
 
   return `
     <div class="fw-course-header">
