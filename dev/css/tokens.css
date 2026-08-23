@@ -9,7 +9,8 @@
   --status-avoid: #c0392b;
 
   --status-excellent-bg: rgba(11, 93, 42, 0.08);
-  --status-good-bg: rgba(31, 138, 66, 0.08);
+  --status-playable: #2d8a4e;
+  --status-playable-bg: rgba(45, 138, 78, 0.08);
   --status-risky-bg: rgba(184, 134, 11, 0.1);
   --status-poor-bg: rgba(217, 119, 6, 0.1);
   --status-avoid-bg: rgba(192, 57, 43, 0.1);

@@ -9,7 +9,7 @@ export function renderRainTimeline(rainAnalysis) {
       </section>`;
   }
 
-  const maxMm = Math.max(...rainAnalysis.hours.map((h) => h.mm), 0.1);
+  const maxMm = Math.max(...rainAnalysis.hours.map((h) => h.rainfallMm ?? h.mm ?? 0), 0.1);
 
   return `
     <section class="fw-rain-timeline" aria-label="Rain during your round">
@@ -23,26 +23,38 @@ export function renderRainTimeline(rainAnalysis) {
           <span class="fw-rain-stat-label">Wettest period</span>
           <strong>${esc(rainAnalysis.wettestPeriod || "None")}</strong>
         </div>
+        ${
+          rainAnalysis.peakRainfallMm > 0
+            ? `<div class="fw-rain-stat">
+          <span class="fw-rain-stat-label">Peak intensity</span>
+          <strong>${esc(rainAnalysis.peakIntensity?.label || "—")} (${esc(String(rainAnalysis.peakRainfallMm))} mm/h)</strong>
+        </div>`
+            : ""
+        }
       </div>
       <p class="fw-rain-desc">${esc(rainAnalysis.description)}</p>
-      <div class="fw-rain-bars" role="img" aria-label="Hourly rain intensity during round">
+      <div class="fw-rain-bars" role="img" aria-label="Hourly rain during round">
         ${rainAnalysis.hours
           .map((h) => {
-            const pct = Math.max(8, (h.mm / maxMm) * 100);
+            const mm = h.rainfallMm ?? h.mm ?? 0;
+            const pct = Math.max(8, (mm / maxMm) * 100);
+            const pop = h.probability ?? 0;
             return `
-              <div class="fw-rain-bar-col" title="${esc(h.time)}: ${esc(h.intensity.label)}">
+              <div class="fw-rain-bar-col" title="${esc(h.time)}: ${esc(h.intensity.label)}, ${pop}% chance, ${mm} mm">
+                <span class="fw-rain-bar-icon" aria-hidden="true">${h.weatherIcon || "🌦️"}</span>
                 <div class="fw-rain-bar fw-rain-${h.intensity.key}" style="height:${pct}%"></div>
+                <span class="fw-rain-bar-pop">${pop > 0 ? `${pop}%` : ""}</span>
                 <span class="fw-rain-bar-time">${esc(h.time)}</span>
               </div>`;
           })
           .join("")}
       </div>
       <div class="fw-rain-legend">
-        <span><i class="fw-legend-dot fw-rain-dry"></i>Dry</span>
-        <span><i class="fw-legend-dot fw-rain-drizzle"></i>Drizzle</span>
-        <span><i class="fw-legend-dot fw-rain-light"></i>Light</span>
-        <span><i class="fw-legend-dot fw-rain-moderate"></i>Moderate</span>
-        <span><i class="fw-legend-dot fw-rain-heavy"></i>Heavy</span>
+        <span><i class="fw-legend-dot fw-rain-dry"></i>Dry 0–0.1</span>
+        <span><i class="fw-legend-dot fw-rain-drizzle"></i>Drizzle 0.1–0.5</span>
+        <span><i class="fw-legend-dot fw-rain-light"></i>Light 0.5–2</span>
+        <span><i class="fw-legend-dot fw-rain-moderate"></i>Mod 2–5</span>
+        <span><i class="fw-legend-dot fw-rain-heavy"></i>Heavy &gt;5 mm/h</span>
       </div>
     </section>`;
 }

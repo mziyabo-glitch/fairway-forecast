@@ -5,10 +5,23 @@ import {
   nowSec,
   windSpeedMph,
   fmtTimeCourse,
-  formatDayLabel,
   scoreToStatus,
+  scoreToVerdict,
   rainIntensityCategory,
+  tempToCelsius,
+  weatherIdToIcon,
 } from "./utils.js";
+import {
+  courseLocalParts,
+  courseDayStartSec,
+  getTodayCourseYMD,
+  getDayIndexInCourseTZ,
+  courseDateFromDayOffset,
+  courseDateKey,
+  dateToCourseKey,
+  formatDayLabelCourse,
+  courseMinutesOfDay,
+} from "./timezone.js";
 
 export const ROUND_DURATIONS = {
   9: 2,
@@ -34,37 +47,89 @@ const TEE_TIME_THRESHOLDS = {
   },
 };
 
+const VERDICT_LABELS = {
+  EXCELLENT: "Excellent — prime conditions",
+  GOOD: "Good — solid golf weather",
+  PLAYABLE: "Playable — manageable conditions",
+  RISKY: "Risky — expect compromises",
+  POOR: "Poor — tough round ahead",
+  AVOID: "Avoid — not worth playing",
+};
+
+const VERDICT_ICONS = {
+  EXCELLENT: "✅",
+  GOOD: "✅",
+  PLAYABLE: "🟢",
+  RISKY: "⚠️",
+  POOR: "⏳",
+  AVOID: "⛔",
+};
+
 export function getRoundDurationHours(holes = 18) {
   return ROUND_DURATIONS[holes] ?? 4;
+}
+
+function getPlayability() {
+  if (typeof globalThis !== "undefined" && globalThis.window?.FF_PLAYABILITY) {
+    return globalThis.window.FF_PLAYABILITY;
+  }
+  if (typeof globalThis !== "undefined" && globalThis.FF_PLAYABILITY) {
+    return globalThis.FF_PLAYABILITY;
+  }
+  return null;
 }
 
 export function getForecastDaysAvailable(norm) {
   const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
   if (!hourly.length) return 0;
 
+  const tzOffset = norm?.timezoneOffset || 0;
   const days = new Set();
   for (const h of hourly) {
     if (typeof h?.dt === "number") {
-      days.add(new Date(h.dt * 1000).toDateString());
+      days.add(courseDateKey(h.dt, tzOffset));
     }
   }
   return Math.min(days.size, 5);
 }
 
 export function getDaylightWindowForDate(date, norm) {
-  const targetDate = new Date(date);
-  targetDate.setHours(0, 0, 0, 0);
-  const targetDayStart = Math.floor(targetDate.getTime() / 1000);
+  const tzOffset = norm?.timezoneOffset || 0;
+  const y = date.getFullYear();
+  const m = date.getMonth();
+  const d = date.getDate();
+  const dayStart = courseDayStartSec(y, m, d, tzOffset);
+  const dayKey = courseDateKey(dayStart, tzOffset);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStart = Math.floor(today.getTime() / 1000);
-  const dayOffset = Math.round((targetDayStart - todayStart) / 86400);
+  const daily = Array.isArray(norm?.daily) ? norm.daily : [];
+  const match = daily.find((entry) => {
+    if (typeof entry?.dt !== "number") return false;
+    return courseDateKey(entry.dt, tzOffset) === dayKey;
+  });
 
+  if (typeof match?.sunrise === "number" && typeof match?.sunset === "number") {
+    return { sunrise: match.sunrise, sunset: match.sunset };
+  }
+
+  const hourly = Array.isArray(norm?.hourly) ? norm.hourly : [];
+  const dayEnd = dayStart + 86400;
+  const dayHours = hourly.filter((h) => h.dt >= dayStart && h.dt < dayEnd);
+  if (dayHours.length) {
+    const estimated = estimateDaylightFromHourly(dayHours, dayStart, tzOffset);
+    if (estimated) return estimated;
+  }
+
+  const today = getTodayCourseYMD(tzOffset);
+  const todayStart = courseDayStartSec(today.year, today.month, today.day, tzOffset);
+  const dayOffset = Math.round((dayStart - todayStart) / 86400);
   const baseSunrise = norm?.sunrise;
   const baseSunset = norm?.sunset;
 
-  if (typeof baseSunrise === "number" && typeof baseSunset === "number") {
+  if (typeof baseSunrise === "number" && typeof baseSunset === "number" && dayOffset === 0) {
+    return { sunrise: baseSunrise, sunset: baseSunset };
+  }
+
+  if (typeof baseSunrise === "number" && typeof baseSunset === "number" && dayOffset > 0) {
     return {
       sunrise: baseSunrise + dayOffset * 86400,
       sunset: baseSunset + dayOffset * 86400,
@@ -72,8 +137,27 @@ export function getDaylightWindowForDate(date, norm) {
   }
 
   return {
-    sunrise: targetDayStart + FALLBACK_DAYLIGHT.startHour * 3600,
-    sunset: targetDayStart + FALLBACK_DAYLIGHT.endHour * 3600,
+    sunrise: dayStart + FALLBACK_DAYLIGHT.startHour * 3600,
+    sunset: dayStart + FALLBACK_DAYLIGHT.endHour * 3600,
+  };
+}
+
+function estimateDaylightFromHourly(dayHours, dayStart, tzOffset) {
+  let earliest = null;
+  let latest = null;
+  for (const h of dayHours) {
+    const w0 = Array.isArray(h?.weather) ? h.weather[0] : null;
+    const id = typeof w0?.id === "number" ? w0.id : 800;
+    const hour = courseLocalParts(h.dt, tzOffset).hours;
+    if (hour < 5 || hour > 22) continue;
+    if (id >= 700 && id < 800) continue;
+    if (earliest === null || h.dt < earliest) earliest = h.dt;
+    if (latest === null || h.dt > latest) latest = h.dt;
+  }
+  if (earliest === null) return null;
+  return {
+    sunrise: Math.max(dayStart + 6 * 3600, earliest - 3600),
+    sunset: Math.min(dayStart + 86400 - 3600, latest + 3 * 3600),
   };
 }
 
@@ -99,9 +183,9 @@ export function getValidTeeTimesForDate(date, norm, windowHours, stepMinutes = 8
     const roundEnd = slot + windowHours * 3600;
     if (roundEnd > sunset) continue;
 
-    const courseDate = new Date((slot + tzOffset) * 1000);
-    const hours = courseDate.getUTCHours().toString().padStart(2, "0");
-    const mins = courseDate.getUTCMinutes().toString().padStart(2, "0");
+    const p = courseLocalParts(slot, tzOffset);
+    const hours = p.hours.toString().padStart(2, "0");
+    const mins = p.minutes.toString().padStart(2, "0");
 
     options.push({ value: slot, label: `${hours}:${mins}` });
   }
@@ -113,19 +197,18 @@ export function getAvailableDates(norm, windowHours) {
   const numDays = getForecastDaysAvailable(norm);
   if (!numDays) return [];
 
+  const tzOffset = norm?.timezoneOffset || 0;
   const dates = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   for (let i = 0; i < numDays; i++) {
-    const date = new Date(today);
-    date.setDate(date.getDate() + i);
+    const date = courseDateFromDayOffset(i, tzOffset);
+    const dateKey = dateToCourseKey(date, tzOffset);
     const validTimes = getValidTeeTimesForDate(date, norm, windowHours);
-    const dayLabel = formatDayLabel(date, i);
+    const dayLabel = formatDayLabelCourse(date, i);
 
     dates.push({
       date,
-      dateKey: date.toDateString(),
+      dateKey,
       index: i,
       label: dayLabel,
       dayLabel,
@@ -144,22 +227,7 @@ export function getWindowData(hourly, teeTimeUnix, windowHours) {
   );
 }
 
-export function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours, units = "metric", countryCode = "gb") {
-  const windowData = getWindowData(hourlyForecast, teeTimeUnix, windowHours);
-
-  if (!windowData.length) {
-    return {
-      status: "UNKNOWN",
-      statusLabel: "No Data",
-      icon: "❓",
-      metrics: {},
-      reasons: [],
-      label: "No forecast data",
-      message: "No forecast data available for this time window.",
-      countryCode,
-    };
-  }
-
+function extractWindowMetrics(windowData, units = "metric") {
   const precipProbs = windowData
     .map((h) => (typeof h.pop === "number" ? Math.round(h.pop * 100) : null))
     .filter((v) => v !== null);
@@ -172,21 +240,19 @@ export function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours,
     .filter((v) => v !== null);
   const temps = windowData.map((h) => h.temp).filter((v) => typeof v === "number");
 
-  const maxPrecipProb = precipProbs.length ? Math.max(...precipProbs) : 0;
-  const totalPrecipMm = precipMms.reduce((s, v) => s + v, 0);
   const avgWind = windSpeeds.length ? windSpeeds.reduce((s, v) => s + v, 0) / windSpeeds.length : 0;
   const maxGust = gustSpeeds.length ? Math.max(...gustSpeeds) : avgWind * 1.3;
-  const avgTemp = temps.length ? temps.reduce((s, v) => s + v, 0) / temps.length : null;
-  const minTemp = temps.length ? Math.min(...temps) : null;
-
-  const metrics = {
-    maxPrecipProb: Math.round(maxPrecipProb),
-    totalPrecipMm: Math.round(totalPrecipMm * 10) / 10,
-    avgWind: Math.round(avgWind),
-    maxGust: Math.round(maxGust),
-    avgTemp: avgTemp !== null ? Math.round(avgTemp) : null,
-    minTemp: minTemp !== null ? Math.round(minTemp) : null,
-  };
+  const effectiveWind = Math.max(avgWind, maxGust * 0.85);
+  const maxPrecipProb = precipProbs.length ? Math.max(...precipProbs) : 0;
+  const totalPrecipMm = precipMms.reduce((s, v) => s + v, 0);
+  const avgTempC =
+    temps.length
+      ? temps.reduce((s, v) => s + (tempToCelsius(v, units) ?? 0), 0) / temps.length
+      : null;
+  const minTempC =
+    temps.length
+      ? Math.min(...temps.map((v) => tempToCelsius(v, units)).filter(Number.isFinite))
+      : null;
 
   const toGroup = (id) => (typeof id === "number" ? Math.floor(id / 100) : null);
   let thunder = false;
@@ -200,214 +266,462 @@ export function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours,
     if (g === 6 || id === 511) snowIce = true;
   }
 
-  const rainRateMmHr = windowHours > 0 ? totalPrecipMm / windowHours : 0;
-  const P = window.FF_PLAYABILITY || null;
-  const windChillC = P?.computeWindChillC
-    ? P.computeWindChillC(minTemp ?? avgTemp, avgWind)
-    : null;
+  return {
+    maxPrecipProb,
+    totalPrecipMm,
+    avgWind,
+    maxGust,
+    effectiveWind,
+    avgTempC,
+    minTempC,
+    thunder,
+    snowIce,
+    precipMms,
+    precipProbs,
+  };
+}
+
+function windPenaltyMph(effectiveMph) {
+  if (effectiveMph < 10) return { penalty: 0, text: null };
+  if (effectiveMph < 15) return { penalty: 5, text: "Light breeze — minor club adjustment" };
+  if (effectiveMph < 20) return { penalty: 12, text: "Noticeable wind — club selection matters" };
+  if (effectiveMph < 25) return { penalty: 20, text: "Challenging wind throughout" };
+  if (effectiveMph < 30) return { penalty: 35, text: "Difficult wind — expect big scores" };
+  return { penalty: 50, text: "Severe wind — consider postponing" };
+}
+
+function rainPenalty(totalRainMm, maxPop, profile) {
+  const heavyMin = profile?.rainHeavyMinMmHr ?? 5;
+  if (totalRainMm >= 6) {
+    return { penalty: 45, text: `Heavy rain (~${totalRainMm.toFixed(1)} mm)` };
+  }
+  if (totalRainMm >= 3) {
+    return { penalty: 30, text: `Moderate rain (~${totalRainMm.toFixed(1)} mm)` };
+  }
+  if (totalRainMm >= 1) {
+    return { penalty: 18, text: `Light rain (~${totalRainMm.toFixed(1)} mm) — waterproofs advised` };
+  }
+  if (totalRainMm >= 0.2) {
+    return { penalty: 8, text: "Drizzle possible — grips may slip" };
+  }
+  if (maxPop >= 0.85) {
+    return { penalty: 40, text: "Rain very likely throughout" };
+  }
+  if (maxPop >= 0.6) {
+    return { penalty: 25, text: "Good chance of rain" };
+  }
+  if (maxPop >= 0.35) {
+    return { penalty: 12, text: "Some rain risk" };
+  }
+  if (totalRainMm > heavyMin) {
+    return { penalty: 45, text: "Heavy rain expected" };
+  }
+  return { penalty: 0, text: null };
+}
+
+function tempPenaltyC(tempC, profile) {
+  if (!Number.isFinite(tempC)) return { penalty: 0, text: null };
+  const coldWarn = profile?.coldWarnC ?? 10;
+  const coldTough = profile?.coldToughC ?? 4;
+
+  if (tempC <= -2 || tempC >= 35) {
+    return { penalty: 28, text: `Extreme temperature (${Math.round(tempC)}°C)` };
+  }
+  if (tempC < coldTough || tempC >= 32) {
+    return { penalty: 15, text: `Uncomfortable temperature (${Math.round(tempC)}°C)` };
+  }
+  if (tempC < coldWarn) {
+    return { penalty: 8, text: "Chilly — bring layers and hand warmers" };
+  }
+  if (tempC >= 28) {
+    return { penalty: 10, text: "Hot — stay hydrated" };
+  }
+  return { penalty: 0, text: null };
+}
+
+function hardStopScore(hardStop) {
+  if (hardStop?.status === "AVOID") {
+    if (/thunder|lightning/i.test(hardStop.label || "")) return 5;
+    if (/snow|ice|freezing|wind chill/i.test(hardStop.label || "")) return 10;
+    return 15;
+  }
+  return 20;
+}
+
+export function buildGolfHeroMessage(metrics, factors, windowData, teeTimeUnix, windowHours, tzOffset) {
+  if (!windowData?.length) return "Select a tee time to see your golf forecast.";
+
+  const { totalPrecipMm, effectiveWind, maxPrecipProb } = metrics;
+  const dryUntil = findDryUntilHour(windowData, teeTimeUnix, tzOffset);
+  const rainFrom = findRainStartHour(windowData, teeTimeUnix, windowHours, tzOffset);
+
+  const parts = [];
+
+  if (totalPrecipMm < 0.2 && maxPrecipProb < 35) {
+    if (dryUntil) parts.push(`Dry until ${dryUntil}`);
+    else parts.push("Dry throughout your round");
+  } else if (totalPrecipMm >= 3) {
+    parts.push("Rain likely for much of the round — waterproofs essential");
+  } else if (rainFrom) {
+    parts.push(`Rain from ${rainFrom} — plan for wet conditions on the back nine`);
+  } else if (totalPrecipMm >= 0.5) {
+    parts.push("Light rain at times — keep towels handy");
+  } else if (maxPrecipProb >= 50) {
+    parts.push(`${maxPrecipProb}% rain chance — stay flexible`);
+  }
+
+  if (effectiveWind >= 25) {
+    parts.push("Strong wind will affect every shot");
+  } else if (effectiveWind >= 15) {
+    parts.push(parts.length ? "and breezy" : "Breezy but playable — club up into the wind");
+  } else if (effectiveWind >= 10 && !parts.length) {
+    parts.push("Light breeze — a fair test of ball-striking");
+  }
+
+  if (!parts.length) {
+    const positive = factors.filter((f) => !f.impact || f.impact >= -8);
+    if (positive.length === 0) return "Conditions are manageable — standard golf prep applies.";
+    return "Calm and dry — a good window to go low.";
+  }
+
+  return parts.slice(0, 2).join(". ") + ".";
+}
+
+function findDryUntilHour(windowData, teeTimeUnix, tzOffset) {
+  for (const h of windowData) {
+    const mm = typeof h.rain_mm === "number" ? h.rain_mm : 0;
+    const pop = typeof h.pop === "number" ? h.pop : 0;
+    if (mm >= 0.2 || pop >= 0.5) {
+      if (h.dt === teeTimeUnix) return null;
+      const prev = windowData.find((x) => x.dt < h.dt);
+      if (prev) return fmtTimeCourse(prev.dt + 3600, tzOffset);
+      return fmtTimeCourse(h.dt, tzOffset);
+    }
+  }
+  return fmtTimeCourse(windowData[windowData.length - 1].dt, tzOffset);
+}
+
+function findRainStartHour(windowData, teeTimeUnix, windowHours, tzOffset) {
+  const holeDurationMin = (windowHours * 60) / 18;
+  for (let i = 0; i < windowData.length; i++) {
+    const h = windowData[i];
+    const mm = typeof h.rain_mm === "number" ? h.rain_mm : 0;
+    const pop = typeof h.pop === "number" ? h.pop : 0;
+    if (mm >= 0.5 || pop >= 0.65) {
+      const elapsedMin = ((h.dt - teeTimeUnix) / 60);
+      const hole = Math.max(1, Math.min(18, Math.ceil(elapsedMin / holeDurationMin)));
+      if (hole <= 3) return fmtTimeCourse(h.dt, tzOffset);
+      const suffix = hole === 11 || hole === 12 || hole === 13 ? "th" : ["th", "st", "nd", "rd"][hole % 10 > 3 ? 0 : hole % 10] || "th";
+      return `the ${hole}${suffix} hole`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Authoritative golf verdict — single source for score, status, and messaging.
+ * Returns { score, status, verdict, message, factors, metrics, reasons, label, icon, hardStop }
+ */
+export function computeGolfVerdict(
+  windowData,
+  hourlyForecast,
+  teeTimeUnix,
+  windowHours,
+  units = "metric",
+  countryCode = "gb",
+  tzOffset = 0
+) {
+  if (!windowData?.length) {
+    return {
+      score: 0,
+      status: scoreToStatus(0),
+      verdict: "AVOID",
+      message: "No forecast data available for this time window.",
+      factors: [],
+      metrics: {},
+      reasons: [],
+      label: "No Data",
+      icon: "❓",
+      hardStop: false,
+      countryCode,
+    };
+  }
+
+  const raw = extractWindowMetrics(windowData, units);
+  const metrics = {
+    maxPrecipProb: Math.round(raw.maxPrecipProb),
+    totalPrecipMm: Math.round(raw.totalPrecipMm * 10) / 10,
+    avgWind: Math.round(raw.avgWind),
+    maxGust: Math.round(raw.maxGust),
+    effectiveWind: Math.round(raw.effectiveWind),
+    avgTemp: raw.avgTempC !== null ? Math.round(raw.avgTempC) : null,
+    minTemp: raw.minTempC !== null ? Math.round(raw.minTempC) : null,
+  };
+
+  const P = getPlayability();
   const profile = P?.getCountryProfile ? P.getCountryProfile(countryCode) : null;
+  const windChillC = P?.computeWindChillC
+    ? P.computeWindChillC(raw.minTempC ?? raw.avgTempC, raw.avgWind)
+    : null;
+
+  if (windChillC !== null) metrics.windChillC = Math.round(windChillC);
 
   const hardStop = P?.applyHardStops
     ? P.applyHardStops({
-        airTempC: minTemp ?? avgTemp,
-        windMph: avgWind,
+        airTempC: raw.minTempC ?? raw.avgTempC,
+        windMph: raw.avgWind,
         windChillC,
-        thunder,
-        snowIce,
+        thunder: raw.thunder,
+        snowIce: raw.snowIce,
         profile,
       })
     : null;
 
   if (hardStop) {
+    const score = hardStopScore(hardStop);
+    const verdict = scoreToVerdict(score);
     return {
-      status: hardStop.status,
-      statusLabel: hardStop.status,
-      icon: hardStop.status === "AVOID" ? "⛔" : "⚠️",
-      metrics: { ...metrics, windChillC: windChillC !== null ? Math.round(windChillC) : null },
+      score,
+      status: scoreToStatus(score),
+      verdict,
+      message: hardStop.message,
+      factors: (hardStop.reasons || []).map((r) => ({ key: "hardStop", text: r, impact: score - 100 })),
+      metrics,
       reasons: hardStop.reasons || [],
       label: hardStop.label,
-      message: hardStop.message,
+      icon: hardStop.status === "AVOID" ? "⛔" : "⚠️",
+      hardStop: true,
       countryCode,
+      rainRateMmHr: windowHours > 0 ? raw.totalPrecipMm / windowHours : 0,
     };
-  }
-
-  const T = TEE_TIME_THRESHOLDS;
-  const reasons = [];
-  let status = "PLAY";
-
-  if (totalPrecipMm >= T.noChance.totalPrecipMm) {
-    status = "DELAY";
-    reasons.push(`Heavy rain expected (~${metrics.totalPrecipMm}mm)`);
-  } else if (
-    maxPrecipProb >= T.noChance.precipProbAndRainMm.prob &&
-    totalPrecipMm >= T.noChance.precipProbAndRainMm.mm
-  ) {
-    status = "DELAY";
-    reasons.push(`Rain very likely (${metrics.maxPrecipProb}%)`);
-  } else if (maxGust >= T.noChance.maxGust) {
-    status = "AVOID";
-    reasons.push(`Dangerous gusts (up to ${metrics.maxGust} mph)`);
-  }
-
-  if (status === "PLAY") {
-    if (totalPrecipMm >= T.risky.totalPrecipMmMin && totalPrecipMm < T.risky.totalPrecipMmMax) {
-      status = "RISKY";
-      reasons.push(`~${metrics.totalPrecipMm}mm rain expected`);
-    }
-    if (maxPrecipProb >= T.risky.precipProbMin && maxPrecipProb <= T.risky.precipProbMax) {
-      status = "RISKY";
-      reasons.push(`Rain chance ${metrics.maxPrecipProb}%`);
-    }
-    if (maxGust >= T.risky.maxGustMin && maxGust <= T.risky.maxGustMax) {
-      status = "RISKY";
-      reasons.push(`Gusty winds (up to ${metrics.maxGust} mph)`);
-    }
-    if (avgWind >= T.risky.avgWind) {
-      status = "RISKY";
-      reasons.push(`Strong wind (~${metrics.avgWind} mph)`);
-    }
-  }
-
-  const rainModerateMax = profile?.rainModerateMaxMmHr ?? 6.0;
-  const rainHeavyMin = profile?.rainHeavyMinMmHr ?? 6.0;
-  const windWindyMph = profile?.windWindyMph ?? 21;
-
-  if (rainRateMmHr > rainHeavyMin) status = "AVOID";
-  else if (rainRateMmHr > rainModerateMax) status = status === "PLAY" ? "DELAY" : status;
-  else if (rainRateMmHr > 2) status = status === "PLAY" ? "RISKY" : status;
-
-  if (avgWind >= windWindyMph && status === "PLAY") status = "RISKY";
-
-  const iconMap = { PLAY: "✅", RISKY: "⚠️", DELAY: "⏳", AVOID: "⛔", UNKNOWN: "❓" };
-  const labelMap = {
-    PLAY: "PLAY — It's playable",
-    RISKY: "RISKY — Mixed conditions",
-    DELAY: "DELAY — Poor conditions",
-    AVOID: "AVOID — Don't play",
-    UNKNOWN: "Unknown",
-  };
-  const messageMap = {
-    PLAY: "Solid window. Go play.",
-    RISKY: "Playable, but expect compromises.",
-    DELAY: "Consider waiting or rescheduling.",
-    AVOID: "Not worth it in these conditions.",
-    UNKNOWN: "Select a tee time to see conditions.",
-  };
-
-  return {
-    status,
-    statusLabel: status,
-    icon: iconMap[status] || "❓",
-    metrics,
-    reasons,
-    label: labelMap[status] || status,
-    message: messageMap[status] || "",
-    countryCode,
-    rainRateMmHr,
-  };
-}
-
-export function calculateRoundScore(windowData, units = "metric") {
-  if (!windowData?.length) {
-    return { score: 0, factors: [], status: scoreToStatus(0) };
   }
 
   let score = 100;
   const factors = [];
+  const maxPop = Math.max(...windowData.map((h) => (typeof h.pop === "number" ? h.pop : 0)));
 
-  const windSpeeds = windowData.map((h) => windSpeedMph(h.wind_speed, units)).filter(Number.isFinite);
-  const pops = windowData.map((h) => (typeof h.pop === "number" ? h.pop : 0));
-  const rainMms = windowData.map((h) => (typeof h.rain_mm === "number" ? h.rain_mm : 0));
-  const temps = windowData.map((h) => h.temp).filter((t) => typeof t === "number");
-
-  const avgWind = windSpeeds.length ? windSpeeds.reduce((a, b) => a + b, 0) / windSpeeds.length : 0;
-  const maxPop = pops.length ? Math.max(...pops) : 0;
-  const totalRain = rainMms.reduce((a, b) => a + b, 0);
-  const avgTemp = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null;
-
-  if (units === "metric") {
-    if (avgWind > 12) { score -= 45; factors.push({ key: "wind", text: "Very windy throughout your round", impact: -45 }); }
-    else if (avgWind > 9) { score -= 30; factors.push({ key: "wind", text: "Breezy — club selection matters", impact: -30 }); }
-    else if (avgWind > 6) { score -= 18; factors.push({ key: "wind", text: "Moderate breeze", impact: -18 }); }
-  } else {
-    if (avgWind > 27) { score -= 45; factors.push({ key: "wind", text: "Very windy throughout your round", impact: -45 }); }
-    else if (avgWind > 20) { score -= 30; factors.push({ key: "wind", text: "Breezy — club selection matters", impact: -30 }); }
-    else if (avgWind > 14) { score -= 18; factors.push({ key: "wind", text: "Moderate breeze", impact: -18 }); }
+  const wind = windPenaltyMph(raw.effectiveWind);
+  if (wind.penalty) {
+    score -= wind.penalty;
+    factors.push({ key: "wind", text: wind.text, impact: -wind.penalty });
   }
 
-  if (totalRain >= 4) {
-    score -= 40;
-    factors.push({ key: "rain", text: `Heavy rain expected (~${totalRain.toFixed(1)}mm)`, impact: -40 });
-  } else if (totalRain >= 1.5) {
-    score -= 25;
-    factors.push({ key: "rain", text: `Rain during your round (~${totalRain.toFixed(1)}mm)`, impact: -25 });
-  } else if (totalRain >= 0.5) {
-    score -= 12;
-    factors.push({ key: "rain", text: "Light rain possible — waterproofs advised", impact: -12 });
-  } else if (maxPop >= 0.85) {
-    score -= 50;
-    factors.push({ key: "rain", text: "Rain very likely throughout", impact: -50 });
-  } else if (maxPop >= 0.6) {
-    score -= 35;
-    factors.push({ key: "rain", text: "Good chance of rain", impact: -35 });
-  } else if (maxPop >= 0.35) {
-    score -= 20;
-    factors.push({ key: "rain", text: "Some rain risk", impact: -20 });
+  const rain = rainPenalty(raw.totalPrecipMm, maxPop, profile);
+  if (rain.penalty) {
+    score -= rain.penalty;
+    factors.push({ key: "rain", text: rain.text, impact: -rain.penalty });
   }
 
-  if (avgTemp !== null) {
-    if (units === "metric") {
-      if (avgTemp < 3 || avgTemp > 30) {
-        score -= 25;
-        factors.push({ key: "temp", text: `Extreme temperature (${Math.round(avgTemp)}°C)`, impact: -25 });
-      } else if (avgTemp < 7 || avgTemp > 27) {
-        score -= 12;
-        factors.push({ key: "temp", text: `Uncomfortable temperature (${Math.round(avgTemp)}°C)`, impact: -12 });
-      } else if (avgTemp < 10) {
-        score -= 6;
-        factors.push({ key: "temp", text: "Chilly — bring layers", impact: -6 });
-      }
-    } else {
-      if (avgTemp < 38 || avgTemp > 86) {
-        score -= 25;
-        factors.push({ key: "temp", text: `Extreme temperature (${Math.round(avgTemp)}°F)`, impact: -25 });
-      } else if (avgTemp < 45 || avgTemp > 82) {
-        score -= 12;
-        factors.push({ key: "temp", text: "Uncomfortable temperature", impact: -12 });
-      }
+  const temp = tempPenaltyC(raw.minTempC ?? raw.avgTempC, profile);
+  if (temp.penalty) {
+    score -= temp.penalty;
+    factors.push({ key: "temp", text: temp.text, impact: -temp.penalty });
+  }
+
+  const rainRateMmHr = windowHours > 0 ? raw.totalPrecipMm / windowHours : 0;
+  const T = TEE_TIME_THRESHOLDS;
+  const reasons = [];
+
+  if (raw.totalPrecipMm >= T.noChance.totalPrecipMm) {
+    score = Math.min(score, 25);
+    reasons.push(`Heavy rain expected (~${metrics.totalPrecipMm}mm)`);
+  } else if (
+    raw.maxPrecipProb >= T.noChance.precipProbAndRainMm.prob &&
+    raw.totalPrecipMm >= T.noChance.precipProbAndRainMm.mm
+  ) {
+    score = Math.min(score, 28);
+    reasons.push(`Rain very likely (${metrics.maxPrecipProb}%)`);
+  } else if (raw.maxGust >= T.noChance.maxGust) {
+    score = Math.min(score, 12);
+    reasons.push(`Dangerous gusts (up to ${metrics.maxGust} mph)`);
+  }
+
+  const rainModerateMax = profile?.rainModerateMaxMmHr ?? 5.0;
+  const rainHeavyMin = profile?.rainHeavyMinMmHr ?? 5.0;
+  const windWindyMph = profile?.windWindyMph ?? 21;
+
+  if (rainRateMmHr > rainHeavyMin) score = Math.min(score, 15);
+  else if (rainRateMmHr > rainModerateMax) score = Math.min(score, 35);
+  else if (rainRateMmHr > 2) score = Math.min(score, 55);
+
+  if (raw.effectiveWind >= windWindyMph) score = Math.min(score, 58);
+
+  score = clamp(Math.round(score), 0, 100);
+  const verdict = scoreToVerdict(score);
+  const message = buildGolfHeroMessage(
+    { ...metrics, effectiveWind: raw.effectiveWind, maxPrecipProb: raw.maxPrecipProb },
+    factors,
+    windowData,
+    teeTimeUnix,
+    windowHours,
+    tzOffset
+  );
+
+  return {
+    score,
+    status: scoreToStatus(score),
+    verdict,
+    message,
+    factors,
+    metrics,
+    reasons,
+    label: VERDICT_LABELS[verdict] || verdict,
+    icon: VERDICT_ICONS[verdict] || "❓",
+    hardStop: false,
+    countryCode,
+    rainRateMmHr,
+    avgWind: raw.avgWind,
+    totalRain: raw.totalPrecipMm,
+    avgTemp: raw.avgTempC,
+    maxPop,
+  };
+}
+
+/** @deprecated Use computeGolfVerdict */
+export function computeTeeTimeDecision(hourlyForecast, teeTimeUnix, windowHours, units = "metric", countryCode = "gb") {
+  const windowData = getWindowData(hourlyForecast, teeTimeUnix, windowHours);
+  const v = computeGolfVerdict(windowData, hourlyForecast, teeTimeUnix, windowHours, units, countryCode);
+  const legacyStatus =
+    v.hardStop || v.verdict === "AVOID"
+      ? "AVOID"
+      : v.verdict === "POOR"
+        ? "DELAY"
+        : v.verdict === "RISKY"
+          ? "RISKY"
+          : "PLAY";
+  return {
+    status: legacyStatus,
+    statusLabel: legacyStatus,
+    icon: v.icon,
+    metrics: v.metrics,
+    reasons: [...v.reasons, ...v.factors.map((f) => f.text)],
+    label: v.label,
+    message: v.message,
+    countryCode,
+    rainRateMmHr: v.rainRateMmHr,
+  };
+}
+
+/** @deprecated Use computeGolfVerdict */
+export function calculateRoundScore(windowData, units = "metric", countryCode = "gb") {
+  if (!windowData?.length) {
+    return { score: 0, factors: [], status: scoreToStatus(0) };
+  }
+  const teeTimeUnix = windowData[0].dt;
+  const windowHours = windowData.length;
+  const v = computeGolfVerdict(windowData, windowData, teeTimeUnix, windowHours, units, countryCode);
+  return {
+    score: v.score,
+    factors: v.factors,
+    status: v.status,
+    avgWind: v.avgWind,
+    totalRain: v.totalRain,
+    avgTemp: v.avgTemp,
+    maxPop: v.maxPop,
+  };
+}
+
+export function calculateDayScore(norm, date, units = "metric", windowHours = 4, countryCode = "gb") {
+  const times = getValidTeeTimesForDate(date, norm, windowHours);
+  if (!times.length) {
+    const tzOffset = norm?.timezoneOffset || 0;
+    const y = date.getFullYear();
+    const dayStart = courseDayStartSec(y, date.getMonth(), date.getDate(), tzOffset);
+    const dayEnd = dayStart + 86400;
+    const dayHourly = (norm?.hourly || []).filter(
+      (h) => typeof h?.dt === "number" && h.dt >= dayStart && h.dt < dayEnd
+    );
+    if (!dayHourly.length) return { score: 0, status: scoreToStatus(0), weatherIcon: "☁️" };
+    const slice = dayHourly.slice(0, Math.ceil(windowHours));
+    const v = computeGolfVerdict(slice, norm?.hourly, slice[0]?.dt, windowHours, units, countryCode);
+    return {
+      score: v.score,
+      bestScore: v.score,
+      representativeScore: v.score,
+      status: v.status,
+      weatherIcon: pickRepresentativeIcon(slice),
+      bestTeeTime: null,
+      bestTeeTimeUnix: null,
+    };
+  }
+
+  let bestScore = -1;
+  let bestTeeTime = null;
+  let bestWindow = null;
+  let totalScore = 0;
+
+  for (const t of times) {
+    const windowData = getWindowData(norm.hourly, t.value, windowHours);
+    const v = computeGolfVerdict(windowData, norm.hourly, t.value, windowHours, units, countryCode);
+    totalScore += v.score;
+    if (v.score > bestScore) {
+      bestScore = v.score;
+      bestTeeTime = t;
+      bestWindow = windowData;
     }
   }
 
-  score = clamp(Math.round(score), 0, 100);
-  return { score, factors, status: scoreToStatus(score), avgWind, totalRain, avgTemp, maxPop };
+  const representativeScore = Math.round(totalScore / times.length);
+  return {
+    score: bestScore,
+    bestScore,
+    representativeScore,
+    bestTeeTime: bestTeeTime?.label ?? null,
+    bestTeeTimeUnix: bestTeeTime?.value ?? null,
+    status: scoreToStatus(bestScore),
+    weatherIcon: pickRepresentativeIcon(bestWindow || []),
+  };
 }
 
-export function calculateDayScore(norm, date, units = "metric", windowHours = 4) {
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayStartSec = Math.floor(dayStart.getTime() / 1000);
-  const dayEndSec = dayStartSec + 86400;
+function pickRepresentativeIcon(windowData) {
+  if (!windowData?.length) return "☁️";
+  const mid = windowData[Math.floor(windowData.length / 2)];
+  const w0 = Array.isArray(mid?.weather) ? mid.weather[0] : null;
+  return weatherIdToIcon(w0?.id);
+}
 
-  const dayHourly = (norm?.hourly || []).filter(
-    (h) => typeof h?.dt === "number" && h.dt >= dayStartSec && h.dt < dayEndSec
-  );
+function computeWettestPeriod(hours) {
+  const wet = hours.filter((h) => h.rainfallMm >= 0.1);
+  if (!wet.length) return null;
 
-  if (!dayHourly.length) return { score: 0, status: scoreToStatus(0) };
+  const segments = [];
+  let seg = [wet[0]];
+  for (let i = 1; i < wet.length; i++) {
+    if (wet[i].dt - wet[i - 1].dt <= 3600) seg.push(wet[i]);
+    else {
+      segments.push(seg);
+      seg = [wet[i]];
+    }
+  }
+  segments.push(seg);
 
-  const times = getValidTeeTimesForDate(date, norm, windowHours);
-  if (!times.length) return calculateRoundScore(dayHourly.slice(0, Math.ceil(windowHours)), units);
+  let best = segments[0];
+  let bestPeak = 0;
+  for (const s of segments) {
+    const peak = Math.max(...s.map((h) => h.rainfallMm));
+    const total = s.reduce((a, h) => a + h.rainfallMm, 0);
+    const score = peak * 2 + total;
+    if (score > bestPeak) {
+      bestPeak = score;
+      best = s;
+    }
+  }
 
-  const midTime = times[Math.floor(times.length / 2)]?.value;
-  if (!midTime) return calculateRoundScore(dayHourly.slice(0, Math.ceil(windowHours)), units);
-
-  const windowData = getWindowData(norm.hourly, midTime, windowHours);
-  return calculateRoundScore(windowData, units);
+  return `${best[0].time} – ${best[best.length - 1].time}`;
 }
 
 export function analyzeRainDuringRound(hourly, teeTimeUnix, windowHours, tzOffset = 0) {
   const windowData = getWindowData(hourly, teeTimeUnix, windowHours);
   if (!windowData.length) {
-    return { hours: [], totalMm: 0, wettestPeriod: null, description: "No rain data", peakIntensity: null };
+    return {
+      hours: [],
+      totalMm: 0,
+      wettestPeriod: null,
+      description: "No rain data",
+      peakIntensity: null,
+      peakHour: null,
+      peakRainfallMm: 0,
+    };
   }
 
   let totalMm = 0;
@@ -416,33 +730,37 @@ export function analyzeRainDuringRound(hourly, teeTimeUnix, windowHours, tzOffse
   const hours = [];
 
   for (const h of windowData) {
-    const mm = typeof h.rain_mm === "number" ? h.rain_mm : 0;
-    totalMm += mm;
-    const intensity = rainIntensityCategory(mm);
+    const rainfallMm = typeof h.rain_mm === "number" ? h.rain_mm : 0;
+    const probability = typeof h.pop === "number" ? Math.round(h.pop * 100) : 0;
+    totalMm += rainfallMm;
+    const intensity = rainIntensityCategory(rainfallMm);
+    const w0 = Array.isArray(h?.weather) ? h.weather[0] : null;
     hours.push({
       dt: h.dt,
       time: fmtTimeCourse(h.dt, tzOffset),
-      mm,
+      probability,
+      rainfallMm,
+      mm: rainfallMm,
       intensity,
+      weatherIcon: weatherIdToIcon(w0?.id),
     });
-    if (mm > peakMm) {
-      peakMm = mm;
+    if (rainfallMm > peakMm) {
+      peakMm = rainfallMm;
       peakHour = h.dt;
     }
   }
 
-  const wetHours = hours.filter((h) => h.mm >= 0.1);
-  let wettestPeriod = null;
-  if (wetHours.length) {
-    wettestPeriod = `${wetHours[0].time} – ${wetHours[wetHours.length - 1].time}`;
-  }
+  const wettestPeriod = computeWettestPeriod(hours);
+  const peakIntensity = rainIntensityCategory(peakMm);
 
   let description = "Dry throughout your round";
-  const peakIntensity = rainIntensityCategory(peakMm);
-  if (totalMm >= 4) description = "Heavy rain expected — consider rescheduling";
-  else if (totalMm >= 1.5) description = "Steady rain likely during your round";
-  else if (totalMm >= 0.5) description = "Light rain at times — waterproofs recommended";
-  else if (totalMm >= 0.1) description = "Possible drizzle — mostly playable";
+  if (totalMm >= 6) description = "Heavy rain expected — consider rescheduling";
+  else if (totalMm >= 3) description = "Steady rain likely during your round";
+  else if (totalMm >= 1) description = "Light rain at times — waterproofs recommended";
+  else if (totalMm >= 0.2) description = "Possible drizzle — mostly playable";
+  else if (hours.some((h) => h.probability >= 60 && h.rainfallMm < 0.1)) {
+    description = "Dry now but rain possible — watch the radar";
+  }
 
   return {
     hours,
@@ -451,13 +769,20 @@ export function analyzeRainDuringRound(hourly, teeTimeUnix, windowHours, tzOffse
     description,
     peakIntensity,
     peakHour,
+    peakRainfallMm: peakMm,
   };
 }
 
-export function getImpactCards(decision, scoreResult, units = "metric") {
-  const m = decision?.metrics || {};
+export function getImpactCards(verdict, units = "metric") {
+  const m = verdict?.metrics || {};
   const tu = units === "metric" ? "°C" : "°F";
   const windUnit = " mph";
+  const displayTemp =
+    units === "metric"
+      ? m.avgTemp
+      : m.avgTemp != null
+        ? Math.round((m.avgTemp * 9) / 5 + 32)
+        : null;
 
   let rainLine = "Dry window expected";
   if (m.totalPrecipMm >= 4) rainLine = "Heavy rain — likely unplayable";
@@ -467,47 +792,78 @@ export function getImpactCards(decision, scoreResult, units = "metric") {
 
   let windLine = "Calm conditions";
   if (m.maxGust >= 35) windLine = `Dangerous gusts up to ${m.maxGust}${windUnit}`;
-  else if (m.avgWind >= 21) windLine = `Very windy (~${m.avgWind}${windUnit} avg)`;
-  else if (m.avgWind >= 12) windLine = `Breezy (~${m.avgWind}${windUnit} avg)`;
+  else if (m.effectiveWind >= 25) windLine = `Very windy (~${m.avgWind}${windUnit} avg, gusts ${m.maxGust})`;
+  else if (m.effectiveWind >= 15) windLine = `Breezy (~${m.avgWind}${windUnit} avg)`;
 
   let tempLine = "Comfortable temperature";
-  if (m.avgTemp !== null) {
-    if (units === "metric") {
-      if (m.avgTemp <= 3) tempLine = `Very cold (${m.avgTemp}${tu}) — layer up`;
-      else if (m.avgTemp <= 8) tempLine = `Chilly (${m.avgTemp}${tu}) — bring layers`;
-      else if (m.avgTemp >= 30) tempLine = `Hot (${m.avgTemp}${tu}) — stay hydrated`;
-      else tempLine = `Around ${m.avgTemp}${tu} during your round`;
-    } else {
-      tempLine = `Around ${m.avgTemp}${tu} during your round`;
-    }
+  if (displayTemp !== null) {
+    if (m.avgTemp <= 3) tempLine = `Very cold (${displayTemp}${tu}) — layer up`;
+    else if (m.avgTemp <= 8) tempLine = `Chilly (${displayTemp}${tu}) — bring layers`;
+    else if (m.avgTemp >= 30) tempLine = `Hot (${displayTemp}${tu}) — stay hydrated`;
+    else tempLine = `Around ${displayTemp}${tu} during your round`;
   }
 
   return [
     { type: "rain", title: "Rain", value: m.totalPrecipMm != null ? `${m.totalPrecipMm} mm` : "—", line: rainLine },
     { type: "wind", title: "Wind", value: m.avgWind != null ? `${m.avgWind}${windUnit}` : "—", line: windLine },
-    { type: "temp", title: "Temperature", value: m.avgTemp != null ? `${m.avgTemp}${tu}` : "—", line: tempLine },
+    { type: "temp", title: "Temperature", value: displayTemp != null ? `${displayTemp}${tu}` : "—", line: tempLine },
   ];
 }
 
-export function findBetterTeeTime(norm, selectedDate, currentTeeTime, windowHours, units, countryCode, minImprovement = 12) {
+function compareTeeTimeReasons(currentV, bestV) {
+  const bullets = [];
+  const cm = currentV.metrics;
+  const bm = bestV.metrics;
+
+  if (bm.totalPrecipMm < cm.totalPrecipMm - 0.3) bullets.push("Drier");
+  if (bm.effectiveWind < cm.effectiveWind - 2) bullets.push("Gusts lower");
+  if (bm.maxPrecipProb < cm.maxPrecipProb - 15) bullets.push("Less rain risk");
+  if (bm.avgTemp > cm.avgTemp + 2) bullets.push("Warmer");
+  if (bm.avgTemp < cm.avgTemp - 2) bullets.push("Cooler");
+  if (!bullets.length) bullets.push("Better overall conditions");
+  return bullets;
+}
+
+export function findBetterTeeTime(
+  norm,
+  selectedDate,
+  currentTeeTime,
+  windowHours,
+  units,
+  countryCode,
+  minImprovement = 11
+) {
   const times = getValidTeeTimesForDate(selectedDate, norm, windowHours);
   if (times.length < 2) return null;
 
   const currentWindow = getWindowData(norm.hourly, currentTeeTime, windowHours);
-  const currentScore = calculateRoundScore(currentWindow, units).score;
+  const currentV = computeGolfVerdict(
+    currentWindow,
+    norm.hourly,
+    currentTeeTime,
+    windowHours,
+    units,
+    countryCode
+  );
 
   let best = null;
-  let bestScore = currentScore;
+  let bestScore = currentV.score;
 
   for (const t of times) {
     if (t.value === currentTeeTime) continue;
     const windowData = getWindowData(norm.hourly, t.value, windowHours);
-    const { score } = calculateRoundScore(windowData, units);
-    const decision = computeTeeTimeDecision(norm.hourly, t.value, windowHours, units, countryCode);
-    if (decision.status === "AVOID") continue;
-    if (score > bestScore) {
-      bestScore = score;
-      best = { teeTime: t.value, label: t.label, score, improvement: score - currentScore, decision };
+    const v = computeGolfVerdict(windowData, norm.hourly, t.value, windowHours, units, countryCode);
+    if (v.hardStop || v.verdict === "AVOID") continue;
+    if (v.score > bestScore) {
+      bestScore = v.score;
+      best = {
+        teeTime: t.value,
+        label: t.label,
+        score: v.score,
+        improvement: v.score - currentV.score,
+        verdict: v,
+        reasons: compareTeeTimeReasons(currentV, v),
+      };
     }
   }
 
@@ -515,19 +871,18 @@ export function findBetterTeeTime(norm, selectedDate, currentTeeTime, windowHour
   return best;
 }
 
-export function findNearestValidTime(options, preferredTime) {
+export function findNearestValidTime(options, preferredTime, tzOffset = 0) {
   if (!options.length) return null;
   if (!preferredTime) return options[0]?.value ?? null;
 
-  const prefDate = new Date(preferredTime * 1000);
-  const prefMinutes = prefDate.getHours() * 60 + prefDate.getMinutes();
+  const prefMin = courseMinutesOfDay(preferredTime, tzOffset);
   let closest = options[0];
   let closestDiff = Infinity;
 
   for (const opt of options) {
-    const optDate = new Date(opt.value * 1000);
-    const optMinutes = optDate.getHours() * 60 + optDate.getMinutes();
-    const diff = Math.abs(optMinutes - prefMinutes);
+    const optMin = courseMinutesOfDay(opt.value, tzOffset);
+    let diff = Math.abs(optMin - prefMin);
+    if (diff > 720) diff = 1440 - diff;
     if (diff < closestDiff) {
       closestDiff = diff;
       closest = opt;
@@ -541,15 +896,44 @@ export function getDefaultTeeTime(date, norm, windowHours) {
   const options = getValidTeeTimesForDate(date, norm, windowHours);
   if (!options.length) return null;
 
+  const tzOffset = norm?.timezoneOffset || 0;
   const now = nowSec();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const isToday = date.toDateString() === today.toDateString();
+  const todayKey = courseDateKey(now, tzOffset);
+  const dateKey = dateToCourseKey(date, tzOffset);
+  const isToday = dateKey === todayKey;
 
   if (isToday) {
     const future = options.find((o) => o.value >= now);
     return future?.value ?? options[0].value;
   }
 
-  return options[Math.floor(options.length / 3)]?.value ?? options[0].value;
+  const targetMin = 9 * 60 + 30;
+  let best = options[0];
+  let bestDiff = Infinity;
+  for (const o of options) {
+    const diff = Math.abs(courseMinutesOfDay(o.value, tzOffset) - targetMin);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = o;
+    }
+  }
+  return best.value;
+}
+
+export function getBestDayThisWeek(dayScores, days) {
+  if (!days?.length) return null;
+  let best = null;
+  for (const d of days) {
+    const ds = dayScores[d.dateKey];
+    if (!ds || !d.hasValidTimes) continue;
+    if (!best || ds.bestScore > best.score) {
+      best = {
+        dateKey: d.dateKey,
+        dayLabel: d.dayLabel,
+        score: ds.bestScore,
+        bestTeeTime: ds.bestTeeTime,
+      };
+    }
+  }
+  return best;
 }

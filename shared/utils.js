@@ -47,20 +47,54 @@ export function formatDayLabel(date, index) {
   return `${dayName} ${date.getDate()}`;
 }
 
+export function scoreToVerdict(score) {
+  if (score >= 90) return "EXCELLENT";
+  if (score >= 80) return "GOOD";
+  if (score >= 65) return "PLAYABLE";
+  if (score >= 50) return "RISKY";
+  if (score >= 30) return "POOR";
+  return "AVOID";
+}
+
 export function scoreToStatus(score) {
-  if (score >= 85) return { key: "excellent", label: "Excellent" };
-  if (score >= 72) return { key: "good", label: "Good" };
-  if (score >= 48) return { key: "risky", label: "Risky" };
-  if (score >= 25) return { key: "poor", label: "Poor" };
-  return { key: "avoid", label: "Avoid" };
+  const verdict = scoreToVerdict(score);
+  const map = {
+    EXCELLENT: { key: "excellent", label: "Excellent" },
+    GOOD: { key: "good", label: "Good" },
+    PLAYABLE: { key: "playable", label: "Playable" },
+    RISKY: { key: "risky", label: "Risky" },
+    POOR: { key: "poor", label: "Poor" },
+    AVOID: { key: "avoid", label: "Avoid" },
+  };
+  return map[verdict];
 }
 
 export function rainIntensityCategory(mmHr) {
   if (!Number.isFinite(mmHr) || mmHr < 0.1) return { key: "dry", label: "Dry" };
   if (mmHr <= 0.5) return { key: "drizzle", label: "Drizzle" };
   if (mmHr <= 2.0) return { key: "light", label: "Light rain" };
-  if (mmHr <= 6.0) return { key: "moderate", label: "Moderate rain" };
+  if (mmHr <= 5.0) return { key: "moderate", label: "Moderate rain" };
   return { key: "heavy", label: "Heavy rain" };
+}
+
+/** Normalize display-unit temperature to °C for scoring. */
+export function tempToCelsius(temp, units = "metric") {
+  if (!Number.isFinite(temp)) return null;
+  return units === "metric" ? temp : ((temp - 32) * 5) / 9;
+}
+
+export function weatherIdToIcon(weatherId) {
+  if (typeof weatherId !== "number") return "☁️";
+  const g = Math.floor(weatherId / 100);
+  if (weatherId === 800) return "☀️";
+  if (weatherId === 801) return "🌤️";
+  if (g === 8) return "☁️";
+  if (g === 2) return "⛈️";
+  if (g === 3 || g === 5) return "🌧️";
+  if (g === 6) return "🌨️";
+  if (weatherId === 741) return "💨";
+  if (g === 7) return "🌫️";
+  return "🌦️";
 }
 
 export function calculateDistance(lat1, lon1, lat2, lon2) {

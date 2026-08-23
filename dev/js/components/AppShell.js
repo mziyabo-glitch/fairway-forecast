@@ -1,4 +1,4 @@
-import { esc } from "../../shared/utils.js";
+import { esc } from "../../../shared/utils.js";
 
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: "home" },
@@ -7,11 +7,13 @@ const NAV_ITEMS = [
   { id: "rounds", label: "Rounds", icon: "flag" },
 ];
 
-export function renderAppShell(activeTab = "forecast") {
+let sheetTrigger = null;
+
+export function renderAppShell(activeTab = "home") {
   return `
     <div class="fw-dev-banner" role="status">
       <span class="fw-dev-dot" aria-hidden="true"></span>
-      <span>DEV — Rebuild Preview</span>
+      <span>DEV — Rebuild Preview (Milestone 1.5)</span>
       <a href="/" class="fw-dev-link">Production</a>
     </div>
     <div class="fw-app">
@@ -33,7 +35,7 @@ export function renderAppShell(activeTab = "forecast") {
       <div class="fw-sheet-handle" aria-hidden="true"></div>
       <div class="fw-sheet-header">
         <h2 id="fwSheetTitle" class="fw-sheet-title"></h2>
-        <button type="button" id="fwSheetClose" class="fw-sheet-close" aria-label="Close">×</button>
+        <button type="button" id="fwSheetClose" class="fw-sheet-close" aria-label="Close dialog">×</button>
       </div>
       <div id="fwSheetBody" class="fw-sheet-body"></div>
     </div>
@@ -57,18 +59,41 @@ export function setActiveTab(tab) {
   });
 }
 
-export function openSheet(title, bodyHtml) {
+function getFocusable(container) {
+  return container.querySelectorAll(
+    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+  );
+}
+
+function trapFocus(e, sheet) {
+  if (e.key !== "Tab" || sheet.hidden) return;
+  const focusable = getFocusable(sheet);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+export function openSheet(title, bodyHtml, triggerEl = null) {
   const backdrop = document.getElementById("fwSheetBackdrop");
   const sheet = document.getElementById("fwSheet");
   const titleEl = document.getElementById("fwSheetTitle");
   const bodyEl = document.getElementById("fwSheetBody");
   if (!backdrop || !sheet || !titleEl || !bodyEl) return;
 
+  sheetTrigger = triggerEl || document.activeElement;
   titleEl.textContent = title;
   bodyEl.innerHTML = bodyHtml;
   backdrop.hidden = false;
   sheet.hidden = false;
   document.body.classList.add("fw-sheet-open");
+  document.getElementById("fwSheetClose")?.focus();
 }
 
 export function closeSheet() {
@@ -77,12 +102,16 @@ export function closeSheet() {
   if (backdrop) backdrop.hidden = true;
   if (sheet) sheet.hidden = true;
   document.body.classList.remove("fw-sheet-open");
+  if (sheetTrigger?.focus) sheetTrigger.focus();
+  sheetTrigger = null;
 }
 
 export function wireSheet() {
   document.getElementById("fwSheetClose")?.addEventListener("click", closeSheet);
   document.getElementById("fwSheetBackdrop")?.addEventListener("click", closeSheet);
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeSheet();
+    const sheet = document.getElementById("fwSheet");
+    if (e.key === "Escape" && sheet && !sheet.hidden) closeSheet();
+    trapFocus(e, sheet);
   });
 }

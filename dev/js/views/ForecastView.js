@@ -17,12 +17,13 @@ import { esc } from "../../../shared/utils.js";
 
 export function renderForecastView(state) {
   const {
-    loading,
+    weatherLoading,
     error,
     noCourse,
     days,
     selectedDateKey,
     dayScores,
+    verdict,
     scoreResult,
     decision,
     teeTimes,
@@ -32,7 +33,7 @@ export function renderForecastView(state) {
     tzOffset,
     rainAnalysis,
     impactCards,
-    betterTee,
+    norm,
   } = state;
 
   if (noCourse) {
@@ -47,7 +48,7 @@ export function renderForecastView(state) {
       </div>`;
   }
 
-  if (error) {
+  if (error && !verdict) {
     return `
       <div class="fw-view fw-view-forecast">
         <div class="fw-error-state" role="alert">
@@ -59,14 +60,19 @@ export function renderForecastView(state) {
       </div>`;
   }
 
-  const dayStripHtml = renderDayForecastStrip(days, selectedDateKey, dayScores);
-  const heroHtml = loading
+  const showSkeleton = weatherLoading && !verdict;
+  const dayStripHtml = showSkeleton
+    ? renderDayForecastStrip([], selectedDateKey, dayScores)
+    : renderDayForecastStrip(days, selectedDateKey, dayScores);
+
+  const heroHtml = showSkeleton
     ? renderVerdictHeroSkeleton()
     : renderGolfVerdictHero({
-        score: scoreResult?.score,
-        status: scoreResult?.status,
-        label: decision?.label,
-        message: decision?.message,
+        score: verdict?.score ?? scoreResult?.score,
+        status: verdict?.status ?? scoreResult?.status,
+        label: verdict?.label ?? decision?.label,
+        message: verdict?.message ?? decision?.message,
+        verdict,
         decision,
       });
 
@@ -79,12 +85,12 @@ export function renderForecastView(state) {
     teeTimeUnix: selectedTeeTime,
   });
 
-  const rainHtml = loading ? renderRainTimelineSkeleton() : renderRainTimeline(rainAnalysis);
-  const impactHtml = loading ? renderWeatherImpactCards(null) : renderWeatherImpactCards(impactCards);
-  const betterHtml = !loading && betterTee ? renderBestTeeTimeCard(betterTee) : "";
+  const rainHtml = showSkeleton ? renderRainTimelineSkeleton() : renderRainTimeline(rainAnalysis);
+  const impactHtml = showSkeleton ? renderWeatherImpactCards(null) : renderWeatherImpactCards(impactCards);
+  const betterHtml = !showSkeleton && betterTee ? renderBestTeeTimeCard(betterTee) : "";
 
   return `
-    <div class="fw-view fw-view-forecast" ${loading ? 'aria-busy="true"' : ""}>
+    <div class="fw-view fw-view-forecast" ${weatherLoading ? 'aria-busy="true"' : ""}>
       <div id="fwDayStripMount">${dayStripHtml}</div>
       <div id="fwHeroMount">${heroHtml}</div>
       <div id="fwRoundMount">${roundHtml}</div>
@@ -117,6 +123,6 @@ export function wireForecastView(container, handlers) {
 
   wireBestTeeTimeCard(container.querySelector("#fwBetterMount"), () => {
     const bt = handlers.getBetterTee?.();
-    if (bt?.teeTime) handlers.onTeeTimeChange?.(bt.teeTime);
+    if (bt?.teeTime) handlers.onUseBetterTee?.(bt.teeTime) ?? handlers.onTeeTimeChange?.(bt.teeTime);
   });
 }

@@ -1,5 +1,7 @@
 /** Weather API, caching, and normalization */
 
+import { courseDateKey, courseLocalParts, getTodayCourseYMD, courseDayStartSec } from "./timezone.js";
+
 const WEATHER_CACHE_TTL_MS = 3 * 60 * 1000;
 const memCache = new Map();
 
@@ -96,7 +98,7 @@ export function normalizeWeather(raw) {
   }
 
   if (Array.isArray(raw?.list) && raw.list.length) {
-    norm.daily = deriveDaily(raw.list);
+    norm.daily = deriveDaily(raw.list, norm.sunrise, norm.sunset, norm.timezoneOffset || 0);
   }
 
   return norm;
@@ -137,18 +139,18 @@ function extractRain(rain) {
   return null;
 }
 
-function deriveDaily(list) {
+function deriveDaily(list, baseSunrise, baseSunset, tzOffset = 0) {
   const byDay = new Map();
 
   for (const it of list) {
     const dt = it.dt;
     if (!dt) continue;
 
-    const dateKey = new Date(dt * 1000).toLocaleDateString();
+    const dateKey = courseDateKey(dt, tzOffset);
     const tMin = it?.main?.temp_min;
     const tMax = it?.main?.temp_max;
     const pop = typeof it?.pop === "number" ? it.pop : null;
-    const hour = new Date(dt * 1000).getHours();
+    const hour = courseLocalParts(dt, tzOffset).hours;
     const distToNoon = Math.abs(hour - 12);
 
     if (!byDay.has(dateKey)) {
@@ -172,10 +174,22 @@ function deriveDaily(list) {
     }
   }
 
+  const today = getTodayCourseYMD(tzOffset);
+  const todayStart = courseDayStartSec(today.year, today.month, today.day, tzOffset);
+
   return Array.from(byDay.values())
     .sort((a, b) => (a.dt ?? 0) - (b.dt ?? 0))
     .slice(0, 7)
-    .map(({ dt, min, max, pop, weather }) => ({ dt, min, max, pop, weather }));
+    .map(({ dt, min, max, pop, weather }) => {
+      const dayOffset = Math.round((Math.floor(dt / 86400) * 86400 - todayStart) / 86400);
+      let sunrise = null;
+      let sunset = null;
+      if (typeof baseSunrise === "number" && typeof baseSunset === "number") {
+        sunrise = baseSunrise + Math.max(0, dayOffset) * 86400;
+        sunset = baseSunset + Math.max(0, dayOffset) * 86400;
+      }
+      return { dt, min, max, pop, weather, sunrise, sunset };
+    });
 }
 
 export async function geocodeCity(apiBase, query) {
