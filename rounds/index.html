@@ -1,7 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-fw-shell="premium">
 <head>
   <meta charset="utf-8" />
+  <script>
+    /* If a controlling worker handed us something other than this shell,
+       drop every registration and reload once. The legacy document does
+       not contain this script — /sw.js taking control is what replaces it. */
+    (function () {
+      var KEY = "fw-shell-reload";
+      try {
+        var cur = new URL(location.href);
+        if (cur.searchParams.has("fw_shell")) {
+          cur.searchParams.delete("fw_shell");
+          history.replaceState(history.state, "", cur.pathname + cur.search + cur.hash);
+        }
+      } catch (e) {}
+      if (!("serviceWorker" in navigator)) return;
+      if (!navigator.serviceWorker.controller) return;
+      if (document.documentElement.getAttribute("data-fw-shell") === "premium") return;
+      try {
+        if (sessionStorage.getItem(KEY) === "1") return;
+        sessionStorage.setItem(KEY, "1");
+      } catch (e) {
+        return;
+      }
+      var clear = window.caches
+        ? caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+          })
+        : Promise.resolve();
+      clear.catch(function () {}).then(function () {
+        return navigator.serviceWorker.getRegistrations();
+      }).then(function (regs) {
+        return Promise.all((regs || []).map(function (reg) { return reg.unregister(); }));
+      }).then(function () { location.reload(); }, function () { location.reload(); });
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>FairwayWeather — Golf Course Weather &amp; Tee Time Forecast</title>
   <meta name="description" content="Know before you tee. Personalised golf weather — favourites, saved rounds, and play verdicts. Check wind, rain, and playability before your round." />
@@ -43,83 +77,11 @@
   <link rel="stylesheet" href="/dev/css/app.css" />
   <link rel="stylesheet" href="/dev/css/premium.css" />
 
-  <style>
-    html.fw-sw-check body { visibility: hidden; }
-  </style>
-
   <script
     defer
     src="https://static.cloudflareinsights.com/beacon.min.js"
     data-cf-beacon='{"token": "ff6b1058ad0a4e808cf1853bbb80d0f6"}'
   ></script>
-  <script>
-    /* Drop a production worker that predates the premium shell.
-       Legacy /sw.js cache-firsts scripts. A controlling worker that does not
-       report version 7 is unregistered once and its fairwayweather caches are
-       deleted, then the page reloads from the network. */
-    (function () {
-      if (!("serviceWorker" in navigator)) return;
-      var KEY = "fw-sw-prod-v7";
-      if (sessionStorage.getItem(KEY) === "ok") return;
-      var controller = navigator.serviceWorker.controller;
-      if (!controller) {
-        sessionStorage.setItem(KEY, "ok");
-        return;
-      }
-      document.documentElement.classList.add("fw-sw-check");
-      var settled = false;
-      function fresh() {
-        if (settled) return;
-        settled = true;
-        sessionStorage.setItem(KEY, "ok");
-        document.documentElement.classList.remove("fw-sw-check");
-      }
-      function wipe() {
-        if (settled) return;
-        settled = true;
-        var again = sessionStorage.getItem(KEY) === "1";
-        sessionStorage.setItem(KEY, "1");
-        var clear = window.caches
-          ? caches.keys().then(function (keys) {
-              return Promise.all(
-                keys
-                  .filter(function (k) { return k.indexOf("fairwayweather") === 0; })
-                  .map(function (k) { return caches.delete(k); })
-              );
-            })
-          : Promise.resolve();
-        clear.catch(function () {}).then(function () {
-          return navigator.serviceWorker.getRegistrations();
-        }).then(function (regs) {
-          return Promise.all(
-            (regs || [])
-              .filter(function (reg) {
-                try { return !/\/dev\/$/i.test(new URL(reg.scope).pathname); }
-                catch (e) { return true; }
-              })
-              .map(function (reg) { return reg.unregister(); })
-          );
-        }).finally(function () {
-          if (!again) location.reload();
-          else document.documentElement.classList.remove("fw-sw-check");
-        });
-      }
-      var channel = new MessageChannel();
-      channel.port1.onmessage = function (event) {
-        if (event.data && event.data.version === 7) fresh();
-        else wipe();
-      };
-      try {
-        controller.postMessage({ type: "fw-sw-version" }, [channel.port2]);
-      } catch (e) {
-        wipe();
-        return;
-      }
-      setTimeout(function () {
-        if (!settled) wipe();
-      }, 800);
-    })();
-  </script>
 </head>
 <body class="fw-production">
   <div id="app"></div>
