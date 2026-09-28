@@ -1,4 +1,5 @@
 import { esc } from "../../../shared/utils.js";
+import { renderLoadingMark } from "./BrandMark.js";
 
 export function renderGolfVerdictHero({
   score,
@@ -37,7 +38,7 @@ export function wireGolfVerdictHero(container, onWhy) {
 export function renderVerdictHeroSkeleton() {
   return `
     <section class="fw-verdict-hero fw-verdict-hero--skeleton" aria-busy="true">
-      <div class="fw-skeleton fw-skeleton-icon"></div>
+      ${renderLoadingMark(32)}
       <div class="fw-skeleton fw-skeleton-line"></div>
       <div class="fw-skeleton fw-skeleton-score"></div>
       <div class="fw-skeleton fw-skeleton-line short"></div>

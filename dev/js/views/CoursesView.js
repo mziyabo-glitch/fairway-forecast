@@ -1,6 +1,7 @@
 import { esc } from "../../../shared/utils.js";
 import { formatDistance } from "../../../shared/geo.js";
 import { renderFavouriteStar, wireFavouriteStars } from "../components/FavouriteStar.js";
+import { renderLoadingMark } from "../components/BrandMark.js";
 
 function courseRow(c, { favouriteIds = new Set(), showDistance = false, distanceUnits = "metric" } = {}) {
   const loc =
@@ -48,7 +49,7 @@ export function renderCoursesView({
       <button type="button" class="fw-btn fw-btn-secondary fw-nearby-btn" id="fwNearbyBtn">
         <span aria-hidden="true">📍</span> Courses near me
       </button>
-      ${nearbyLoading ? `<div class="fw-loading"><span class="fw-spinner" aria-hidden="true"></span> Finding courses near you…</div>` : ""}
+      ${nearbyLoading ? `<div class="fw-loading">${renderLoadingMark(18)} Finding courses near you…</div>` : ""}
       ${nearbyError ? `<div class="fw-error" role="alert">${esc(nearbyError)}</div>` : ""}
 
       ${
@@ -115,7 +116,7 @@ export function renderCoursesView({
       </details>
 
       ${error ? `<div class="fw-error" role="alert">${esc(error)}</div>` : ""}
-      ${loading ? `<div class="fw-loading"><span class="fw-spinner" aria-hidden="true"></span> Searching…</div>` : ""}
+      ${loading ? `<div class="fw-loading">${renderLoadingMark(18)} Searching…</div>` : ""}
       <ul class="fw-course-results" aria-live="polite">
         ${
           results?.length

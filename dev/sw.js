@@ -2,7 +2,7 @@
  * Caches the rebuild app shell. Never treats stale weather as current.
  */
 
-const STATIC_CACHE = "fairway-dev-static-v2";
+const STATIC_CACHE = "fairway-dev-static-v3";
 const DATA_CACHE = "fairway-dev-data-v2";
 
 const PRECACHE_URLS = [
@@ -12,14 +12,18 @@ const PRECACHE_URLS = [
   "./config.js",
   "./css/tokens.css",
   "./css/app.css",
+  "./css/premium.css",
   "./js/app.js",
   "./js/router.js",
   "../playability.js",
-  "../icons/icon-192.png",
-  "../icons/icon-512.png",
-  "../icons/icon-192-maskable.png",
-  "../icons/icon-512-maskable.png",
-  "../icons/favicon.ico",
+  "./assets/brand/fairwayweather-mark.svg",
+  "./assets/brand/favicon.svg",
+  "./assets/brand/favicon-32.png",
+  "./assets/brand/icon-192.png",
+  "./assets/brand/icon-512.png",
+  "./assets/brand/icon-192-maskable.png",
+  "./assets/brand/icon-512-maskable.png",
+  "./assets/brand/icon-1024.png",
   "../data/courses/index.json",
   "../data/courses/gb.json",
   "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",

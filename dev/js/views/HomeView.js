@@ -1,6 +1,7 @@
 import { esc, fmtTimeCourse, scoreToVerdict } from "../../../shared/utils.js";
 import { renderFavouriteStar, wireFavouriteStars } from "../components/FavouriteStar.js";
 import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js";
+import { renderFirstRunIntro, renderLoadingMark } from "../components/BrandMark.js";
 
 function greeting() {
   const h = new Date().getHours();
@@ -65,26 +66,9 @@ export function renderHomeView(state = {}) {
 
   if (!course) {
     return `
-      <div class="fw-view fw-view-home fw-home-empty">
-        <div class="fw-home-hero">
-          <h1 class="fw-home-title">Plan a better round</h1>
-          <p class="fw-home-tagline">Know the rain, wind, and best tee time before you leave the house.</p>
-        </div>
-        <div class="fw-home-cards">
-          <button type="button" class="fw-home-card" data-goto="courses">
-            <i data-lucide="search"></i>
-            <span>Search courses</span>
-          </button>
-          <button type="button" class="fw-home-card" data-action="nearby">
-            <span aria-hidden="true">📍</span>
-            <span>Find courses near me</span>
-          </button>
-        </div>
-        <ul class="fw-home-benefits">
-          <li>Don’t get caught in the rain mid-round</li>
-          <li>See when the wind will pick up</li>
-          <li>Pick the best tee time, not just today’s weather</li>
-        </ul>
+      <div class="fw-view fw-view-home fw-home-first-run">
+        ${renderFirstRunIntro()}
+        ${state.coursesHtml || ""}
       </div>`;
   }
 
@@ -107,7 +91,7 @@ export function renderHomeView(state = {}) {
         ${freshness ? `<p class="fw-freshness">${esc(freshness)}</p>` : ""}
         ${
           weatherLoading
-            ? `<div class="fw-home-verdict fw-home-verdict--skeleton"><div class="fw-skeleton fw-skeleton-line"></div></div>`
+            ? `<div class="fw-home-verdict fw-home-verdict--skeleton">${renderLoadingMark(28)}<div class="fw-skeleton fw-skeleton-line"></div></div>`
             : verdict
               ? `
           <div class="fw-home-verdict">

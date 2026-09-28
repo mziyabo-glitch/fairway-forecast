@@ -745,6 +745,40 @@ class FairwayApp {
     return new Set(this.persistence.getFavourites().map((c) => c.id).filter(Boolean));
   }
 
+  coursesViewProps() {
+    return {
+      countries: this.courseService.getCountries(),
+      country: this.courseService.getCountry(),
+      state: this.courseService.getState(),
+      usStates: this.usStates,
+      query: this.searchQuery,
+      results: this.searchResults,
+      loading: this.searchLoading,
+      error: this.searchError,
+      recentCourses: this.persistence.getRecentCourses(),
+      favouriteCourses: this.persistence.getFavourites(),
+      favouriteIds: this.favouriteIdSet(),
+      nearby: this.nearbyResults,
+      nearbyLoading: this.nearbyLoading,
+      nearbyError: this.nearbyError,
+      distanceUnits: this.distanceUnits(),
+    };
+  }
+
+  wireCourses(container) {
+    wireCoursesView(container, {
+      onSearch: (q) => this.onSearch(q),
+      onCountryChange: (c) => this.onCountryChange(c),
+      onStateChange: (s) => this.onStateChange(s),
+      onSelect: (id) =>
+        this.selectCourse(id, {
+          source: this.nearbyResults.some((c) => c.id === id) ? "nearby" : "search",
+        }),
+      onNearby: () => this.findNearbyCourses(),
+      onToggleFavourite: (id) => this.toggleFavourite(id),
+    });
+  }
+
   render() {
     mountCourseHeader(document.getElementById("fwCourseHeaderMount"), this.selectedCourse, {
       onChange: () => this.navigate("courses"),
@@ -756,7 +790,8 @@ class FairwayApp {
     if (!main) return;
 
     if (this.activeTab === "home") {
-      main.innerHTML = renderHomeView(this.getHomeState());
+      const coursesHtml = this.selectedCourse ? "" : renderCoursesView(this.coursesViewProps());
+      main.innerHTML = renderHomeView({ ...this.getHomeState(), coursesHtml });
       wireHomeView(main, {
         onNavigate: (tab) => this.navigate(tab),
         onSelectCourse: (id) => this.selectCourse(id, { source: "home" }),
@@ -766,32 +801,10 @@ class FairwayApp {
         onToggleFavourite: (id) => this.toggleFavourite(id),
         onPremium: (id) => this.openPremium(id),
       });
+      if (!this.selectedCourse) this.wireCourses(main);
     } else if (this.activeTab === "courses") {
-      main.innerHTML = renderCoursesView({
-        countries: this.courseService.getCountries(),
-        country: this.courseService.getCountry(),
-        state: this.courseService.getState(),
-        usStates: this.usStates,
-        query: this.searchQuery,
-        results: this.searchResults,
-        loading: this.searchLoading,
-        error: this.searchError,
-        recentCourses: this.persistence.getRecentCourses(),
-        favouriteCourses: this.persistence.getFavourites(),
-        favouriteIds: this.favouriteIdSet(),
-        nearby: this.nearbyResults,
-        nearbyLoading: this.nearbyLoading,
-        nearbyError: this.nearbyError,
-        distanceUnits: this.distanceUnits(),
-      });
-      wireCoursesView(main, {
-        onSearch: (q) => this.onSearch(q),
-        onCountryChange: (c) => this.onCountryChange(c),
-        onStateChange: (s) => this.onStateChange(s),
-        onSelect: (id) => this.selectCourse(id, { source: this.nearbyResults.some((c) => c.id === id) ? "nearby" : "search" }),
-        onNearby: () => this.findNearbyCourses(),
-        onToggleFavourite: (id) => this.toggleFavourite(id),
-      });
+      main.innerHTML = renderCoursesView(this.coursesViewProps());
+      this.wireCourses(main);
     } else if (this.activeTab === "forecast") {
       const state = this.getForecastState();
       main.innerHTML = renderForecastView(state);

@@ -21,7 +21,56 @@
   margin-bottom: 0 !important;
 }
 
-/* Course header — minimal glass bar */
+/* Course header — minimal glass bar, brand secondary to the course name */
+.fw-course-header {
+  align-items: center;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.fw-course-header--has-course .fw-course-name {
+  color: var(--brand-ink);
+}
+
+.fw-brand-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0 0 var(--space-xl);
+}
+
+.fw-brand-intro-mark {
+  width: 44px;
+  height: 44px;
+  display: block;
+}
+
+.fw-brand-intro-wordmark {
+  margin: 8px 0 0;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--brand-ink);
+}
+
+.fw-brand-intro-tagline {
+  margin: 4px 0 0;
+  font-size: var(--text-support);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.fw-home-first-run .fw-view-courses {
+  margin: 0;
+}
+
+.fw-home-verdict--skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
 .fw-course-header-mount {
   background: rgba(250, 251, 248, 0.92);
   backdrop-filter: blur(16px);

@@ -1,36 +1,40 @@
 import { esc } from "../../../shared/utils.js";
 import { renderFavouriteStar, wireFavouriteStars } from "./FavouriteStar.js";
+import { renderShellMark, renderWordmark } from "./BrandMark.js";
 
 export function renderCourseHeader(course, { onChange, isFavourite = false } = {}) {
-  if (!course) {
-    return `
-      <div class="fw-course-header fw-course-header--empty">
-        <div class="fw-course-header-text">
-          <span class="fw-course-name">Select a course</span>
-          <span class="fw-course-location">Search in Courses to get started</span>
-        </div>
-      </div>`;
-  }
-
-  const location =
-    course.location ||
-    [course.city, course.state, course.country].filter(Boolean).join(", ") ||
-    "Location unavailable";
+  const location = course
+    ? course.location ||
+      [course.city, course.state, course.country].filter(Boolean).join(", ") ||
+      "Location unavailable"
+    : "";
 
   return `
-    <div class="fw-course-header">
-      <div class="fw-course-header-text">
-        <h1 class="fw-course-name">${esc(course.name)}</h1>
-        <p class="fw-course-location">${esc(location)}</p>
+    <div class="fw-course-header ${course ? "fw-course-header--has-course" : "fw-course-header--brand"}">
+      <div class="fw-course-header-identity">
+        ${renderShellMark(30)}
+        <div class="fw-course-header-text">
+          <p class="fw-shell-wordmark">${renderWordmark()}</p>
+          ${
+            course
+              ? `<h1 class="fw-course-name">${esc(course.name)}</h1>
+                 <p class="fw-course-location">${esc(location)}</p>`
+              : ""
+          }
+        </div>
       </div>
-      <div class="fw-course-header-actions">
+      ${
+        course
+          ? `<div class="fw-course-header-actions">
         ${renderFavouriteStar(isFavourite, { courseId: course.id })}
         ${
           onChange
             ? `<button type="button" class="fw-btn-text" id="fwChangeCourse">Change</button>`
             : ""
         }
-      </div>
+      </div>`
+          : ""
+      }
     </div>`;
 }
 

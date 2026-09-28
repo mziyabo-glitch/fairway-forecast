@@ -13,21 +13,26 @@
   --surface-muted: var(--surface-soft);
 
   /* Brand */
-  --brand: #175c4d;
+  --brand-primary: #175C4D;
+  --brand: var(--brand-primary);
   --brand-deep: #0e3a30;
   --brand-dark: var(--brand-deep);
   --brand-hover: #124a3e;
-  --brand-soft: #e4efea;
+  --brand-surface: #E4EFEA;
+  --brand-soft: var(--brand-surface);
   --brand-softer: #f0f5f2;
   --brand-light: var(--brand-soft);
   --brand-secondary: #1f6f5c;
+  --brand-ink: #13211B;
+  --brand-accent: #B89552;
+  --brand-offwhite: #F7F9F4;
 
   /* Premium accent (sparingly) */
-  --accent-premium: #b89552;
+  --accent-premium: var(--brand-accent);
   --accent-premium-soft: #f4eedf;
 
   /* Text */
-  --text-primary: #13211b;
+  --text-primary: var(--brand-ink);
   --text-secondary: #617069;
   --text-muted: #8b9891;
 
