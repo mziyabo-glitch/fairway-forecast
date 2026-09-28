@@ -145,9 +145,11 @@ class FairwayApp {
 
   registerPwa() {
     if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register("/dev/sw.js", { scope: "/dev/" }).catch(() => {
-      /* optional */
-    });
+    navigator.serviceWorker
+      .register("/dev/sw.js", { scope: "/dev/", updateViaCache: "none" })
+      .catch(() => {
+        /* optional */
+      });
   }
 
   navigate(tab, { history = true } = {}) {

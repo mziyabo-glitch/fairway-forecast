@@ -119,10 +119,14 @@ input {
 }
 
 .fw-shell-mark {
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  flex: 0 0 32px;
   display: block;
+  color: var(--brand-primary);
+  overflow: visible;
 }
 
 .fw-shell-wordmark {

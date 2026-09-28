@@ -2,7 +2,8 @@
  * Caches the rebuild app shell. Never treats stale weather as current.
  */
 
-const STATIC_CACHE = "fairway-dev-static-v3";
+const SW_VERSION = 4;
+const STATIC_CACHE = "fairway-dev-static-v4";
 const DATA_CACHE = "fairway-dev-data-v2";
 
 const PRECACHE_URLS = [
@@ -14,6 +15,7 @@ const PRECACHE_URLS = [
   "./css/app.css",
   "./css/premium.css",
   "./js/app.js",
+  "./js/sw-reset.js",
   "./js/router.js",
   "../playability.js",
   "./assets/brand/fairwayweather-mark.svg",
@@ -104,11 +106,33 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "fw-sw-version") {
+    event.ports[0]?.postMessage({ version: SW_VERSION });
+  }
+});
+
+async function networkFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const fresh = await fetch(request);
+    if (fresh && fresh.ok) await cache.put(request, fresh.clone());
+    return fresh;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return new Response("Offline", { status: 503, headers: { "content-type": "text/plain" } });
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (!request || request.method !== "GET") return;
 
   const url = new URL(request.url);
+  // Never answer the update check from cache, or a worker installed before
+  // the brand mark shipped will keep serving that old app.js forever.
+  if (url.pathname.endsWith("/sw.js")) return;
 
   if (isWeatherRequest(url)) {
     event.respondWith(
@@ -147,6 +171,6 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isDevStatic(url)) {
-    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    event.respondWith(networkFirst(request, STATIC_CACHE));
   }
 });

@@ -40,9 +40,13 @@
 }
 
 .fw-brand-intro-mark {
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  min-height: 56px;
   display: block;
+  color: var(--brand-primary);
+  overflow: visible;
 }
 
 .fw-brand-intro-wordmark {

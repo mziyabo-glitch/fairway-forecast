@@ -12,7 +12,7 @@ export function renderCourseHeader(course, { onChange, isFavourite = false } = {
   return `
     <div class="fw-course-header ${course ? "fw-course-header--has-course" : "fw-course-header--brand"}">
       <div class="fw-course-header-identity">
-        ${renderShellMark(30)}
+        ${renderShellMark(32)}
         <div class="fw-course-header-text">
           <p class="fw-shell-wordmark">${renderWordmark()}</p>
           ${
