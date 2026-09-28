@@ -39,6 +39,17 @@ describe("production shell is the premium app", () => {
   });
 });
 
+describe("legacy entry points leave a stale document", () => {
+  it("redirects the old shell to a cache-busting URL", () => {
+    for (const rel of ["config.js", "app.js", "pwa-install-banner.js"]) {
+      const source = read(rel);
+      assert.match(source, /data-fw-shell"\) === "premium"/);
+      assert.match(source, /fw_net/);
+      assert.match(source, /location\.replace/);
+    }
+  });
+});
+
 describe("production service worker", () => {
   it("activates immediately and deletes every cache", () => {
     assert.match(sw, /skipWaiting\s*\(/);

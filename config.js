@@ -1,3 +1,20 @@
+/* Legacy shell only. The premium document does not load this file.
+   If Cloudflare is still serving the pre-premium index.html, leave that
+   cached URL for one the edge has not stored. */
+(function () {
+  if (typeof document === "undefined" || typeof location === "undefined") return;
+  if (document.documentElement.getAttribute("data-fw-shell") === "premium") return;
+  var url;
+  try {
+    url = new URL(location.href);
+  } catch (e) {
+    return;
+  }
+  if (url.searchParams.has("fw_net")) return;
+  url.searchParams.set("fw_net", "8");
+  location.replace(url.href);
+})();
+
 // dev/config.js
 // Development configuration - uses static OSM datasets
 

@@ -1,3 +1,20 @@
+/* Legacy shell entry. Premium pages load /dev/js/app.js instead.
+   A cached old document still requests this file; send it to a URL
+   Cloudflare has not stored for the pre-premium homepage. */
+(function () {
+  if (typeof document === "undefined" || typeof location === "undefined") return;
+  if (document.documentElement.getAttribute("data-fw-shell") === "premium") return;
+  var url;
+  try {
+    url = new URL(location.href);
+  } catch (e) {
+    return;
+  }
+  if (url.searchParams.has("fw_net")) return;
+  url.searchParams.set("fw_net", "8");
+  location.replace(url.href);
+})();
+
 /* =====================================================
    Fairway Forecast – app.js (PRODUCTION BUILD)
 

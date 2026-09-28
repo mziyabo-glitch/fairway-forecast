@@ -1,3 +1,19 @@
+/* Legacy pages load this script. If that document is the pre-premium shell,
+   leave Cloudflare's cached "/" for a URL the edge has not stored. */
+(function () {
+  if (typeof document === "undefined" || typeof location === "undefined") return;
+  if (document.documentElement.getAttribute("data-fw-shell") === "premium") return;
+  var url;
+  try {
+    url = new URL(location.href);
+  } catch (e) {
+    return;
+  }
+  if (url.searchParams.has("fw_net")) return;
+  url.searchParams.set("fw_net", "8");
+  location.replace(url.href);
+})();
+
 /* Premium PWA install banner for fairwayweather.com
  *
  * - Uses beforeinstallprompt (Chromium) to show an in-app banner instead of the default prompt UI.
