@@ -1,0 +1,8 @@
+{
+  "name": "fairway-forecast-rebuild",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test shared/tests/*.test.js"
+  }
+}
