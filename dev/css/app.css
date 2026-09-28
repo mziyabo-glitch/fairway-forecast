@@ -74,6 +74,11 @@ input {
   background: var(--surface-muted);
 }
 
+/* Production has no dev banner, so the sticky header owns the status-bar inset. */
+body.fw-production .fw-course-header-mount {
+  padding-top: var(--safe-top);
+}
+
 .fw-main {
   flex: 1;
   padding: var(--app-padding);

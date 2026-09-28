@@ -4,3 +4,9 @@
 /dev/forecast/ /dev/index.html 200
 /dev/rounds /dev/index.html 200
 /dev/rounds/ /dev/index.html 200
+/courses /index.html 200
+/courses/ /index.html 200
+/forecast /index.html 200
+/forecast/ /index.html 200
+/rounds /index.html 200
+/rounds/ /index.html 200

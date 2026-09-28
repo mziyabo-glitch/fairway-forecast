@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-labelledby="fwTitle">
+  <title id="fwTitle">FairwayWeather</title>
+  <path d="M6.4 3.2V28.8" fill="none" stroke="#175C4D" stroke-width="3.25" stroke-linecap="round"/>
+<path d="M8 6L16.8 8.9L8 11.9Z" fill="#175C4D" stroke="#175C4D" stroke-width="1.45" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M6.4 16.7C12.2 16.1 18.6 17.5 27 13" fill="none" stroke="#175C4D" stroke-width="3.25" stroke-linecap="round"/>
+</svg>

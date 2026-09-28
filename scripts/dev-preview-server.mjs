@@ -19,9 +19,19 @@ const MIME = {
 };
 
 function rewrite(urlPath) {
+  if (urlPath === "/" || urlPath === "") return "/index.html";
   if (urlPath === "/dev" || urlPath === "/dev/") return "/dev/index.html";
   if (/^\/dev\/(courses|forecast|rounds)\/?$/.test(urlPath)) return "/dev/index.html";
+  if (/^\/(courses|forecast|rounds)\/?$/.test(urlPath)) {
+    return `/${urlPath.replace(/^\/+|\/+$/g, "")}/index.html`;
+  }
   return urlPath;
+}
+
+function sendFile(res, filePath) {
+  const ext = path.extname(filePath);
+  res.writeHead(200, { "content-type": MIME[ext] || "application/octet-stream" });
+  fs.createReadStream(filePath).pipe(res);
 }
 
 const server = http.createServer((req, res) => {
@@ -30,17 +40,28 @@ const server = http.createServer((req, res) => {
   if (filePath.endsWith("/")) filePath = path.join(filePath, "index.html");
 
   fs.stat(filePath, (err, stat) => {
+    if (!err && stat.isDirectory()) {
+      filePath = path.join(filePath, "index.html");
+      fs.stat(filePath, (err2, stat2) => {
+        if (err2 || !stat2.isFile()) {
+          res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+          res.end("Not found");
+          return;
+        }
+        sendFile(res, filePath);
+      });
+      return;
+    }
     if (err || !stat.isFile()) {
       res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
       res.end("Not found");
       return;
     }
-    const ext = path.extname(filePath);
-    res.writeHead(200, { "content-type": MIME[ext] || "application/octet-stream" });
-    fs.createReadStream(filePath).pipe(res);
+    sendFile(res, filePath);
   });
 });
 
 server.listen(PORT, "127.0.0.1", () => {
+  console.log(`Production http://127.0.0.1:${PORT}/`);
   console.log(`Dev preview http://127.0.0.1:${PORT}/dev/`);
 });

@@ -13,7 +13,14 @@
     return;
   }
   navigator.serviceWorker.getRegistration("/dev/").then(function (reg) {
-    if (!reg) {
+    var scopePath = "";
+    try {
+      scopePath = reg ? new URL(reg.scope).pathname : "";
+    } catch (e) {
+      scopePath = "";
+    }
+    // A production worker at scope "/" also matches /dev/. Leave that registration alone.
+    if (!reg || !/\/dev\/$/i.test(scopePath)) {
       sessionStorage.setItem(KEY, "ok");
       return;
     }

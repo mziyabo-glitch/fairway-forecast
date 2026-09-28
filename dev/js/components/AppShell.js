@@ -1,5 +1,13 @@
 import { esc } from "../../../shared/utils.js";
 
+function isDevPreview() {
+  try {
+    return typeof location !== "undefined" && /\/dev(?:\/|$)/i.test(location.pathname || "");
+  } catch {
+    return false;
+  }
+}
+
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: "home" },
   { id: "courses", label: "Courses", icon: "search" },
@@ -10,12 +18,15 @@ const NAV_ITEMS = [
 let sheetTrigger = null;
 
 export function renderAppShell(activeTab = "home") {
-  return `
-    <div class="fw-dev-banner" role="status">
+  const devBanner = isDevPreview()
+    ? `<div class="fw-dev-banner" role="status">
       <span class="fw-dev-dot" aria-hidden="true"></span>
       <span>DEV — Premium UI preview</span>
       <a href="/" class="fw-dev-link">Production</a>
-    </div>
+    </div>`
+    : "";
+  return `
+    ${devBanner}
     <div class="fw-app">
       <header id="fwCourseHeaderMount" class="fw-course-header-mount" aria-live="polite"></header>
       <main id="fwMain" class="fw-main" tabindex="-1"></main>

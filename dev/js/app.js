@@ -145,8 +145,13 @@ class FairwayApp {
 
   registerPwa() {
     if (!("serviceWorker" in navigator)) return;
+    const onDev = /\/dev(?:\/|$)/i.test(location.pathname || "");
+    // Production pages migrate off the legacy worker before registering.
+    if (!onDev && sessionStorage.getItem("fw-sw-prod-v7") !== "ok") return;
+    const script = onDev ? "/dev/sw.js" : "/sw.js";
+    const scope = onDev ? "/dev/" : "/";
     navigator.serviceWorker
-      .register("/dev/sw.js", { scope: "/dev/", updateViaCache: "none" })
+      .register(script, { scope, updateViaCache: "none" })
       .catch(() => {
         /* optional */
       });

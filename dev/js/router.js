@@ -1,4 +1,4 @@
-/** Lightweight History API for /dev/ — no framework. */
+/** Lightweight History API. Production lives at `/`; the preview stays under `/dev/`. */
 
 const TABS = new Set(["home", "courses", "forecast", "rounds"]);
 
@@ -14,7 +14,9 @@ function currentPathname() {
 export function getDevBase(pathname = currentPathname()) {
   const path = pathname || "/dev/";
   const match = path.match(/^(.*\/dev)(?:\/|$)/i);
-  return match ? match[1] : "/dev";
+  if (match) return match[1];
+  // Site root (`/`, `/courses`, `/forecast`, `/rounds`) is the production app.
+  return "";
 }
 
 export function tabFromPath(pathname = currentPathname()) {

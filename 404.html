@@ -2,27 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Fairway Weather</title>
+  <title>FairwayWeather</title>
   <script>
     (function () {
       var p = location.pathname;
+      var search = location.search + location.hash;
       var isDev = /^\/dev(\/|$)/.test(p);
       var isDevIndex = /\/dev\/index\.html$/i.test(p);
       var isAsset = /\.(css|js|json|webmanifest|png|jpe?g|svg|ico|woff2?|txt|xml|map)$/i.test(p);
 
-      if (isDev && !isDevIndex && !isAsset) {
-        sessionStorage.setItem("fwDevRestorePath", p + location.search + location.hash);
+      if (isAsset) return;
+
+      if (isDev && !isDevIndex) {
+        sessionStorage.setItem("fwDevRestorePath", p + search);
         location.replace("/dev/index.html");
         return;
       }
 
-      if (!isDev) {
-        location.replace("/");
+      var first = p.replace(/^\/+|\/+$/g, "").split("/")[0] || "";
+      if (first === "courses" || first === "forecast" || first === "rounds") {
+        sessionStorage.setItem("fwDevRestorePath", p + search);
+        location.replace("/index.html");
+        return;
       }
+
+      if (!isDev) location.replace("/");
     })();
   </script>
 </head>
 <body>
-  <p><a href="/">Return to Fairway Weather</a></p>
+  <p><a href="/">Return to FairwayWeather</a></p>
 </body>
 </html>
