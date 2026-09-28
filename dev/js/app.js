@@ -97,6 +97,18 @@ class FairwayApp {
     const root = document.getElementById("app");
     if (!root) return;
 
+    const restorePath = sessionStorage.getItem("fwDevRestorePath");
+    if (restorePath) {
+      sessionStorage.removeItem("fwDevRestorePath");
+      try {
+        const tab = tabFromPath(restorePath);
+        history.replaceState({ tab }, "", restorePath);
+        this.activeTab = tab;
+      } catch {
+        /* ignore invalid restore paths */
+      }
+    }
+
     this.registerPwa();
 
     root.innerHTML = renderAppShell(this.activeTab);
