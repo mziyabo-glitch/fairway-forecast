@@ -42,7 +42,7 @@ export function renderForecastView(state) {
     hourlyExpanded = false,
     roundSaved = false,
     teeAdjusted = null,
-    isFavourite = false,
+    weatherIcon = "🌤️",
   } = state;
 
   if (noCourse) {
@@ -83,6 +83,7 @@ export function renderForecastView(state) {
         message: verdict?.message ?? decision?.message,
         verdict,
         decision,
+        weatherIcon,
       });
 
   const roundHtml = renderRoundSelector({
@@ -95,7 +96,9 @@ export function renderForecastView(state) {
   });
 
   const rainHtml = showSkeleton ? renderRainTimelineSkeleton() : renderRainTimeline(rainAnalysis);
-  const impactHtml = showSkeleton ? renderWeatherImpactCards(null) : renderWeatherImpactCards(impactCards);
+  const impactHtml = showSkeleton
+    ? renderWeatherImpactCards(null)
+    : renderWeatherImpactCards(impactCards, verdict?.metrics);
   const betterHtml = !showSkeleton && betterTee ? renderBestTeeTimeCard(betterTee) : "";
   const hourlyHtml = showSkeleton
     ? ""
@@ -118,12 +121,9 @@ export function renderForecastView(state) {
       <div id="fwDayStripMount">${dayStripHtml}</div>
       <div id="fwHeroMount">${heroHtml}</div>
       <div id="fwRoundMount">${roundHtml}</div>
-      <div class="fw-forecast-actions">
-        <button type="button" class="fw-btn fw-btn-primary" id="fwSaveRound" aria-live="polite">
+      <div class="fw-forecast-save-row">
+        <button type="button" class="fw-btn fw-btn-ghost" id="fwSaveRound" aria-live="polite">
           ${roundSaved ? "✓ Round saved" : "Save this round"}
-        </button>
-        <button type="button" class="fw-btn fw-btn-secondary" id="fwForecastFav" aria-pressed="${isFavourite ? "true" : "false"}">
-          ${isFavourite ? "★ Favourited" : "☆ Favourite"}
         </button>
       </div>
       <div id="fwRainMount">${rainHtml}</div>
@@ -138,7 +138,6 @@ export function wireForecastView(container, handlers) {
   container?.querySelector("#fwGoCourses")?.addEventListener("click", () => handlers.onNavigate?.("courses"));
   container?.querySelector("#fwRetryForecast")?.addEventListener("click", () => handlers.onRetry?.());
   container?.querySelector("#fwSaveRound")?.addEventListener("click", () => handlers.onSaveRound?.());
-  container?.querySelector("#fwForecastFav")?.addEventListener("click", () => handlers.onToggleFavourite?.());
 
   wireDayForecastStrip(container.querySelector("#fwDayStripMount"), handlers.onDaySelect);
   wireGolfVerdictHero(container.querySelector("#fwHeroMount"), () => {
@@ -149,6 +148,7 @@ export function wireForecastView(container, handlers) {
         score: handlers.getScore?.(),
         factors: handlers.getFactors?.(),
         decision: handlers.getDecision?.(),
+        verdict: handlers.getVerdict?.(),
       })
     );
   });

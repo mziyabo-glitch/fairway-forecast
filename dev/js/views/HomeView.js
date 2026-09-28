@@ -97,7 +97,7 @@ export function renderHomeView(state = {}) {
         <h1 class="fw-home-title">${esc(greeting())}</h1>
       </div>
 
-      <section class="fw-home-course-card" aria-label="Your course">
+      <section class="fw-home-primary" aria-label="Your course">
         <div class="fw-home-course-head">
           <div>
             <strong class="fw-home-course-name">${esc(course.name)}</strong>
@@ -107,17 +107,20 @@ export function renderHomeView(state = {}) {
         ${freshness ? `<p class="fw-freshness">${esc(freshness)}</p>` : ""}
         ${
           weatherLoading
-            ? `<div class="fw-home-verdict fw-skeleton-block"><div class="fw-skeleton fw-skeleton-line"></div></div>`
+            ? `<div class="fw-home-verdict fw-home-verdict--skeleton"><div class="fw-skeleton fw-skeleton-line"></div></div>`
             : verdict
               ? `
-          <div class="fw-home-verdict fw-status-border-${statusKey}">
-            <div class="fw-home-verdict-main">
-              <span class="fw-home-emoji" aria-hidden="true">${weatherIcon}</span>
-              <span class="fw-home-verdict-word fw-status-text-${statusKey}">${esc(verdictWord)}</span>
-              <span class="fw-home-score fw-status-text-${statusKey}">${esc(String(verdict.score))}</span>
+          <div class="fw-home-verdict">
+            <span class="fw-home-emoji" aria-hidden="true">${weatherIcon}</span>
+            <div class="fw-home-verdict-body">
+              <p class="fw-home-verdict-word fw-status-text-${statusKey}">${esc(verdictWord)}</p>
+              <p class="fw-home-score-line">
+                <span class="fw-home-score fw-status-text-${statusKey}">${esc(String(verdict.score))}</span>
+                <span class="fw-home-score-denom">/ 100</span>
+              </p>
+              <p class="fw-home-tee-line">${teeLabel ? `${esc(teeLabel)}` : "—"} · ${holes} holes</p>
+              <p class="fw-home-message">${esc(verdict.message)}</p>
             </div>
-            <p class="fw-home-tee-line">${teeLabel ? `${esc(teeLabel)}` : "—"} · ${holes} holes</p>
-            <p class="fw-home-message">${esc(verdict.message)}</p>
           </div>`
               : `<p class="fw-muted">Select Forecast to load conditions.</p>`
         }

@@ -398,6 +398,10 @@ class FairwayApp {
       roundSaved: this.roundJustSaved,
       teeAdjusted: this.teeAdjusted,
       isFavourite: this.persistence.isFavourite(this.selectedCourse),
+      weatherIcon: weatherIdToIcon(
+        this.norm?.current?.weather?.[0]?.id ??
+          this.norm?.hourly?.find((h) => h.dt >= (this.selectedTeeTime || 0))?.weather?.[0]?.id
+      ),
     };
   }
 
@@ -761,6 +765,7 @@ class FairwayApp {
         loading: this.searchLoading,
         error: this.searchError,
         recentCourses: this.persistence.getRecentCourses(),
+        favouriteCourses: this.persistence.getFavourites(),
         favouriteIds: this.favouriteIdSet(),
         nearby: this.nearbyResults,
         nearbyLoading: this.nearbyLoading,
@@ -796,6 +801,7 @@ class FairwayApp {
         getScore: () => state.verdict?.score,
         getFactors: () => state.verdict?.factors,
         getDecision: () => state.decision,
+        getVerdict: () => state.verdict,
         getBetterTee: () => state.betterTee,
       });
     } else if (this.activeTab === "rounds") {

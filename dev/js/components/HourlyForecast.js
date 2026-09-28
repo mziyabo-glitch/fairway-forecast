@@ -34,7 +34,7 @@ export function renderHourlyForecast({ hourly = [], tzOffset = 0, units = "metri
 
   return `
     <details class="fw-hourly" id="fwHourlyWeather" ${expanded ? "open" : ""}>
-      <summary class="fw-hourly-summary" aria-expanded="${expanded ? "true" : "false"}">Hourly weather</summary>
+      <summary class="fw-hourly-summary" aria-expanded="${expanded ? "true" : "false"}">More weather details</summary>
       <ol class="fw-hourly-list">${rows.join("")}</ol>
     </details>`;
 }

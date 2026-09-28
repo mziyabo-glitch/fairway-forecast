@@ -27,6 +27,7 @@ export function renderCoursesView({
   loading,
   error,
   recentCourses = [],
+  favouriteCourses = [],
   favouriteIds = new Set(),
   nearby = [],
   nearbyLoading = false,
@@ -35,18 +36,26 @@ export function renderCoursesView({
 } = {}) {
   return `
     <div class="fw-view fw-view-courses">
-      <h1 class="fw-page-title">Courses</h1>
+      <h1 class="fw-page-title fw-page-title--prompt">Where are you playing?</h1>
+
+      <div class="fw-search-input-wrap fw-search-input-wrap--hero">
+        <i data-lucide="search" class="fw-search-icon" aria-hidden="true"></i>
+        <input id="fwCourseSearch" class="fw-search-input" type="search"
+          placeholder="Search golf courses…" value="${esc(query || "")}" autocomplete="off"
+          aria-label="Search golf courses" />
+      </div>
 
       <button type="button" class="fw-btn fw-btn-secondary fw-nearby-btn" id="fwNearbyBtn">
-        📍 Courses near me
+        <span aria-hidden="true">📍</span> Courses near me
       </button>
       ${nearbyLoading ? `<div class="fw-loading"><span class="fw-spinner" aria-hidden="true"></span> Finding courses near you…</div>` : ""}
       ${nearbyError ? `<div class="fw-error" role="alert">${esc(nearbyError)}</div>` : ""}
+
       ${
         nearby.length
           ? `
         <section class="fw-nearby-results" aria-label="Courses near you">
-          <h2 class="fw-section-title">Near you</h2>
+          <h2 class="fw-section-title fw-section-title--subtle">Near you</h2>
           <ul class="fw-course-results">
             ${nearby.map((c) => courseRow(c, { favouriteIds, showDistance: true, distanceUnits })).join("")}
           </ul>
@@ -58,15 +67,28 @@ export function renderCoursesView({
         recentCourses.length
           ? `
         <section class="fw-courses-recent" aria-label="Recent courses">
-          <h2 class="fw-section-title">Recent</h2>
+          <h2 class="fw-section-title fw-section-title--subtle">Recent</h2>
           <ul class="fw-course-results">
-            ${recentCourses.slice(0, 3).map((c) => courseRow(c, { favouriteIds })).join("")}
+            ${recentCourses.slice(0, 5).map((c) => courseRow(c, { favouriteIds })).join("")}
           </ul>
         </section>`
           : ""
       }
 
-      <div class="fw-search-panel">
+      ${
+        favouriteCourses.length
+          ? `
+        <section class="fw-courses-favourites" aria-label="Favourite courses">
+          <h2 class="fw-section-title fw-section-title--subtle">Favourites</h2>
+          <ul class="fw-course-results">
+            ${favouriteCourses.slice(0, 8).map((c) => courseRow(c, { favouriteIds })).join("")}
+          </ul>
+        </section>`
+          : ""
+      }
+
+      <details class="fw-region-filters">
+        <summary>Refine region</summary>
         <div class="fw-search-row">
           <select id="fwCountrySelect" class="fw-select" aria-label="Country">
             ${countries
@@ -90,13 +112,8 @@ export function renderCoursesView({
               : ""
           }
         </div>
-        <div class="fw-search-input-wrap">
-          <i data-lucide="search" class="fw-search-icon" aria-hidden="true"></i>
-          <input id="fwCourseSearch" class="fw-search-input" type="search"
-            placeholder="Search golf courses..." value="${esc(query || "")}" autocomplete="off"
-            aria-label="Search golf courses" />
-        </div>
-      </div>
+      </details>
+
       ${error ? `<div class="fw-error" role="alert">${esc(error)}</div>` : ""}
       ${loading ? `<div class="fw-loading"><span class="fw-spinner" aria-hidden="true"></span> Searching…</div>` : ""}
       <ul class="fw-course-results" aria-live="polite">
@@ -105,9 +122,11 @@ export function renderCoursesView({
             ? results.map((c) => courseRow(c, { favouriteIds })).join("")
             : !loading && query
               ? `<li class="fw-empty">No courses found</li>`
-              : !loading
-                ? `<li class="fw-empty">Start typing to search courses</li>`
-                : ""
+              : !loading && query === ""
+                ? ""
+                : !loading
+                  ? ""
+                  : ""
         }
       </ul>
       <p class="fw-osm-credit">Course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></p>

@@ -22,10 +22,10 @@ export function renderDayForecastStrip(days, selectedDateKey, dayScores = {}) {
                 class="fw-day-chip ${isActive ? "is-active" : ""} ${disabled ? "is-disabled" : ""}"
                 data-date-key="${esc(d.dateKey)}" ${disabled ? "disabled" : ""}
                 aria-label="${esc(d.dayLabel)} score ${score}">
-                <span class="fw-day-chip-icon" aria-hidden="true">${icon}</span>
                 <span class="fw-day-chip-label">${esc(d.dayLabel)}</span>
+                <span class="fw-day-chip-icon" aria-hidden="true">${icon}</span>
+                <span class="fw-day-chip-score fw-status-text-${statusKey}">${esc(String(score))}</span>
                 <span class="fw-day-chip-date">${esc(d.dateLabel)}</span>
-                <span class="fw-day-chip-score fw-status-${statusKey}">${esc(String(score))}</span>
                 ${bestHint}
               </button>`;
           })
@@ -35,19 +35,7 @@ export function renderDayForecastStrip(days, selectedDateKey, dayScores = {}) {
 }
 
 export function wireDayForecastStrip(container, onSelect) {
-  const strip = container?.querySelector(".fw-day-strip");
-  if (!strip) return;
-
-  let startX = 0;
-  strip.addEventListener(
-    "touchstart",
-    (e) => {
-      startX = e.touches[0].clientX;
-    },
-    { passive: true }
-  );
-
-  container.querySelectorAll(".fw-day-chip:not(.is-disabled)").forEach((chip) => {
+  container?.querySelectorAll(".fw-day-chip:not(.is-disabled)").forEach((chip) => {
     chip.addEventListener("click", () => {
       const key = chip.getAttribute("data-date-key");
       if (key) onSelect(key);

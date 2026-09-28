@@ -1,34 +1,51 @@
 import { esc } from "../../../shared/utils.js";
 
 export function renderScoreExplanationBody({ score, factors, decision, verdict }) {
-  const items = [];
-  const factorList = factors || verdict?.factors;
+  const factorList = factors || verdict?.factors || [];
+  const positives = [];
+  const cautions = [];
 
-  if (factorList?.length) {
-    for (const f of factorList) {
-      items.push(
-        `<li><strong>${esc(f.text)}</strong>${f.impact ? ` <span class="fw-impact-delta">${f.impact}</span>` : ""}</li>`
-      );
-    }
+  for (const f of factorList) {
+    const impact = f.impact ?? 0;
+    const item = `<li><span class="fw-factor-text">${esc(f.text)}</span></li>`;
+    if (impact >= -8) positives.push(item);
+    else cautions.push(item);
   }
 
   const reasons = decision?.reasons || verdict?.reasons;
   if (reasons?.length) {
     for (const r of reasons) {
-      if (!items.some((i) => i.includes(esc(r)))) {
-        items.push(`<li>${esc(r)}</li>`);
-      }
+      const item = `<li><span class="fw-factor-text">${esc(r)}</span></li>`;
+      if (!cautions.some((i) => i.includes(esc(r)))) cautions.push(item);
     }
   }
 
-  if (!items.length) {
-    items.push("<li>Great conditions across the board — enjoy your round!</li>");
+  if (!positives.length && !cautions.length) {
+    positives.push("<li><span class=\"fw-factor-text\">Great conditions across the board — enjoy your round!</span></li>");
   }
 
   return `
-    <p class="fw-sheet-intro">Your score of <strong>${esc(String(score))}</strong> reflects how rain, wind, and temperature will feel during your round — not just right now.</p>
-    <ul class="fw-score-factors">${items.join("")}</ul>
-    <p class="fw-sheet-footnote">90+ Excellent · 80–89 Good · 65–79 Playable · 50–64 Risky · 30–49 Poor · below 30 Avoid.</p>`;
+    <p class="fw-sheet-intro">Your <strong>${esc(String(score))}</strong> score reflects rain, wind, and temperature during your round — not just right now.</p>
+    ${
+      positives.length
+        ? `<div class="fw-score-group fw-score-group--positive">
+            <h3 class="fw-score-group-title"><span aria-hidden="true">✓</span> Working in your favour</h3>
+            <ul class="fw-score-factors">${positives.join("")}</ul>
+          </div>`
+        : ""
+    }
+    ${
+      cautions.length
+        ? `<div class="fw-score-group fw-score-group--caution">
+            <h3 class="fw-score-group-title"><span aria-hidden="true">⚠</span> Watch out for</h3>
+            <ul class="fw-score-factors">${cautions.join("")}</ul>
+          </div>`
+        : ""
+    }
+    <details class="fw-score-scale">
+      <summary>Score guide</summary>
+      <p class="fw-sheet-footnote">90+ Excellent · 80–89 Good · 65–79 Playable · 50–64 Risky · 30–49 Poor · below 30 Avoid.</p>
+    </details>`;
 }
 
 export function renderBestTeeTimeCard(better) {
@@ -41,13 +58,14 @@ export function renderBestTeeTimeCard(better) {
   return `
     <section class="fw-better-tee fw-fade-in" aria-label="Better tee time suggestion">
       <div class="fw-better-tee-inner">
-        <div>
-          <span class="fw-better-label">Better tee time</span>
+        <div class="fw-better-tee-copy">
+          <span class="fw-better-label"><span aria-hidden="true">⭐</span> Better tee time</span>
           <strong class="fw-better-time">${esc(better.label)}</strong>
-          <p class="fw-better-copy">+${better.improvement} points vs your current slot</p>
+          <p class="fw-better-score">${esc(String(better.score ?? ""))}${better.score != null ? " / 100" : ""}</p>
+          <p class="fw-better-copy">+${better.improvement} points</p>
           ${bullets ? `<ul class="fw-better-reasons">${bullets}</ul>` : ""}
         </div>
-        <button type="button" class="fw-btn fw-btn-primary" id="fwUseBetterTee">Use ${esc(better.label)}</button>
+        <button type="button" class="fw-btn fw-btn-primary fw-btn-compact" id="fwUseBetterTee">Use ${esc(better.label)}</button>
       </div>
     </section>`;
 }

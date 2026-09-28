@@ -1,43 +1,66 @@
 import { esc, fmtTimeCourse } from "../../../shared/utils.js";
 
-export function renderRoundSelector({ teeTimes, selectedTeeTime, holes, windowHours, tzOffset, teeTimeUnix }) {
-  const options = (teeTimes || [])
-    .map(
-      (t) =>
-        `<option value="${t.value}" ${t.value === selectedTeeTime ? "selected" : ""}>${esc(t.label)}</option>`
-    )
-    .join("");
-
-  let windowLabel = "Select tee time";
-  if (teeTimeUnix && windowHours) {
-    const end = teeTimeUnix + windowHours * 3600;
-    windowLabel = `${fmtTimeCourse(teeTimeUnix, tzOffset)} → ${fmtTimeCourse(end, tzOffset)}`;
+function buildTeePills(teeTimes, selectedTeeTime) {
+  if (!teeTimes?.length) {
+    return `<p class="fw-muted fw-tee-empty">No tee times available for this day.</p>`;
   }
 
+  const idx = teeTimes.findIndex((t) => t.value === selectedTeeTime);
+  const center = idx >= 0 ? idx : 0;
+  const start = Math.max(0, center - 1);
+  const end = Math.min(teeTimes.length, start + 3);
+  const window = teeTimes.slice(start, end);
+
   return `
-    <section class="fw-round-selector" aria-label="Round planner">
-      <div class="fw-round-selector-header">
-        <h2 class="fw-section-title">Round Planner</h2>
-        <div class="fw-hole-toggle" role="group" aria-label="Round length">
-          <button type="button" class="fw-hole-btn ${holes === 18 ? "is-active" : ""}" data-holes="18">18 holes</button>
-          <button type="button" class="fw-hole-btn ${holes === 9 ? "is-active" : ""}" data-holes="9">9 holes</button>
-        </div>
+    <div class="fw-tee-pills" role="group" aria-label="Tee time">
+      ${window
+        .map((t) => {
+          const isSel = t.value === selectedTeeTime;
+          return `
+            <button type="button"
+              class="fw-tee-pill ${isSel ? "is-active" : ""}"
+              data-tee-time="${t.value}"
+              aria-pressed="${isSel ? "true" : "false"}">
+              ${esc(t.label)}
+            </button>`;
+        })
+        .join("")}
+    </div>
+    <select id="fwTeeTimeSelect" class="fw-select fw-select--sr" aria-label="All tee times" ${!teeTimes?.length ? "disabled" : ""}>
+      ${teeTimes.map((t) => `<option value="${t.value}" ${t.value === selectedTeeTime ? "selected" : ""}>${esc(t.label)}</option>`).join("")}
+    </select>`;
+}
+
+export function renderRoundSelector({ teeTimes, selectedTeeTime, holes, windowHours, tzOffset, teeTimeUnix }) {
+  const pillsHtml = buildTeePills(teeTimes, selectedTeeTime);
+
+  return `
+    <section class="fw-round-selector" aria-label="Tee time and round length">
+      <div class="fw-round-tee-block">
+        ${pillsHtml}
       </div>
-      <div class="fw-round-row">
-        <label class="fw-field-label" for="fwTeeTimeSelect">Tee time</label>
-        <select id="fwTeeTimeSelect" class="fw-select" ${!teeTimes?.length ? "disabled" : ""}>
-          ${teeTimes?.length ? options : `<option value="">No times available</option>`}
-        </select>
+      <div class="fw-hole-toggle" role="group" aria-label="Round length">
+        <button type="button" class="fw-hole-btn ${holes === 9 ? "is-active" : ""}" data-holes="9">9 holes</button>
+        <button type="button" class="fw-hole-btn ${holes === 18 ? "is-active" : ""}" data-holes="18">18 holes</button>
       </div>
-      <div class="fw-round-window">
-        <span class="fw-round-window-label">Round window</span>
-        <strong class="fw-round-window-value">${esc(windowLabel)}</strong>
-        <span class="fw-round-window-sub">~${windowHours}h · ${holes} holes</span>
-      </div>
+      ${
+        teeTimeUnix && windowHours
+          ? `<p class="fw-round-meta fw-muted" aria-hidden="true">
+              ~${windowHours}h round from ${esc(fmtTimeCourse(teeTimeUnix, tzOffset))}
+            </p>`
+          : ""
+      }
     </section>`;
 }
 
 export function wireRoundSelector(container, { onTeeTimeChange, onHolesChange }) {
+  container?.querySelectorAll(".fw-tee-pill").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const val = Number(btn.getAttribute("data-tee-time"));
+      if (Number.isFinite(val)) onTeeTimeChange?.(val);
+    });
+  });
+
   container?.querySelector("#fwTeeTimeSelect")?.addEventListener("change", (e) => {
     const val = Number(e.target.value);
     if (Number.isFinite(val)) onTeeTimeChange?.(val);
@@ -45,8 +68,8 @@ export function wireRoundSelector(container, { onTeeTimeChange, onHolesChange })
 
   container?.querySelectorAll(".fw-hole-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const holes = Number(btn.getAttribute("data-holes"));
-      if (holes === 9 || holes === 18) onHolesChange?.(holes);
+      const h = Number(btn.getAttribute("data-holes"));
+      if (h === 9 || h === 18) onHolesChange?.(h);
     });
   });
 }

@@ -1,6 +1,6 @@
-# Fairway Weather — Design System (Milestone 1)
+# Fairway Weather — Design System
 
-Mobile-first design tokens and component guidelines for the rebuild experience at `/dev/`.
+Mobile-first design tokens and component guidelines for the rebuild experience at `/dev/`. Updated for the **Premium UI pass** (Fairway green palette, accent-only status colour, 14px metadata floor).
 
 ---
 
@@ -22,24 +22,29 @@ Mobile-first design tokens and component guidelines for the rebuild experience a
 |-------|-----|-----|
 | `--status-excellent` | `#0B5D2A` | Score 85–100, PLAY hero |
 | `--status-good` | `#1F8A42` | Score 72–84 |
+| `--status-playable` | `#8A9A3A` | Score 65–79, muted olive |
 | `--status-risky` | `#B8860B` | Score 48–71, RISKY |
 | `--status-poor` | `#D97706` | Score 25–47, DELAY |
 | `--status-avoid` | `#C0392B` | Score 0–24, AVOID |
 
-Each status has a light background variant: `--status-{name}-bg` at ~8% opacity.
+Use status colour for **score, badges, icons, thin accents** — not full-card backgrounds.
 
 ### Brand & Neutrals
 
 | Token | Hex | Use |
 |-------|-----|-----|
-| `--brand` | `#1F6F78` | Links, active nav, accents |
-| `--brand-dark` | `#155158` | Hover states |
-| `--surface` | `#FFFFFF` | Cards |
-| `--surface-muted` | `#F4F6F8` | Screen background |
-| `--border` | `#E2E8F0` | Dividers, card borders |
-| `--text-primary` | `#0F172A` | Headings, scores |
-| `--text-secondary` | `#475569` | Body, labels |
-| `--text-muted` | `#94A3B8` | Hints, placeholders |
+| `--bg-app` | `#E4EEE9` | App background (warm green-grey) |
+| `--brand` | `#0F766E` | Links, active nav, primary actions |
+| `--brand-secondary` | `#1F8A42` | Secondary accent |
+| `--brand-dark` | `#115E59` | Hover states |
+| `--surface-elevated` | `#FBFDFC` | Cards, chips |
+| `--surface-muted` | `#E4EEE9` | Screen background |
+| `--border-subtle` | `rgba(7,21,18,0.06)` | Dividers |
+| `--text-primary` | `#071512` | Headings, scores |
+| `--text-secondary` | `#51635F` | Body, labels |
+| `--text-muted` | `#6B7F79` | Hints |
+
+Styles live in [`dev/css/tokens.css`](../dev/css/tokens.css), [`dev/css/app.css`](../dev/css/app.css), and [`dev/css/premium.css`](../dev/css/premium.css).
 
 ### Rain Intensity (Timeline)
 
@@ -63,8 +68,10 @@ Each status has a light background variant: `--status-{name}-bg` at ~8% opacity.
 | Verdict label | 28px / 1.75rem | 600 | `--text-verdict` |
 | Key info | 18px / 1.125rem | 600 | `--text-key` |
 | Body | 16px / 1rem | 400 | `--text-body` |
-| Supporting | 14px / 0.875rem | 400 | `--text-support` |
-| Caption | 12px / 0.75rem | 500 | `--text-caption` |
+| Supporting / metadata | 14px / 0.875rem | 400 | `--text-meta`, `--text-support` |
+| Caption (secondary only) | 13px / 0.8125rem | 500 | `--text-caption` |
+
+Important mobile UI copy should not go below **14px**.
 
 Line heights: hero 1.0, verdict 1.2, body 1.5.
 
