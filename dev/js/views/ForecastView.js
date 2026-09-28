@@ -105,7 +105,7 @@ export function renderForecastView(state) {
     : renderHourlyForecast({ hourly, tzOffset, units, expanded: hourlyExpanded });
 
   return `
-    <div class="fw-view fw-view-forecast" ${weatherLoading ? 'aria-busy="true"' : ""}>
+    <div class="fw-view fw-view-forecast fw-forecast-column" ${weatherLoading ? 'aria-busy="true"' : ""}>
       ${freshness ? `<p class="fw-freshness" role="status">${esc(freshness)}</p>` : ""}
       ${
         teeAdjusted

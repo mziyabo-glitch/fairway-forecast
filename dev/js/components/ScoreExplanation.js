@@ -59,9 +59,11 @@ export function renderBestTeeTimeCard(better) {
     <section class="fw-better-tee fw-fade-in" aria-label="Better tee time suggestion">
       <div class="fw-better-tee-inner">
         <div class="fw-better-tee-copy">
-          <span class="fw-better-label"><span aria-hidden="true">⭐</span> Better tee time</span>
-          <strong class="fw-better-time">${esc(better.label)}</strong>
-          <p class="fw-better-score">${esc(String(better.score ?? ""))}${better.score != null ? " / 100" : ""}</p>
+          <span class="fw-better-label"><span class="fw-better-accent" aria-hidden="true">✦</span> Better tee time</span>
+          <div class="fw-better-head">
+            <strong class="fw-better-time">${esc(better.label)}</strong>
+            <span class="fw-better-score">${better.score != null ? `${esc(String(better.score))}/100` : ""}</span>
+          </div>
           <p class="fw-better-copy">+${better.improvement} points</p>
           ${bullets ? `<ul class="fw-better-reasons">${bullets}</ul>` : ""}
         </div>

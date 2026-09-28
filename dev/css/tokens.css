@@ -1,66 +1,87 @@
-/* Fairway Weather Rebuild — Design Tokens (Premium pass) */
+/* Fairway Weather — Premium mobile design tokens */
 
 :root {
-  /* Background & surfaces */
-  --bg-app: #e4eee9;
-  --surface: #fbfdfc;
-  --surface-muted: #e4eee9;
-  --surface-elevated: #ffffff;
-  --border: rgba(7, 21, 18, 0.1);
-  --border-subtle: rgba(7, 21, 18, 0.06);
+  /* App */
+  --app-bg: #f4f7f2;
+  --bg-app: var(--app-bg);
 
-  /* Brand — deep Fairway green */
-  --brand: #0f766e;
-  --brand-secondary: #1f8a42;
-  --brand-dark: #115e59;
-  --brand-light: rgba(15, 118, 110, 0.1);
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-soft: #eef3ed;
+  --surface-warm: #fafbf8;
+  --surface-elevated: #ffffff;
+  --surface-muted: var(--surface-soft);
+
+  /* Brand */
+  --brand: #175c4d;
+  --brand-deep: #0e3a30;
+  --brand-dark: var(--brand-deep);
+  --brand-hover: #124a3e;
+  --brand-soft: #e4efea;
+  --brand-softer: #f0f5f2;
+  --brand-light: var(--brand-soft);
+  --brand-secondary: #1f6f5c;
+
+  /* Premium accent (sparingly) */
+  --accent-premium: #b89552;
+  --accent-premium-soft: #f4eedf;
 
   /* Text */
-  --text-primary: #071512;
-  --text-secondary: #51635f;
-  --text-muted: #6b7f79;
+  --text-primary: #13211b;
+  --text-secondary: #617069;
+  --text-muted: #8b9891;
 
-  /* Status — accent only (not full-card fills) */
-  --status-excellent: #0b5d2a;
-  --status-good: #1f8a42;
-  --status-playable: #8a9a3a;
+  /* Borders */
+  --border-soft: #dde5df;
+  --border-medium: #ccd8d0;
+  --border: rgba(23, 92, 77, 0.09);
+  --border-subtle: rgba(19, 33, 27, 0.07);
+  --border-card: rgba(19, 33, 27, 0.07);
+
+  /* Status accents */
+  --status-excellent: #175c4d;
+  --status-good: #1f6f5c;
+  --status-playable: #7a8f3a;
   --status-risky: #b8860b;
-  --status-poor: #d97706;
-  --status-avoid: #c0392b;
+  --status-poor: #c76a2a;
+  --status-avoid: #b8453a;
 
-  --status-excellent-bg: rgba(11, 93, 42, 0.08);
-  --status-good-bg: rgba(31, 138, 66, 0.08);
-  --status-playable-bg: rgba(138, 154, 58, 0.1);
+  --status-excellent-bg: rgba(23, 92, 77, 0.08);
+  --status-good-bg: rgba(31, 111, 92, 0.08);
+  --status-playable-bg: rgba(122, 143, 58, 0.1);
   --status-risky-bg: rgba(184, 134, 11, 0.1);
-  --status-poor-bg: rgba(217, 119, 6, 0.1);
-  --status-avoid-bg: rgba(192, 57, 43, 0.1);
+  --status-poor-bg: rgba(199, 106, 42, 0.1);
+  --status-avoid-bg: rgba(184, 69, 58, 0.1);
 
-  /* Rain intensity (timeline indicators) */
-  --rain-dry: #94a3b8;
-  --rain-drizzle: #60a5fa;
-  --rain-light: #3b82f6;
-  --rain-moderate: #2563eb;
-  --rain-heavy: #1d4ed8;
+  /* Rain (precipitation blues) */
+  --rain-dry: #a7b3ad;
+  --rain-drizzle: #9bc1d8;
+  --rain-light: #6fa6c8;
+  --rain-moderate: #477fa8;
+  --rain-heavy: #315f84;
 
-  /* Typography — mobile floor ~14px for important UI */
+  /* Typography */
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --text-hero: clamp(3.75rem, 14vw, 5rem);
-  --text-verdict: clamp(1.25rem, 4.5vw, 1.625rem);
+  --text-hero: clamp(4rem, 16vw, 4.5rem);
+  --text-verdict: clamp(1.375rem, 5vw, 1.625rem);
   --text-key: 1.125rem;
   --text-body: 1rem;
-  --text-support: 0.875rem;
-  --text-meta: 0.875rem;
+  --text-support: 0.9375rem;
+  --text-meta: 0.9375rem;
   --text-caption: 0.8125rem;
 
-  /* Layout */
+  /* Layout — mobile first */
   --space-xs: 4px;
   --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-2xl: 40px;
-  --app-max-width: 720px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --section-gap: 24px;
+  --card-padding: 18px;
   --app-padding: 16px;
+  --app-max-width: 1200px;
+  --forecast-max-width: 680px;
   --nav-height: 56px;
   --header-height: 52px;
   --touch-min: 44px;
@@ -70,32 +91,32 @@
   --safe-right: env(safe-area-inset-right, 0px);
 
   /* Radius */
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
+  --radius-control: 12px;
+  --radius-card: 18px;
+  --radius-hero: 22px;
+  --radius-sheet: 24px;
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-card);
+  --radius-lg: var(--radius-hero);
   --radius-full: 9999px;
 
-  /* Shadows — restrained */
-  --shadow-sm: 0 1px 3px rgba(7, 21, 18, 0.06);
-  --shadow-md: 0 4px 16px rgba(7, 21, 18, 0.08);
-  --shadow-lg: 0 8px 28px rgba(7, 21, 18, 0.1);
+  /* Shadows */
+  --shadow-soft: 0 1px 2px rgba(18, 42, 33, 0.03), 0 8px 24px rgba(18, 42, 33, 0.045);
+  --shadow-elevated: 0 2px 4px rgba(18, 42, 33, 0.04), 0 12px 32px rgba(18, 42, 33, 0.07);
+  --shadow-sm: var(--shadow-soft);
+  --shadow-md: var(--shadow-soft);
+  --shadow-lg: var(--shadow-elevated);
+  --shadow-hero: 0 10px 35px rgba(23, 92, 77, 0.06);
 
   /* Motion */
-  --duration-fast: 150ms;
-  --duration-normal: 250ms;
+  --duration-fast: 180ms;
+  --duration-normal: 220ms;
   --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 @media (min-width: 768px) {
   :root {
-    --app-max-width: 960px;
-    --app-padding: 24px;
-  }
-}
-
-@media (min-width: 1280px) {
-  :root {
-    --app-max-width: 1200px;
+    --app-padding: 20px;
   }
 }
 

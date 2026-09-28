@@ -1,60 +1,61 @@
 # Fairway Weather — Design System
 
-Mobile-first design tokens and component guidelines for the rebuild experience at `/dev/`. Updated for the **Premium UI pass** (Fairway green palette, accent-only status colour, 14px metadata floor).
+Mobile-first design tokens and component guidelines for the rebuild experience at `/dev/`. Updated for the **Premium mobile visual pass** (warm sage app background, deep Fairway green brand, gold accent sparingly, native-like controls).
 
 ---
 
 ## Design Principles
 
-1. **Premium, calm, sophisticated** — neutral backgrounds; colour used strategically for scores, status, and accents
+1. **Premium, calm, sophisticated** — light airy surfaces; colour for verdict labels, rain, and accents — not dashboard fills
 2. **Golf-focused** — answer "Should I play?" within ~3 seconds
-3. **Mobile-first** — touch targets ≥ 44px; desktop centered column max 1200px
+3. **Mobile-first** — touch targets ≥ 44px; forecast column max **680px** on desktop
 4. **Accessible** — supporting text ≥ 14px; `prefers-reduced-motion` respected
-5. **Subtle motion** — transitions 150–300ms ease
+5. **Subtle motion** — transitions 150–220ms ease; press states over hover on mobile
 
 ---
 
 ## Colour Tokens
 
-### Status (Golf Verdict)
-
-| Token | Hex | Use |
-|-------|-----|-----|
-| `--status-excellent` | `#0B5D2A` | Score 85–100, PLAY hero |
-| `--status-good` | `#1F8A42` | Score 72–84 |
-| `--status-playable` | `#8A9A3A` | Score 65–79, muted olive |
-| `--status-risky` | `#B8860B` | Score 48–71, RISKY |
-| `--status-poor` | `#D97706` | Score 25–47, DELAY |
-| `--status-avoid` | `#C0392B` | Score 0–24, AVOID |
-
-Use status colour for **score, badges, icons, thin accents** — not full-card backgrounds.
-
 ### Brand & Neutrals
 
 | Token | Hex | Use |
 |-------|-----|-----|
-| `--bg-app` | `#E4EEE9` | App background (warm green-grey) |
-| `--brand` | `#0F766E` | Links, active nav, primary actions |
-| `--brand-secondary` | `#1F8A42` | Secondary accent |
-| `--brand-dark` | `#115E59` | Hover states |
-| `--surface-elevated` | `#FBFDFC` | Cards, chips |
-| `--surface-muted` | `#E4EEE9` | Screen background |
-| `--border-subtle` | `rgba(7,21,18,0.06)` | Dividers |
-| `--text-primary` | `#071512` | Headings, scores |
-| `--text-secondary` | `#51635F` | Body, labels |
-| `--text-muted` | `#6B7F79` | Hints |
+| `--app-bg` | `#F4F7F2` | App background (warm sage) |
+| `--surface` | `#FFFFFF` | Cards, hero |
+| `--surface-soft` | `#EEF3ED` | Secondary buttons, panels |
+| `--surface-warm` | `#FAFBF8` | Header glass tint |
+| `--brand` | `#175C4D` | Primary actions, active nav, good verdict |
+| `--brand-deep` | `#0E3A30` | Active tee time text |
+| `--brand-soft` | `#E4EFEA` | Selected tee pill, nav icon pill |
+| `--accent-premium` | `#B89552` | Best tee, favourites star (sparingly) |
+| `--accent-premium-soft` | `#F4EEDF` | — |
+| `--text-primary` | `#13211B` | Hero score, headings |
+| `--text-secondary` | `#617069` | Body |
+| `--text-muted` | `#8B9891` | Hints, category labels |
+| `--border-soft` | `#DDE5DF` | Hairlines |
+| `--border-card` | `rgba(19,33,27,0.07)` | Large cards |
+
+### Status (verdict label only — not hero score background)
+
+| Token | Hex | Use |
+|-------|-----|-----|
+| `--status-excellent` / `--status-good` | `#175C4D` / `#1F6F5C` | GOOD / PLAY |
+| `--status-playable` | `#7A8F3A` | Playable |
+| `--status-risky` | `#B8860B` | RISKY |
+| `--status-poor` | `#C76A2A` | Poor |
+| `--status-avoid` | `#B8453A` | AVOID |
+
+### Rain (precipitation blues)
+
+| Token | Hex |
+|-------|-----|
+| `--rain-dry` | `#A7B3AD` |
+| `--rain-drizzle` | `#9BC1D8` |
+| `--rain-light` | `#6FA6C8` |
+| `--rain-moderate` | `#477FA8` |
+| `--rain-heavy` | `#315F84` |
 
 Styles live in [`dev/css/tokens.css`](../dev/css/tokens.css), [`dev/css/app.css`](../dev/css/app.css), and [`dev/css/premium.css`](../dev/css/premium.css).
-
-### Rain Intensity (Timeline)
-
-| Category | Token | Colour |
-|----------|-------|--------|
-| Dry | `--rain-dry` | `#94A3B8` |
-| Drizzle | `--rain-drizzle` | `#60A5FA` |
-| Light | `--rain-light` | `#3B82F6` |
-| Moderate | `--rain-moderate` | `#2563EB` |
-| Heavy | `--rain-heavy` | `#1D4ED8` |
 
 ---
 
@@ -62,18 +63,15 @@ Styles live in [`dev/css/tokens.css`](../dev/css/tokens.css), [`dev/css/app.css`
 
 **Font stack:** `Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif`
 
-| Role | Size (mobile) | Weight | Token |
-|------|---------------|--------|-------|
-| Hero score | 72px / 4.5rem | 700 | `--text-hero` |
-| Verdict label | 28px / 1.75rem | 600 | `--text-verdict` |
-| Key info | 18px / 1.125rem | 600 | `--text-key` |
-| Body | 16px / 1rem | 400 | `--text-body` |
-| Supporting / metadata | 14px / 0.875rem | 400 | `--text-meta`, `--text-support` |
-| Caption (secondary only) | 13px / 0.8125rem | 500 | `--text-caption` |
+| Role | Size (mobile) | Weight |
+|------|---------------|--------|
+| Hero score | 64–72px | 700 |
+| Verdict label | 22–26px | 700, uppercase |
+| Section category | 13px | 600, uppercase |
+| Key info | 18px | 600 |
+| Body / support | 15–16px | 400–500 |
 
-Important mobile UI copy should not go below **14px**.
-
-Line heights: hero 1.0, verdict 1.2, body 1.5.
+Reserve uppercase for small category labels (e.g. "Rain during your round"). Use title case for "Why this score?" and "More weather details".
 
 ---
 
@@ -81,33 +79,14 @@ Line heights: hero 1.0, verdict 1.2, body 1.5.
 
 | Token | Value |
 |-------|-------|
-| `--space-xs` | 4px |
-| `--space-sm` | 8px |
-| `--space-md` | 16px |
-| `--space-lg` | 24px |
-| `--space-xl` | 32px |
-| `--app-max-width` | 1200px |
-| `--app-padding` | 16px |
-| `--nav-height` | 64px |
-| `--header-height` | 56px |
+| `--app-padding` | 16px (390px benchmark) |
+| `--section-gap` | 24px |
+| `--card-padding` | 18px |
+| `--forecast-max-width` | 680px |
+| `--app-max-width` | 1200px (shell) |
 | `--touch-min` | 44px |
 
-### Screen Structure
-
-```
-┌─────────────────────────────┐
-│  DEV banner (optional)      │
-├─────────────────────────────┤
-│  Course Header (compact)    │
-├─────────────────────────────┤
-│                             │
-│  Main content (scrollable)  │
-│  padding-bottom: nav + safe │
-│                             │
-├─────────────────────────────┤
-│  Bottom Navigation (fixed)  │
-└─────────────────────────────┘
-```
+Rhythm: 4, 8, 12, 16, 24, 32 — prefer 16–24px between forecast sections.
 
 ---
 
@@ -115,77 +94,54 @@ Line heights: hero 1.0, verdict 1.2, body 1.5.
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `--radius-sm` | 8px | Chips, inputs |
-| `--radius-md` | 12px | Cards |
-| `--radius-lg` | 16px | Hero, sheets |
-| `--radius-full` | 9999px | Pills, nav items |
+| `--radius-control` | 12px | Buttons, tee pills |
+| `--radius-card` | 18px | Cards, day selected |
+| `--radius-hero` | 22px | Verdict hero |
+| `--radius-sheet` | 24px | Bottom sheets |
+
+Default card border: `1px solid rgba(23, 92, 77, 0.09)` or `--border-card`.
 
 ---
 
 ## Shadows
 
 ```css
---shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
---shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
---shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+--shadow-soft: 0 1px 2px rgba(18,42,33,.03), 0 8px 24px rgba(18,42,33,.045);
+--shadow-elevated: 0 2px 4px rgba(18,42,33,.04), 0 12px 32px rgba(18,42,33,.07);
+--shadow-hero: 0 10px 35px rgba(23, 92, 77, 0.06);
 ```
+
+Most forecast sections use no shadow or `--shadow-soft` only.
 
 ---
 
 ## Motion
 
 ```css
---duration-fast: 150ms;
---duration-normal: 250ms;
+--duration-fast: 180ms;
+--duration-normal: 220ms;
 --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
 ```
 
-Reduced motion: disable transforms and set `--duration-fast: 0ms; --duration-normal: 0ms`.
-
 ---
 
-## Components
+## Components (Forecast hierarchy)
 
-### AppShell
-Fixed bottom nav, scrollable main, safe-area insets.
+1. Course header (glass, minimal)
+2. Five-day strip (soft chips; selected = white + hairline + light shadow)
+3. **Verdict hero** — light gradient card; icon → label (status colour) → score (neutral) → message
+4. Tee carousel ‹ › + pills; 9/18 segmented control (`#EAF0EC` track)
+5. Rain row timeline + mm summary (no per-hour boxes)
+6. Shared **impact panel** (Rain / Wind / Feels like)
+7. Better tee time (gold accent border, green CTA)
+8. More weather details accordion
 
-### BottomNavigation
-4 tabs: Home, Courses, Forecast, Rounds. Icon + label. Active: brand colour + subtle bg.
+### Bottom navigation
 
-### CourseHeader
-Compact: course name, location, change button. Optional favourite star (milestone 2).
-
-### DayForecastStrip
-Horizontal scroll. 5 day chips with weekday, date, mini score ring. Active day highlighted.
-
-### GolfVerdictHero
-Largest element: numeric score (0–100), status label, one-line guidance. Status-coloured accent bar.
-
-### RoundSelector
-Unified: tee time `<select>` + 9/18 toggle. Shows round window `11:00 → 15:00`. Auto-recalculates on change.
-
-### RainTimeline
-Hourly bars during round window. Intensity colour. Summary: total mm, wettest period, description.
-
-### WeatherImpactCard
-Three cards: Rain, Wind, Temperature. Icon, value, short impact line. No separate Gust card (gust folded into Wind).
-
-### ScoreExplanation
-Bottom sheet / modal. "Why 82?" → factor list in plain language.
-
-### BestTeeTimeCard
-Shown only when alternative ≥ 12 points better. "Use 10:30" button applies tee time.
-
----
-
-## Loading & Error States
-
-- **Skeleton:** Pulsing grey blocks matching component layout
-- **Error:** Friendly message + retry button; never raw API errors
-- **Empty:** Prompt to select a course on Forecast tab
+Glass bar; active tab = brand green text + soft pill behind icon only (not full cell fill).
 
 ---
 
 ## Implementation
 
-CSS tokens live in `dev/css/tokens.css`. Component styles in `dev/css/app.css`. Import order: tokens → app.
+Import order in `dev/index.html`: `tokens.css` → `app.css` → `premium.css`.

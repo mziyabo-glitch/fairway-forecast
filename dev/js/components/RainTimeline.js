@@ -11,11 +11,17 @@ function intensityWord(key) {
   return map[key] || "Dry";
 }
 
+function rainLevel(key, pop) {
+  const map = { dry: 0.08, drizzle: 0.25, light: 0.45, moderate: 0.7, heavy: 1 };
+  if (map[key] != null) return map[key];
+  return Math.min(1, (pop || 0) / 100);
+}
+
 export function renderRainTimeline(rainAnalysis) {
   if (!rainAnalysis?.hours?.length) {
     return `
       <section class="fw-rain-timeline" aria-label="Rain during your round">
-        <h2 class="fw-section-title fw-section-title--subtle">Rain during your round</h2>
+        <h2 class="fw-section-title fw-section-title--category">Rain during your round</h2>
         <p class="fw-muted">Select a tee time to see hourly rain during your round.</p>
       </section>`;
   }
@@ -28,18 +34,21 @@ export function renderRainTimeline(rainAnalysis) {
 
   return `
     <section class="fw-rain-timeline" aria-label="Rain during your round">
-      <h2 class="fw-section-title fw-section-title--subtle">Rain during your round</h2>
+      <h2 class="fw-section-title fw-section-title--category">Rain during your round</h2>
       <div class="fw-rain-row" role="img" aria-label="Hourly rain during round">
         ${rainAnalysis.hours
           .map((h) => {
             const pop = h.probability ?? 0;
-            const label = h.intensity?.label || intensityWord(h.intensity?.key);
+            const key = h.intensity?.key || "dry";
+            const label = h.intensity?.label || intensityWord(key);
+            const level = rainLevel(key, pop);
             return `
               <div class="fw-rain-cell">
                 <span class="fw-rain-cell-time">${esc(h.time)}</span>
                 <span class="fw-rain-cell-icon" aria-hidden="true">${h.weatherIcon || "☁️"}</span>
                 <span class="fw-rain-cell-pop">${pop > 0 ? `${pop}%` : "—"}</span>
-                <span class="fw-rain-cell-intensity fw-rain-tone-${h.intensity?.key || "dry"}">${esc(label)}</span>
+                <span class="fw-rain-cell-bar" aria-hidden="true"><i class="fw-rain-fill fw-rain-tone-${key}" style="--rain-fill:${level}"></i></span>
+                <span class="fw-rain-cell-intensity fw-rain-tone-${key}">${esc(label)}</span>
               </div>`;
           })
           .join("")}
