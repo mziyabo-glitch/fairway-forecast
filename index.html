@@ -37,6 +37,8 @@
 
   <!-- PWA -->
   <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#1F6F78" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0c1512" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#1F6F78" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -148,7 +150,8 @@
 </head>
 
 <body>
-<main class="ff-wrap">
+<a href="#mainContent" class="ff-skip-link">Skip to content</a>
+<main class="ff-wrap" id="mainContent" tabindex="-1">
     <section class="ff-shell">
       <!-- ================= HEADER ================= -->
       <header class="ff-topbar" aria-label="App header">
