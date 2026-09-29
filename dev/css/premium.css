@@ -4,11 +4,26 @@
   background: var(--app-bg);
 }
 
-/* Forecast column — mobile-app proportions on desktop */
+/* Forecast column — the phone layout, centered on desktop */
+.fw-app:has(.fw-view-forecast) {
+  max-width: var(--forecast-max-width);
+}
+
+.fw-app:has(.fw-view-forecast) .fw-bottom-nav,
+.fw-app:has(.fw-view-forecast) ~ .fw-sheet {
+  max-width: var(--forecast-max-width);
+}
+
+.fw-app:has(.fw-view-forecast) .fw-course-header,
+.fw-app:has(.fw-view-forecast) .fw-course-header-mount {
+  overflow: visible;
+}
+
 .fw-forecast-column {
   max-width: var(--forecast-max-width);
   margin-inline: auto;
   width: 100%;
+  min-width: 0;
 }
 
 .fw-view-forecast {
@@ -148,14 +163,30 @@
   margin-bottom: var(--space-md);
 }
 
-/* Five-day strip */
+/* Five-day strip — center the chips when they fit; never clip Today */
+.fw-day-strip-wrap,
+#fwDayStripMount {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .fw-day-strip-wrap {
+  display: flex;
+  justify-content: center;
   margin-bottom: 0;
 }
 
 .fw-day-strip {
+  flex: 0 1 auto;
   gap: var(--space-md);
-  padding-bottom: var(--space-xs);
+  width: max-content;
+  min-width: 0;
+  max-width: 100%;
+  margin-inline: auto;
+  justify-content: flex-start;
+  padding: 2px var(--space-md) var(--space-xs);
+  scroll-padding-inline: var(--space-md);
+  box-sizing: border-box;
 }
 
 .fw-day-chip {
