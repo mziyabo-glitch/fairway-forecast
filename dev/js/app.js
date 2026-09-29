@@ -13,7 +13,7 @@ import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
 import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
 import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
 import { renderAccountView, wireAccountView } from "./views/AccountView.js";
-import { renderSettingsView } from "./views/SettingsView.js";
+import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js";
 import { tabFromPath, syncHistory, wireHistory } from "./router.js";
 import { featureOn, isAdvancedDev } from "./features/gates.js";
 import { closeSheet, openSheet } from "./components/AppShell.js";
@@ -45,6 +45,10 @@ import {
   focusEveningHours,
   normalizePracticeHoles,
 } from "./daylight/eveningPractice.js";
+import { loadGolferPreferences, saveGolferPreferences } from "./preferences/golferPreferences.js";
+import { loadDevGroundSignals } from "./ground/groundRequest.js";
+import { buildForecastDimensions } from "./dimensions/forecastDimensions.js";
+import { renderForecastDimensions } from "./components/ForecastDimensions.js";
 import { applyRoundEdit } from "./rounds/editRound.js";
 import { forgetRoundWeather, getRoundWeatherPair, recordRoundWeather } from "./rounds/roundWeatherHistory.js";
 import { CourseService } from "../../shared/course-service.js";
@@ -150,6 +154,7 @@ class FairwayApp {
     this.practiceHoles = 9;
     this.daylightSeries = [];
     this.eveningTracked = false;
+    this.groundSignals = null;
     this.societyForm = {
       courseId: "",
       date: defaultDateKey(),
@@ -280,6 +285,7 @@ class FairwayApp {
     this.persistence.saveLastCourse(course);
     this.daylightSeries = [];
     this.eveningTracked = false;
+    this.groundSignals = null;
     this.error = null;
     this.openedRoundId = null;
     this.pendingRoundTee = null;
@@ -322,6 +328,11 @@ class FairwayApp {
       if (isAdvancedDev() && featureOn("eveningPractice")) {
         await this.ensureDaylight();
       }
+      if (isAdvancedDev() && featureOn("groundConditionRisk")) {
+        await this.ensureGround();
+      } else {
+        this.groundSignals = null;
+      }
       if (this.openedRoundId) {
         const forecast = this.getForecastState();
         this.persistence.updateRoundForecast(
@@ -333,6 +344,7 @@ class FairwayApp {
       this.error = err.message || "Could not load weather forecast.";
       this.norm = null;
       this.weatherMeta = null;
+      this.groundSignals = null;
     } finally {
       this.weatherLoading = false;
       this.render();
@@ -979,6 +991,36 @@ class FairwayApp {
     return map;
   }
 
+  async ensureGround() {
+    if (!isAdvancedDev() || !featureOn("groundConditionRisk") || !this.norm || !this.selectedCourse) {
+      this.groundSignals = null;
+      return;
+    }
+    try {
+      this.groundSignals = await loadDevGroundSignals(this.norm, {
+        lat: this.selectedCourse.lat,
+        lon: this.selectedCourse.lon,
+        units: this.units,
+        allowFetch: true,
+      });
+    } catch {
+      this.groundSignals = { pastRain: null, freezing: null, drying: null, source: "unavailable" };
+    }
+  }
+
+  practicePreferenceInputs() {
+    if (!isAdvancedDev() || !featureOn("golferPreferences")) return {};
+    try {
+      const prefs = loadGolferPreferences();
+      return {
+        paceMins: prefs.paceMins,
+        daylightSafetyMarginMins: prefs.daylightSafetyMarginMins,
+      };
+    } catch {
+      return {};
+    }
+  }
+
   async ensureDaylight() {
     if (!isAdvancedDev() || !featureOn("eveningPractice") || !this.norm || !this.selectedCourse) {
       this.daylightSeries = [];
@@ -1007,6 +1049,7 @@ class FairwayApp {
       units: this.units,
       countryCode: this.courseService.getCountry(),
       tzOffset,
+      ...this.practicePreferenceInputs(),
     });
     const dateIsToday = courseTodayKey(now, daylight.timezone, tzOffset) === daylight.date;
     const from = eveningFocusFrom({
@@ -1039,6 +1082,68 @@ class FairwayApp {
     this.practiceHoles = next;
     trackDevEvent(DevAnalyticsEvents.PRACTICE_HOLES_SELECTED, { holes: next });
     this.render();
+  }
+
+  dimensionsFor(state) {
+    const empty = { html: "", scoreCaption: "", safetyActive: false };
+    if (!isAdvancedDev() || !state?.verdict) return empty;
+    try {
+      const flags = {
+        golferPreferences: featureOn("golferPreferences"),
+        forecastConfidence: featureOn("forecastConfidence"),
+        groundConditionRisk: featureOn("groundConditionRisk"),
+        safetyOverrides: featureOn("safetyOverrides"),
+        courseStatus: featureOn("courseStatus"),
+      };
+      if (!Object.values(flags).some(Boolean)) return empty;
+
+      let preferences = null;
+      if (flags.golferPreferences) {
+        try {
+          preferences = loadGolferPreferences();
+        } catch {
+          preferences = null;
+        }
+      }
+
+      let originalSnapshot = null;
+      let latestSnapshot = null;
+      if (flags.forecastConfidence && this.openedRoundId) {
+        const pair = getRoundWeatherPair(this.openedRoundId);
+        const sameCheck =
+          pair?.original &&
+          pair?.latest &&
+          pair.original.checkedAt != null &&
+          pair.original.checkedAt === pair.latest.checkedAt;
+        if (pair?.original && pair?.latest && !sameCheck) {
+          originalSnapshot = pair.original;
+          latestSnapshot = pair.latest;
+        }
+      }
+
+      const model = buildForecastDimensions({
+        flags,
+        verdict: state.verdict,
+        preferences,
+        nowUnix: Math.floor(Date.now() / 1000),
+        teeTimeUnix: state.selectedTeeTime,
+        windowHours: state.windowHours,
+        hourly: state.hourly,
+        units: state.units,
+        originalSnapshot,
+        latestSnapshot,
+        groundSignals: flags.groundConditionRisk ? this.groundSignals : null,
+        course: state.course,
+        nowMs: Date.now(),
+      });
+      return {
+        html: model.hasPanel ? renderForecastDimensions(model) : "",
+        scoreCaption: model.scoreCaption,
+        safetyActive: model.safetyActive,
+      };
+    } catch {
+      return empty;
+    }
   }
 
   forecastExtras() {
@@ -1119,7 +1224,11 @@ class FairwayApp {
     if (featureOn("weatherAlerts")) items.push({ id: "alerts", label: "Alerts", hint: "In-app weather changes" });
     if (featureOn("societyWeather")) items.push({ id: "society", label: "Society", hint: "Score a run of tee times" });
     if (featureOn("premiumShell")) items.push({ id: "account", label: "Account", hint: "Preview access on this device" });
-    items.push({ id: "settings", label: "Settings", hint: "Disclosure and offline" });
+    items.push({
+      id: "settings",
+      label: "Settings",
+      hint: featureOn("golferPreferences") ? "Preferences, disclosure, and offline" : "Disclosure and offline",
+    });
     return items;
   }
 
@@ -1261,6 +1370,10 @@ class FairwayApp {
     } else if (this.activeTab === "forecast") {
       const state = this.getForecastState();
       const extras = this.forecastExtras();
+      const dimensions = this.dimensionsFor(state);
+      state.dimensionsHtml = state.weatherLoading && !state.verdict ? "" : dimensions.html;
+      state.scoreCaption = dimensions.scoreCaption;
+      state.safetyActive = dimensions.safetyActive;
       state.showSaveRound = featureOn("savedRounds");
       state.roundLimitNote = this.roundLimitNote;
       state.extendedOutlookHtml = extras.extendedOutlookHtml;
@@ -1358,7 +1471,29 @@ class FairwayApp {
         : `<div class="fw-view"><h1 class="fw-page-title">Account</h1><p class="fw-muted">Account preview is turned off.</p></div>`;
       wireAccountView(main, { onTier: (tier) => this.setTier(tier) });
     } else if (this.activeTab === "settings") {
-      main.innerHTML = renderSettingsView({ notificationMode: this.notifications.mode });
+      const showPreferences = featureOn("golferPreferences");
+      let preferences = null;
+      if (showPreferences) {
+        try {
+          preferences = loadGolferPreferences();
+        } catch {
+          preferences = null;
+        }
+      }
+      main.innerHTML = renderSettingsView({
+        notificationMode: this.notifications.mode,
+        showPreferences,
+        preferences,
+      });
+      wireSettingsView(main, {
+        onPreferencesChange: (prefs) => {
+          try {
+            return saveGolferPreferences(prefs);
+          } catch {
+            return false;
+          }
+        },
+      });
     }
 
     const note = this.offlineNote();

@@ -28,16 +28,33 @@ export function normalizePracticeHoles(holes) {
   return PRACTICE_DURATION_RANGES[n] ? n : 9;
 }
 
-export function estimatedDurationMins(holes) {
-  return PRACTICE_DURATION_RANGES[normalizePracticeHoles(holes)].max;
+/**
+ * Planning duration. Without paceMins, the range maximum is used so existing
+ * evening-practice defaults stay put. A saved pace replaces that maximum.
+ */
+export function estimatedDurationMins(holes, paceMins) {
+  const n = normalizePracticeHoles(holes);
+  const fallback = PRACTICE_DURATION_RANGES[n].max;
+  const custom = paceMins && Number(paceMins[n]);
+  if (Number.isFinite(custom) && custom > 0) return custom;
+  return fallback;
 }
 
-export function estimateLastPlayableLight(sunset, civilTwilightEnd) {
+export function estimateLastPlayableLight(sunset, civilTwilightEnd, marginMins = LAST_PLAYABLE_LEAD_MIN) {
   if (!Number.isFinite(sunset)) return null;
-  const beforeSunset = sunset - LAST_PLAYABLE_LEAD_MIN * 60;
+  const margin = Number.isFinite(marginMins) ? marginMins : LAST_PLAYABLE_LEAD_MIN;
+  const beforeSunset = sunset - margin * 60;
   if (!Number.isFinite(civilTwilightEnd)) return beforeSunset;
   // Civil twilight after sunset is not extra playing time.
   return Math.min(beforeSunset, civilTwilightEnd);
+}
+
+/** Copy of a daylight window with a different safety margin. Default margin is unchanged. */
+export function withDaylightMargin(daylight, marginMins) {
+  if (!daylight || !Number.isFinite(daylight.sunset)) return daylight;
+  const lastPlayableLight = estimateLastPlayableLight(daylight.sunset, daylight.civilTwilightEnd, marginMins);
+  if (lastPlayableLight === daylight.lastPlayableLight) return daylight;
+  return { ...daylight, lastPlayableLight };
 }
 
 export function buildDaylightWindow({
@@ -322,8 +339,8 @@ function practiceFloor(daylight, now, tzOffset) {
   return Number.isFinite(daylight?.sunrise) ? daylight.sunrise : now;
 }
 
-export function findNextSuitableEvening({ holes, upcoming = [], now, tzOffset = 0 } = {}) {
-  const durationSec = estimatedDurationMins(holes) * 60;
+export function findNextSuitableEvening({ holes, upcoming = [], now, tzOffset = 0, paceMins } = {}) {
+  const durationSec = estimatedDurationMins(holes, paceMins) * 60;
   const ordered = [...upcoming].filter((day) => day?.date).sort((a, b) => a.date.localeCompare(b.date));
   for (const day of ordered) {
     if (!Number.isFinite(day.lastPlayableLight)) continue;
@@ -357,13 +374,20 @@ export function buildPracticePlan({
   units = "metric",
   countryCode = "gb",
   tzOffset = 0,
+  paceMins,
+  daylightSafetyMarginMins,
 } = {}) {
   const practiceHoles = normalizePracticeHoles(holes);
-  const durationMins = estimatedDurationMins(practiceHoles);
+  const durationMins = estimatedDurationMins(practiceHoles, paceMins);
   const durationSec = durationMins * 60;
-  const last = daylight?.lastPlayableLight;
-  const sunrise = daylight?.sunrise;
-  const floor = practiceFloor(daylight, now, tzOffset);
+  const marginActive = Number.isFinite(daylightSafetyMarginMins);
+  const playDaylight = marginActive ? withDaylightMargin(daylight, daylightSafetyMarginMins) : daylight;
+  const playUpcoming = marginActive
+    ? (upcoming || []).map((day) => withDaylightMargin(day, daylightSafetyMarginMins))
+    : upcoming;
+  const last = playDaylight?.lastPlayableLight;
+  const sunrise = playDaylight?.sunrise;
+  const floor = practiceFloor(playDaylight, now, tzOffset);
   const earliestRaw = Math.max(floor, Number.isFinite(sunrise) ? sunrise : floor);
   const earliestStart = ceilToStep(earliestRaw, STEP_SEC);
   const latestSafeStart = Number.isFinite(last) ? last - durationSec : null;
@@ -383,9 +407,10 @@ export function buildPracticePlan({
   const nextEvening = () =>
     findNextSuitableEvening({
       holes: practiceHoles,
-      upcoming: (upcoming || []).filter((day) => day?.date && day.date !== daylight?.date),
+      upcoming: (playUpcoming || []).filter((day) => day?.date && day.date !== playDaylight?.date),
       now,
       tzOffset,
+      paceMins,
     });
 
   if (!Number.isFinite(latestSafeStart) || earliestStart > latestSafeStart) {
@@ -421,6 +446,8 @@ export function buildPracticePlan({
 
   const slack = latestSafeStart - earliestStart;
   const range = PRACTICE_DURATION_RANGES[practiceHoles];
+  const paceValue = paceMins && Number(paceMins[practiceHoles]);
+  const customPace = Number.isFinite(paceValue) && paceValue > 0 && paceValue !== range.max;
   plan.recommendedStart = best.start;
   plan.recommendedEnd = best.end;
   plan.daylightStatus = slack < TIGHT_SLACK_SEC ? "tight" : "enough";
@@ -430,9 +457,12 @@ export function buildPracticePlan({
       ? "Tight — this practice only just finishes before last light."
       : "Enough light to finish before last light.";
   const weather = best.verdict?.message || "";
+  const durationLine = customPace
+    ? `${practiceHoles} holes, about ${durationMins} minutes.`
+    : `${practiceHoles} holes, about ${range.min}–${range.max} minutes.`;
   plan.summary = [
     statusLine,
-    `${practiceHoles} holes, about ${range.min}–${range.max} minutes.`,
+    durationLine,
     weather,
   ]
     .filter(Boolean)

@@ -50,6 +50,9 @@ export function renderForecastView(state) {
     radarHtml = "",
     sponsoredHtml = "",
     eveningHtml = "",
+    dimensionsHtml = "",
+    scoreCaption = "",
+    safetyActive = false,
   } = state;
 
   if (noCourse) {
@@ -91,6 +94,8 @@ export function renderForecastView(state) {
         verdict,
         decision,
         weatherIcon,
+        scoreCaption,
+        safetyActive,
       });
 
   const roundHtml = renderRoundSelector({
@@ -127,6 +132,7 @@ export function renderForecastView(state) {
       }
       <div id="fwDayStripMount">${dayStripHtml}</div>
       <div id="fwHeroMount">${heroHtml}</div>
+      ${dimensionsHtml ? `<div id="fwDimensionsMount">${dimensionsHtml}</div>` : ""}
       <div id="fwRoundMount">${roundHtml}</div>
       ${
         showSaveRound
