@@ -949,3 +949,174 @@
   border: 1px solid var(--border-card);
   box-shadow: none;
 }
+
+/* Advanced /dev surfaces */
+.fw-more-btn.is-current {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.fw-more-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.fw-more-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border-card);
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 12px 14px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.fw-more-item-label {
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+.fw-more-item-hint {
+  color: var(--text-secondary);
+  font-size: var(--text-caption);
+}
+
+.fw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: var(--space-md);
+}
+
+.fw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+.fw-field .fw-search-input,
+.fw-field .fw-select {
+  width: 100%;
+}
+
+.fw-form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.fw-soft-gate,
+.fw-radar-panel,
+.fw-outlook,
+.fw-settings-block,
+.fw-society-slot,
+.fw-alert,
+.fw-sponsored {
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.fw-soft-gate p,
+.fw-settings-block p,
+.fw-radar-status,
+.fw-radar-attribution,
+.fw-outlook-note {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-support);
+}
+
+.fw-alert-list,
+.fw-outlook-list,
+.fw-society-list,
+.fw-radar-layers,
+.fw-access-list,
+.fw-flag-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fw-alert {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fw-alert p,
+.fw-society-slot p,
+.fw-round-compare {
+  margin: 4px 0 0;
+}
+
+.fw-outlook-day,
+.fw-society-slot,
+.fw-radar-layer,
+.fw-access-list li,
+.fw-flag-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.fw-outlook-confidence,
+.fw-society-tag,
+.fw-sponsored-kicker {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.fw-society-summary {
+  margin: 16px 0 8px;
+  font-weight: 600;
+}
+
+.fw-account-tier {
+  margin: 8px 0 12px;
+}
+
+.fw-tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fw-offline-note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  color: var(--text-secondary);
+  font-size: var(--text-support);
+}
+
+.fw-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+}
+
+.fw-sponsored-link {
+  font-weight: 600;
+}
+
+.fw-round-edit {
+  margin-top: 12px;
+}
+

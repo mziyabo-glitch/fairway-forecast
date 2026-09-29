@@ -43,6 +43,11 @@ export function renderForecastView(state) {
     roundSaved = false,
     teeAdjusted = null,
     weatherIcon = "🌤️",
+    showSaveRound = true,
+    roundLimitNote = "",
+    extendedOutlookHtml = "",
+    radarHtml = "",
+    sponsoredHtml = "",
   } = state;
 
   if (noCourse) {
@@ -121,16 +126,24 @@ export function renderForecastView(state) {
       <div id="fwDayStripMount">${dayStripHtml}</div>
       <div id="fwHeroMount">${heroHtml}</div>
       <div id="fwRoundMount">${roundHtml}</div>
-      <div class="fw-forecast-save-row">
+      ${
+        showSaveRound
+          ? `<div class="fw-forecast-save-row">
         <button type="button" class="fw-btn fw-btn-ghost" id="fwSaveRound" aria-live="polite">
           ${roundSaved ? "✓ Round saved" : "Save this round"}
         </button>
-      </div>
+        ${roundLimitNote ? `<p class="fw-muted">${esc(roundLimitNote)}</p>` : ""}
+      </div>`
+          : ""
+      }
       <div id="fwRainMount">${rainHtml}</div>
       <div id="fwImpactMount">${impactHtml}</div>
       <div id="fwBetterMount">${betterHtml}</div>
       <div id="fwHourlyMount">${hourlyHtml}</div>
       <div id="fwPremiumMount">${renderPremiumLocks()}</div>
+      ${extendedOutlookHtml ? `<div id="fwExtendedOutlookMount">${extendedOutlookHtml}</div>` : ""}
+      ${radarHtml ? `<div id="fwRadarMount">${radarHtml}</div>` : ""}
+      ${sponsoredHtml ? `<div id="fwSponsoredMount">${sponsoredHtml}</div>` : ""}
     </div>`;
 }
 

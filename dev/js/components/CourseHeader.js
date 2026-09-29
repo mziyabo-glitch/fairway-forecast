@@ -2,7 +2,7 @@ import { esc } from "../../../shared/utils.js";
 import { renderFavouriteStar, wireFavouriteStars } from "./FavouriteStar.js";
 import { renderShellMark, renderWordmark } from "./BrandMark.js";
 
-export function renderCourseHeader(course, { onChange, isFavourite = false } = {}) {
+export function renderCourseHeader(course, { onChange, isFavourite = false, showMore = false, showFavourite = true } = {}) {
   const location = course
     ? course.location ||
       [course.city, course.state, course.country].filter(Boolean).join(", ") ||
@@ -24,14 +24,15 @@ export function renderCourseHeader(course, { onChange, isFavourite = false } = {
         </div>
       </div>
       ${
-        course
+        course || showMore
           ? `<div class="fw-course-header-actions">
-        ${renderFavouriteStar(isFavourite, { courseId: course.id })}
+        ${course && showFavourite ? renderFavouriteStar(isFavourite, { courseId: course.id }) : ""}
         ${
-          onChange
+          course && onChange
             ? `<button type="button" class="fw-btn-text" id="fwChangeCourse">Change</button>`
             : ""
         }
+        ${showMore ? `<button type="button" class="fw-btn-text fw-more-btn" id="fwMoreBtn" aria-haspopup="dialog">More</button>` : ""}
       </div>`
           : ""
       }
@@ -45,4 +46,5 @@ export function mountCourseHeader(container, course, handlers = {}) {
     handlers.onChange?.();
   });
   wireFavouriteStars(container, () => handlers.onToggleFavourite?.(course));
+  document.getElementById("fwMoreBtn")?.addEventListener("click", () => handlers.onMore?.());
 }

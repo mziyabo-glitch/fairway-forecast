@@ -62,12 +62,20 @@ export function wireBottomNav(onTabChange) {
   });
 }
 
+const OVERFLOW_TABS = new Set(["alerts", "society", "account", "settings"]);
+
 export function setActiveTab(tab) {
   document.querySelectorAll(".fw-nav-item").forEach((btn) => {
     const isActive = btn.getAttribute("data-tab") === tab;
     btn.classList.toggle("is-active", isActive);
     btn.setAttribute("aria-current", isActive ? "page" : "false");
   });
+  const more = document.getElementById("fwMoreBtn");
+  if (more) {
+    const current = OVERFLOW_TABS.has(tab);
+    more.classList.toggle("is-current", current);
+    more.setAttribute("aria-current", current ? "page" : "false");
+  }
 }
 
 function getFocusable(container) {
