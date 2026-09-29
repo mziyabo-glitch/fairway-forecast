@@ -36,6 +36,15 @@ import { devFeatures } from "./config/devFeatures.js";
 import { selectSponsoredPlacement } from "./monetisation/placement.js";
 import { renderAdsenseSlot, renderSponsoredGolfCard } from "./monetisation/SponsoredGolfCard.js";
 import { DevAnalyticsEvents, trackDevEvent } from "./analytics/analytics.js";
+import { renderEveningPractice } from "./components/EveningPractice.js";
+import { loadDevDaylightSeries } from "./daylight/daylightRequest.js";
+import {
+  buildPracticePlan,
+  courseTodayKey,
+  eveningFocusFrom,
+  focusEveningHours,
+  normalizePracticeHoles,
+} from "./daylight/eveningPractice.js";
 import { applyRoundEdit } from "./rounds/editRound.js";
 import { forgetRoundWeather, getRoundWeatherPair, recordRoundWeather } from "./rounds/roundWeatherHistory.js";
 import { CourseService } from "../../shared/course-service.js";
@@ -138,6 +147,9 @@ class FairwayApp {
     this.outlookTracked = false;
     this.radarTracked = false;
     this.sponsorTracked = false;
+    this.practiceHoles = 9;
+    this.daylightSeries = [];
+    this.eveningTracked = false;
     this.societyForm = {
       courseId: "",
       date: defaultDateKey(),
@@ -266,6 +278,8 @@ class FairwayApp {
 
     this.selectedCourse = course;
     this.persistence.saveLastCourse(course);
+    this.daylightSeries = [];
+    this.eveningTracked = false;
     this.error = null;
     this.openedRoundId = null;
     this.pendingRoundTee = null;
@@ -305,6 +319,9 @@ class FairwayApp {
       this.weatherMeta = getWeatherMeta(raw);
       this.norm = normalizeWeather(raw);
       this.initForecastState();
+      if (isAdvancedDev() && featureOn("eveningPractice")) {
+        await this.ensureDaylight();
+      }
       if (this.openedRoundId) {
         const forecast = this.getForecastState();
         this.persistence.updateRoundForecast(
@@ -962,13 +979,76 @@ class FairwayApp {
     return map;
   }
 
+  async ensureDaylight() {
+    if (!isAdvancedDev() || !featureOn("eveningPractice") || !this.norm || !this.selectedCourse) {
+      this.daylightSeries = [];
+      return;
+    }
+    this.daylightSeries = await loadDevDaylightSeries(this.norm, {
+      lat: this.selectedCourse.lat,
+      lon: this.selectedCourse.lon,
+    });
+  }
+
+  eveningPracticeHtml() {
+    if (!isAdvancedDev() || !featureOn("eveningPractice") || !this.norm) return "";
+    const tzOffset = this.norm.timezoneOffset || 0;
+    const series = this.daylightSeries || [];
+    const daylight = series.find((day) => day.date === this.selectedDateKey) || null;
+    if (!daylight) return renderEveningPractice({ unavailable: true });
+
+    const now = Math.floor(Date.now() / 1000);
+    const plan = buildPracticePlan({
+      holes: this.practiceHoles,
+      daylight,
+      upcoming: series,
+      hourly: this.norm.hourly || [],
+      now,
+      units: this.units,
+      countryCode: this.courseService.getCountry(),
+      tzOffset,
+    });
+    const dateIsToday = courseTodayKey(now, daylight.timezone, tzOffset) === daylight.date;
+    const from = eveningFocusFrom({
+      now,
+      teeTimeUnix: this.selectedTeeTime,
+      lastPlayableLight: daylight.lastPlayableLight,
+      sunrise: daylight.sunrise,
+      dateIsToday,
+    });
+    const hours = focusEveningHours(this.norm.hourly || [], from, daylight.lastPlayableLight);
+    if (!this.eveningTracked) {
+      this.eveningTracked = true;
+      trackDevEvent(DevAnalyticsEvents.EVENING_PRACTICE_VIEWED, {
+        holes: plan.holes,
+        daylightStatus: plan.daylightStatus,
+      });
+    }
+    return renderEveningPractice({
+      daylight,
+      plan,
+      hours,
+      tzOffset,
+      units: this.units,
+    });
+  }
+
+  onPracticeHoles(holes) {
+    const next = normalizePracticeHoles(holes);
+    if (next === this.practiceHoles) return;
+    this.practiceHoles = next;
+    trackDevEvent(DevAnalyticsEvents.PRACTICE_HOLES_SELECTED, { holes: next });
+    this.render();
+  }
+
   forecastExtras() {
-    const empty = { extendedOutlookHtml: "", radarHtml: "", sponsoredHtml: "" };
+    const empty = { extendedOutlookHtml: "", radarHtml: "", sponsoredHtml: "", eveningHtml: "" };
     if (!isAdvancedDev() || !this.norm) return empty;
     const tier = getEntitlementTier();
     let extendedOutlookHtml = "";
     let radarHtml = "";
     let sponsoredHtml = "";
+    const eveningHtml = featureOn("eveningPractice") ? this.eveningPracticeHtml() : "";
 
     if (featureOn("extendedOutlook")) {
       if (canAccess("extendedOutlook", tier)) {
@@ -1021,7 +1101,7 @@ class FairwayApp {
       }
     }
 
-    return { extendedOutlookHtml, radarHtml, sponsoredHtml };
+    return { extendedOutlookHtml, radarHtml, sponsoredHtml, eveningHtml };
   }
 
   openMore() {
@@ -1186,6 +1266,7 @@ class FairwayApp {
       state.extendedOutlookHtml = extras.extendedOutlookHtml;
       state.radarHtml = extras.radarHtml;
       state.sponsoredHtml = extras.sponsoredHtml;
+      state.eveningHtml = state.weatherLoading && !state.verdict ? "" : extras.eveningHtml;
       main.innerHTML = renderForecastView(state);
       wireForecastView(main, {
         onNavigate: (tab) => this.navigate(tab),
@@ -1193,6 +1274,7 @@ class FairwayApp {
         onDaySelect: (key) => this.onDaySelect(key),
         onTeeTimeChange: (t) => this.onTeeTimeChange(t),
         onHolesChange: (h) => this.onHolesChange(h),
+        onPracticeHoles: (h) => this.onPracticeHoles(h),
         onUseBetterTee: (t) => this.onUseBetterTee(t),
         onSaveRound: () => this.saveCurrentRound(),
         onToggleFavourite: () => this.toggleFavourite(this.selectedCourse),

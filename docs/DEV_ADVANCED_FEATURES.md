@@ -14,6 +14,7 @@ This preview lives under `/dev/`. Production `/` uses the same app script, and t
 - Radar foundation on `/dev/forecast`, below the verdict, rain timeline, and tee selector. Mock layers only. No radar HTTP request and no API key.
 - Extended outlook below the five-day strip. It lists days past day five only when hourly or daily data is already in the payload, up to ten days. Scores come from `calculateDayScore`. Days without enough hourly data are labelled low confidence and are not given a made-up score. If the payload stops at five days, the panel says so.
 - `/dev/society` scores group tee times by calling `getWindowData` and `computeGolfVerdict`. It shows the best and riskiest scored slots.
+- Evening practice on `/dev/forecast` only, behind `eveningPractice`. It shows sunrise, sunset, and an estimated last playable light (a few minutes before sunset) for the selected course and date. Today’s times come from the weather payload when the provider already returns them. Other days are not guessed as exact sunrise: a dev-only Open-Meteo request asks for daily sunrise and sunset. Production weather calls are unchanged. The planner offers 3, 6, or 9 holes, using duration ranges in `dev/js/daylight/eveningPractice.js`, and recommends a start that finishes by last light. That window is scored with `getWindowData` and `computeGolfVerdict`. If it is already too late, the copy says so and points at the next evening that still fits. Sunset is shown separately and is not treated as a promise of safe play.
 - Monetisation hooks exist. `affiliateCards` and `adsenseSlot` are false, so no sponsored card, ad iframe, or ad script is rendered. Placement selection refuses anything above the verdict, rain timeline, or tee selector. Affiliate disclosure is on `/dev/settings`. A card, if the flag is turned on later, uses `rel="sponsored noopener"`.
 - Analytics in `dev/js/analytics/analytics.js` records `{ event, routeNamespace: "dev", sessionId, props, t }` in memory. No network beacon. `devFeatures.analytics` turns it off.
 - `/dev/sw.js` still does not cache live weather. If the shell is not cached, navigation shows an offline message that saved courses and rounds remain on the device. The in-app shell shows the same note when the browser is offline. Root `sw.js` is untouched.
@@ -30,6 +31,7 @@ This preview lives under `/dev/`. Production `/` uses the same app script, and t
 | `radarFoundation` | true | No radar panel |
 | `extendedOutlook` | true | No extended outlook |
 | `societyWeather` | true | No society page content and no society forecast fetch |
+| `eveningPractice` | true | No evening planner and no Open-Meteo daylight request |
 | `monetisationHooks` | true | Placement is not evaluated |
 | `analytics` | true | Dev events are dropped |
 | `pwaReadiness` | true | In-app offline note hidden |
@@ -43,6 +45,7 @@ This preview lives under `/dev/`. Production `/` uses the same app script, and t
 - AdSense scripts and iframes
 - Affiliate or sponsored cards (flag is false)
 - A live radar provider or radar network calls
+- Evening practice on production `/` or `/forecast`
 - Cloudflare or any other analytics beacon
 
 Forecast scoring, rain timing, wind logic, tee-time comparison, timezone helpers, and `shared/forecast-engine.js` are unchanged. New scores call those functions.

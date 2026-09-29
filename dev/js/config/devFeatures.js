@@ -9,6 +9,7 @@ export const devFeatures = {
   radarFoundation: true,
   extendedOutlook: true,
   societyWeather: true,
+  eveningPractice: true,
   monetisationHooks: true,
   analytics: true,
   pwaReadiness: true,

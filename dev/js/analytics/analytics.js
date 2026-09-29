@@ -14,6 +14,8 @@ export const DevAnalyticsEvents = {
   ACCOUNT_VIEWED: "account_viewed",
   SPONSORED_PLACEMENT_EVALUATED: "sponsored_placement_evaluated",
   ROUND_EDITED: "round_edited",
+  EVENING_PRACTICE_VIEWED: "evening_practice_viewed",
+  PRACTICE_HOLES_SELECTED: "practice_holes_selected",
 };
 
 let sessionId = null;

@@ -16,6 +16,7 @@ import { renderHourlyForecast, wireHourlyForecast } from "../components/HourlyFo
 import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js";
 import { openSheet } from "../components/AppShell.js";
 import { esc } from "../../../shared/utils.js";
+import { wireEveningPractice } from "../components/EveningPractice.js";
 
 export function renderForecastView(state) {
   const {
@@ -48,6 +49,7 @@ export function renderForecastView(state) {
     extendedOutlookHtml = "",
     radarHtml = "",
     sponsoredHtml = "",
+    eveningHtml = "",
   } = state;
 
   if (noCourse) {
@@ -138,6 +140,7 @@ export function renderForecastView(state) {
       }
       <div id="fwRainMount">${rainHtml}</div>
       <div id="fwImpactMount">${impactHtml}</div>
+      ${eveningHtml ? `<div id="fwEveningMount">${eveningHtml}</div>` : ""}
       <div id="fwBetterMount">${betterHtml}</div>
       <div id="fwHourlyMount">${hourlyHtml}</div>
       <div id="fwPremiumMount">${renderPremiumLocks()}</div>
@@ -176,6 +179,7 @@ export function wireForecastView(container, handlers) {
     if (bt?.teeTime) handlers.onUseBetterTee?.(bt.teeTime) ?? handlers.onTeeTimeChange?.(bt.teeTime);
   });
 
+  wireEveningPractice(container.querySelector("#fwEveningMount"), handlers.onPracticeHoles);
   wireHourlyForecast(container.querySelector("#fwHourlyMount"), handlers.onHourlyExpand);
   wirePremiumLocks(container.querySelector("#fwPremiumMount"), (id) => handlers.onPremium?.(id));
 }

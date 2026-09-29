@@ -1120,3 +1120,97 @@
   margin-top: 12px;
 }
 
+.fw-evening {
+  min-width: 0;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.fw-evening-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.fw-evening-times p {
+  margin: 0;
+  font-size: var(--text-support);
+}
+
+.fw-evening-kicker {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fw-evening-note,
+.fw-evening-summary,
+.fw-evening-recommend {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.fw-evening-summary {
+  color: var(--text-primary);
+}
+
+.fw-evening-holes {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fw-evening-holes button {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.fw-evening-holes button[aria-pressed="true"] {
+  background: var(--brand-surface);
+  border-color: var(--brand);
+  color: var(--brand-deep);
+  font-weight: 600;
+}
+
+.fw-evening-hours {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  margin: 12px 0 0;
+  padding: 0 0 2px;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.fw-evening-hour {
+  flex: 0 0 auto;
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--brand-softer);
+  font-size: 0.8125rem;
+}
+
+.fw-evening-hour time {
+  font-weight: 600;
+}
+
