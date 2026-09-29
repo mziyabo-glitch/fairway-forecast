@@ -172,6 +172,7 @@ class FairwayApp {
 
     root.innerHTML = renderAppShell(this.activeTab);
     wireSheet();
+    document.getElementById("fwMoreBtn")?.addEventListener("click", () => this.openMore());
     wireBottomNav((tab) => this.navigate(tab));
     wireHistory((tab) => this.navigate(tab, { history: false }));
 
@@ -1156,8 +1157,6 @@ class FairwayApp {
       isFavourite: this.persistence.isFavourite(this.selectedCourse),
       onToggleFavourite: (course) => this.toggleFavourite(course),
       showFavourite: featureOn("favouriteCourses"),
-      showMore: isAdvancedDev(),
-      onMore: () => this.openMore(),
     });
 
     const main = document.getElementById("fwMain");
