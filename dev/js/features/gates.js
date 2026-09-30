@@ -1,5 +1,5 @@
 import { isDevFeatureEnabled } from "../config/devFeatures.js";
-import { isDevRoute } from "../router.js";
+import { isDevRoute } from "../router.js?v=20260930-1";
 
 /** Capabilities that already shipped on the premium shell, including production `/`. */
 const EXISTING_ON_PRODUCTION = new Set([

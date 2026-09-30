@@ -14,7 +14,7 @@ import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
 import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
 import { renderAccountView, wireAccountView } from "./views/AccountView.js";
 import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js";
-import { tabFromPath, syncHistory, wireHistory } from "./router.js";
+import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20260930-1";
 import { featureOn, isAdvancedDev } from "./features/gates.js";
 import { closeSheet, openSheet } from "./components/AppShell.js";
 import { renderMoreMenu } from "./components/MoreMenu.js";
