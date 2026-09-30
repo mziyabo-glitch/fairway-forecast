@@ -40,7 +40,7 @@ input {
 .fw-dev-banner {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--space-sm);
   padding: 6px var(--space-md);
   padding-top: calc(6px + var(--safe-top));
@@ -62,6 +62,22 @@ input {
 .fw-dev-link {
   color: #93c5fd;
   margin-left: var(--space-sm);
+}
+
+.fw-dev-more {
+  margin-left: auto;
+  border: 1px solid rgba(226, 232, 240, 0.35);
+  background: transparent;
+  color: #e2e8f0;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.fw-dev-more.is-current {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 /* App shell */

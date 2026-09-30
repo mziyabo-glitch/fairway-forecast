@@ -6,6 +6,40 @@ import { PersistenceService, favKey } from "./persistence.js";
 const LS_COUNTRY = "ff_country";
 const LS_STATE = "ff_state";
 
+function normalizeSearchText(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function fallbackSearch(docs, query, limit) {
+  const needle = normalizeSearchText(query);
+  const tokens = needle.split(" ").filter(Boolean);
+  if (!needle || !tokens.length) return [];
+
+  return docs
+    .map((item) => {
+      const name = normalizeSearchText(item.name);
+      const region = normalizeSearchText(item.region);
+      const searchable = `${name} ${region}`.trim();
+      if (!tokens.every((token) => searchable.includes(token))) return null;
+
+      let score = 4;
+      if (name === needle) score = 0;
+      else if (name.startsWith(needle)) score = 1;
+      else if (name.split(" ").some((word) => word.startsWith(needle))) score = 2;
+      else if (name.includes(needle)) score = 3;
+      return { item, score };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.score - b.score || a.item.name.localeCompare(b.item.name))
+    .slice(0, limit)
+    .map(({ item }) => item);
+}
+
 export class CourseService {
   constructor(config = {}) {
     this.datasetBasePath = config.datasetBasePath || "../data/courses";
@@ -137,11 +171,13 @@ export class CourseService {
 
   search(query) {
     const q = (query || "").trim();
-    if (!q || !this.currentFuse) return [];
+    if (!q) return [];
 
-    return this.currentFuse
-      .search(q, { limit: this.maxResults })
-      .map(({ item }) => ({
+    const matches = this.currentFuse
+      ? this.currentFuse.search(q, { limit: this.maxResults }).map(({ item }) => item)
+      : fallbackSearch(this.currentDocs, q, this.maxResults);
+
+    return matches.map((item) => ({
         id: `static-${item.idx}`,
         name: item.name,
         lat: item.lat,

@@ -2,8 +2,8 @@
  * Caches the rebuild app shell. Never treats stale weather as current.
  */
 
-const SW_VERSION = 4;
-const STATIC_CACHE = "fairway-dev-static-v4";
+const SW_VERSION = 5;
+const STATIC_CACHE = "fairway-dev-static-v5";
 const DATA_CACHE = "fairway-dev-data-v2";
 
 const PRECACHE_URLS = [
@@ -17,6 +17,8 @@ const PRECACHE_URLS = [
   "./js/app.js",
   "./js/sw-reset.js",
   "./js/router.js",
+  "./js/config/devFeatures.js",
+  "./js/analytics/analytics.js",
   "../playability.js",
   "./assets/brand/fairwayweather-mark.svg",
   "./assets/brand/favicon.svg",
@@ -154,10 +156,14 @@ self.addEventListener("fetch", (event) => {
           return await fetch(request);
         } catch {
           const cache = await caches.open(STATIC_CACHE);
-          return (
+          const cached =
             (await cache.match("./index.html")) ||
             (await cache.match("./")) ||
-            new Response("Offline", { status: 503, headers: { "content-type": "text/plain" } })
+            null;
+          if (cached) return cached;
+          return new Response(
+            `<!DOCTYPE html><html lang="en"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FairwayWeather offline</title><body style="font-family:system-ui;padding:24px;background:#f4f7f2;color:#13211B"><h1>You're offline</h1><p>Saved courses and rounds stored on this device are still available once the app shell has loaded. Live weather is not cached.</p><p><a href="/dev/">Open FairwayWeather</a></p></body></html>`,
+            { status: 503, headers: { "content-type": "text/html; charset=utf-8" } }
           );
         }
       })()

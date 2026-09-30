@@ -25,6 +25,17 @@ describe("weather-service cache helpers", () => {
     assert.match(labeled, /Last updated \d{2}:\d{2}/);
   });
 
+  it("does not call a live service failure an offline connection", () => {
+    const labeled = formatForecastFreshness({
+      stale: true,
+      offline: false,
+      fetchedAt: Date.parse("2026-08-23T14:05:00Z"),
+    });
+    assert.match(labeled, /Saved forecast/);
+    assert.match(labeled, /Live update unavailable/);
+    assert.doesNotMatch(labeled, /Offline forecast/);
+  });
+
   it("reads attached meta without inventing a live fetch", () => {
     const raw = { _fwMeta: { fromCache: true, stale: true, offline: true, fetchedAt: 1 } };
     assert.deepEqual(getWeatherMeta(raw), raw._fwMeta);

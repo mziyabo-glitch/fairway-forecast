@@ -3,21 +3,61 @@ import {
   wireBottomNav,
   setActiveTab,
   wireSheet,
-  openSheet,
 } from "./components/AppShell.js";
 import { mountCourseHeader } from "./components/CourseHeader.js";
-import { renderPremiumSheet } from "./components/PremiumLock.js";
+import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js";
 import { renderForecastView, wireForecastView } from "./views/ForecastView.js";
 import { renderHomeView, wireHomeView } from "./views/HomeView.js";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
+import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
+import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
+import { renderAccountView, wireAccountView } from "./views/AccountView.js";
+import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js";
 import { tabFromPath, syncHistory, wireHistory } from "./router.js";
+import { featureOn, isAdvancedDev } from "./features/gates.js";
+import { closeSheet, openSheet } from "./components/AppShell.js";
+import { renderMoreMenu } from "./components/MoreMenu.js";
+import { renderSoftGate, wireSoftGate } from "./components/SoftGate.js";
+import { renderExtendedOutlook } from "./components/ExtendedOutlook.js";
+import { loadRadarFoundation, renderRadarPanel } from "./components/RadarPanel.js";
+import { buildExtendedOutlook } from "./outlook/extendedOutlook.js";
+import { generateSocietySlots } from "./society/societySlots.js";
+import { compareRoundWeather, suppressDuplicateAlerts } from "./alerts/compareRoundWeather.js";
+import { getSeenFingerprints, rememberSeenFingerprint } from "./alerts/alertStore.js";
+import { createNotificationAdapter } from "./alerts/notificationAdapter.js";
+import {
+  canAccess,
+  FREE_SAVED_ROUND_LIMIT,
+  getEntitlementTier,
+  setEntitlementTier,
+} from "./entitlements/entitlements.js";
+import { devFeatures } from "./config/devFeatures.js";
+import { selectSponsoredPlacement } from "./monetisation/placement.js";
+import { renderAdsenseSlot, renderSponsoredGolfCard } from "./monetisation/SponsoredGolfCard.js";
+import { DevAnalyticsEvents, trackDevEvent } from "./analytics/analytics.js";
+import { renderEveningPractice } from "./components/EveningPractice.js";
+import { loadDevDaylightSeries } from "./daylight/daylightRequest.js";
+import {
+  buildPracticePlan,
+  courseTodayKey,
+  eveningFocusFrom,
+  focusEveningHours,
+  normalizePracticeHoles,
+} from "./daylight/eveningPractice.js";
+import { loadGolferPreferences, saveGolferPreferences } from "./preferences/golferPreferences.js";
+import { loadDevGroundSignals } from "./ground/groundRequest.js";
+import { buildForecastDimensions } from "./dimensions/forecastDimensions.js";
+import { renderForecastDimensions } from "./components/ForecastDimensions.js";
+import { applyRoundEdit } from "./rounds/editRound.js";
+import { forgetRoundWeather, getRoundWeatherPair, recordRoundWeather } from "./rounds/roundWeatherHistory.js";
 import { CourseService } from "../../shared/course-service.js";
 import {
   PersistenceService,
   createLastKnownForecast,
   favKey,
   normalizeCourse,
+  sameRoundPlan,
 } from "../../shared/persistence.js";
 import {
   fetchWeather,
@@ -48,6 +88,19 @@ import { track, AnalyticsEvents } from "../../shared/analytics.js";
 const APP = window.APP_CONFIG || {};
 const FAV_FETCH_LIMIT = 5;
 
+function defaultDateKey() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+function firstWetHour(analysis) {
+  const wet = (analysis?.hours || []).find((hour) => hour.rainfallMm >= 0.2 || hour.probability >= 50);
+  return wet?.dt ?? null;
+}
+
 class FairwayApp {
   constructor() {
     this.apiBase = APP.WORKER_BASE_URL || "";
@@ -75,6 +128,7 @@ class FairwayApp {
     this.searchResults = [];
     this.searchLoading = false;
     this.searchError = null;
+    this.searchRequestId = 0;
     this.usStates = [];
 
     this.nearbyResults = [];
@@ -91,6 +145,29 @@ class FairwayApp {
     this.pendingRoundTee = null;
     this.teeAdjusted = null;
     this.homeViewed = false;
+    this.editingRoundId = null;
+    this.roundLimitNote = "";
+    this.roundAlerts = [];
+    this.alertsLocked = false;
+    this.outlookTracked = false;
+    this.radarTracked = false;
+    this.sponsorTracked = false;
+    this.practiceHoles = 9;
+    this.daylightSeries = [];
+    this.eveningTracked = false;
+    this.groundSignals = null;
+    this.societyForm = {
+      courseId: "",
+      date: defaultDateKey(),
+      firstTee: "08:00",
+      interval: 10,
+      groups: 8,
+      players: 4,
+    };
+    this.societyResult = null;
+    this.societyError = null;
+    this.societyLoading = false;
+    this.notifications = createNotificationAdapter({ mode: "in_app_only" });
   }
 
   async init() {
@@ -113,6 +190,7 @@ class FairwayApp {
 
     root.innerHTML = renderAppShell(this.activeTab);
     wireSheet();
+    document.getElementById("fwMoreBtn")?.addEventListener("click", () => this.openMore());
     wireBottomNav((tab) => this.navigate(tab));
     wireHistory((tab) => this.navigate(tab, { history: false }));
 
@@ -146,10 +224,32 @@ class FairwayApp {
   registerPwa() {
     if (!("serviceWorker" in navigator)) return;
     const onDev = /\/dev(?:\/|$)/i.test(location.pathname || "");
-    const script = onDev ? "/dev/sw.js" : "/sw.js";
-    const scope = onDev ? "/dev/" : "/";
+    if (!onDev) {
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) =>
+          Promise.all(
+            registrations
+              .filter((registration) => new URL(registration.scope).pathname === "/")
+              .map((registration) => registration.unregister())
+          )
+        )
+        .then(() => {
+          if (!hadController) return;
+          const key = "fw-production-worker-retired";
+          if (sessionStorage.getItem(key) === "1") return;
+          sessionStorage.setItem(key, "1");
+          location.reload();
+        })
+        .catch(() => {
+          /* best-effort cleanup of the retired production worker */
+        });
+      return;
+    }
+
     navigator.serviceWorker
-      .register(script, { scope, updateViaCache: "none" })
+      .register("/dev/sw.js", { scope: "/dev/", updateViaCache: "none" })
       .then((registration) => registration.update())
       .catch(() => {
         /* optional */
@@ -170,6 +270,9 @@ class FairwayApp {
     if (tab === "forecast") track(AnalyticsEvents.FORECAST_VIEWED);
     if (tab === "home") this.loadFavouriteSummaries();
     if (tab === "rounds") this.loadRoundSummaries();
+    if (isAdvancedDev() && tab === "alerts") trackDevEvent(DevAnalyticsEvents.ALERT_VIEWED);
+    if (isAdvancedDev() && tab === "settings") trackDevEvent(DevAnalyticsEvents.SETTINGS_VIEWED);
+    if (isAdvancedDev() && tab === "account") trackDevEvent(DevAnalyticsEvents.ACCOUNT_VIEWED);
   }
 
   maybeTrackHome() {
@@ -203,6 +306,9 @@ class FairwayApp {
 
     this.selectedCourse = course;
     this.persistence.saveLastCourse(course);
+    this.daylightSeries = [];
+    this.eveningTracked = false;
+    this.groundSignals = null;
     this.error = null;
     this.openedRoundId = null;
     this.pendingRoundTee = null;
@@ -242,6 +348,14 @@ class FairwayApp {
       this.weatherMeta = getWeatherMeta(raw);
       this.norm = normalizeWeather(raw);
       this.initForecastState();
+      if (isAdvancedDev() && featureOn("eveningPractice")) {
+        await this.ensureDaylight();
+      }
+      if (isAdvancedDev() && featureOn("groundConditionRisk")) {
+        await this.ensureGround();
+      } else {
+        this.groundSignals = null;
+      }
       if (this.openedRoundId) {
         const forecast = this.getForecastState();
         this.persistence.updateRoundForecast(
@@ -253,6 +367,7 @@ class FairwayApp {
       this.error = err.message || "Could not load weather forecast.";
       this.norm = null;
       this.weatherMeta = null;
+      this.groundSignals = null;
     } finally {
       this.weatherLoading = false;
       this.render();
@@ -446,6 +561,7 @@ class FairwayApp {
       freshness: forecast.freshness,
       weatherIcon: weatherIdToIcon(currentId),
       distanceUnits: this.distanceUnits(),
+      showFavourites: featureOn("favouriteCourses"),
     };
   }
 
@@ -456,6 +572,7 @@ class FairwayApp {
   }
 
   async loadFavouriteSummaries() {
+    if (isAdvancedDev() && !featureOn("favouriteCourses")) return;
     const favs = this.persistence.getFavourites().slice(0, FAV_FETCH_LIMIT);
     if (!favs.length) return;
     this.favouriteLoading = true;
@@ -478,6 +595,7 @@ class FairwayApp {
   }
 
   async loadRoundSummaries() {
+    if (isAdvancedDev() && !featureOn("savedRounds")) return;
     const upcoming = this.persistence.getUpcomingRounds().slice(0, FAV_FETCH_LIMIT);
     if (!upcoming.length) return;
     this.roundLoading = true;
@@ -500,11 +618,21 @@ class FairwayApp {
           course.country || this.courseService.getCountry(),
           norm.timezoneOffset || 0
         );
+        const rainAnalysis = analyzeRainDuringRound(
+          hourly,
+          round.teeTime,
+          windowHours,
+          norm.timezoneOffset || 0
+        );
         this.roundSummaries.set(round.id, {
           score: verdict?.score ?? null,
           verdict: verdict?.verdict || scoreToVerdict(verdict?.score),
           message: verdict?.message || "",
           freshness: formatForecastFreshness(getWeatherMeta(raw)),
+          rainProbability: verdict?.metrics?.maxPrecipProb ?? null,
+          metrics: verdict?.metrics || {},
+          rainStartUnix: firstWetHour(rainAnalysis),
+          checkedAt: getWeatherMeta(raw)?.fetchedAt || Date.now(),
         });
       } catch {
         /* keep lastKnownForecast metadata on the card */
@@ -512,27 +640,42 @@ class FairwayApp {
     });
     await Promise.all(tasks);
     this.roundLoading = false;
-    if (this.activeTab === "rounds") this.render();
+    this.rememberRoundWeather();
+    this.syncRoundAlerts();
+    if (this.activeTab === "rounds" || this.activeTab === "alerts") this.render();
   }
 
   async onSearch(query) {
+    const requestId = ++this.searchRequestId;
+    const restoreFocus = document.activeElement?.id === "fwCourseSearch";
     this.searchQuery = query;
-    this.searchLoading = true;
     this.searchError = null;
-    this.render();
     track(AnalyticsEvents.COURSE_SEARCH, { qLen: query.trim().length });
 
     try {
-      if (!this.courseService.currentFuse) {
+      if (!this.courseService.currentDocs.length) {
+        this.searchLoading = true;
+        this.render();
         await this.courseService.refreshDataset();
       }
+      if (requestId !== this.searchRequestId) return;
       this.searchResults = query.trim() ? this.courseService.search(query) : [];
     } catch {
+      if (requestId !== this.searchRequestId) return;
       this.searchError = "Could not search courses.";
       this.searchResults = [];
     } finally {
+      if (requestId !== this.searchRequestId) return;
       this.searchLoading = false;
       this.render();
+      if (restoreFocus) {
+        requestAnimationFrame(() => {
+          const input = document.getElementById("fwCourseSearch");
+          if (!input || this.searchQuery !== query) return;
+          input.focus({ preventScroll: true });
+          input.setSelectionRange?.(input.value.length, input.value.length);
+        });
+      }
       if (typeof lucide !== "undefined") lucide.createIcons();
     }
   }
@@ -563,6 +706,7 @@ class FairwayApp {
   }
 
   async findNearbyCourses() {
+    if (isAdvancedDev() && !featureOn("nearbyCourses")) return;
     if (!navigator.geolocation) {
       this.nearbyError = "Location is unavailable on this device. Search by name instead.";
       this.navigate("courses");
@@ -680,8 +824,24 @@ class FairwayApp {
   }
 
   saveCurrentRound() {
+    if (isAdvancedDev() && !featureOn("savedRounds")) return;
     if (!this.selectedCourse || !this.selectedTeeTime) return;
     const forecast = this.getForecastState();
+    if (isAdvancedDev() && !canAccess("unlimitedSavedRounds", getEntitlementTier())) {
+      const planned = {
+        course: this.selectedCourse,
+        date: this.selectedDateKey,
+        teeTime: this.selectedTeeTime,
+      };
+      const updating = this.persistence.getRounds().some((round) => sameRoundPlan(round, planned));
+      if (!updating && this.persistence.getRounds().length >= FREE_SAVED_ROUND_LIMIT) {
+        this.roundLimitNote = `Free preview keeps ${FREE_SAVED_ROUND_LIMIT} saved rounds. Delete one, or switch to Premium preview in Account.`;
+        this.render();
+        return;
+      }
+    }
+    this.roundLimitNote = "";
+    const snapshot = this.snapshotFromForecast(forecast);
     const record = this.persistence.saveRound({
       course: this.selectedCourse,
       date: this.selectedDateKey,
@@ -689,6 +849,7 @@ class FairwayApp {
       holes: this.holes,
       lastKnownForecast: createLastKnownForecast(forecast.verdict, this.weatherMeta?.fetchedAt),
     });
+    if (record?.id && isAdvancedDev()) recordRoundWeather(record.id, snapshot, { seedOriginal: snapshot });
     this.openedRoundId = record?.id || this.openedRoundId;
     this.roundJustSaved = true;
     this.roundSummaries.delete(this.openedRoundId);
@@ -726,7 +887,10 @@ class FairwayApp {
 
   deleteRound(id) {
     this.persistence.deleteRound(id);
+    if (isAdvancedDev()) forgetRoundWeather(id);
+    if (this.editingRoundId === id) this.editingRoundId = null;
     track(AnalyticsEvents.ROUND_DELETED);
+    this.syncRoundAlerts();
     this.render();
   }
 
@@ -768,6 +932,9 @@ class FairwayApp {
       nearbyLoading: this.nearbyLoading,
       nearbyError: this.nearbyError,
       distanceUnits: this.distanceUnits(),
+      showFavourites: featureOn("favouriteCourses"),
+      showRecents: true,
+      showNearby: featureOn("nearbyCourses"),
     };
   }
 
@@ -785,11 +952,463 @@ class FairwayApp {
     });
   }
 
+  snapshotFromForecast(forecast) {
+    const verdict = forecast?.verdict;
+    return {
+      score: verdict?.score ?? null,
+      rainProbability: verdict?.metrics?.maxPrecipProb ?? null,
+      rainMm: verdict?.metrics?.totalPrecipMm ?? null,
+      wind: verdict?.metrics?.avgWind ?? null,
+      gust: verdict?.metrics?.maxGust ?? null,
+      tempC: verdict?.metrics?.avgTemp ?? null,
+      rainStartUnix: firstWetHour(forecast?.rainAnalysis),
+      checkedAt: this.weatherMeta?.fetchedAt || Date.now(),
+    };
+  }
+
+  rememberRoundWeather() {
+    if (!isAdvancedDev() || !featureOn("savedRounds")) return;
+    for (const round of this.persistence.getUpcomingRounds()) {
+      const summary = this.roundSummaries.get(round.id);
+      if (!summary) continue;
+      recordRoundWeather(
+        round.id,
+        {
+          score: summary.score,
+          rainProbability: summary.rainProbability,
+          rainMm: summary.metrics?.totalPrecipMm ?? null,
+          wind: summary.metrics?.avgWind ?? null,
+          gust: summary.metrics?.maxGust ?? null,
+          tempC: summary.metrics?.avgTemp ?? null,
+          rainStartUnix: summary.rainStartUnix ?? null,
+          checkedAt: summary.checkedAt || Date.now(),
+        },
+        { seedOriginal: round.lastKnownForecast }
+      );
+    }
+  }
+
+  syncRoundAlerts() {
+    if (!isAdvancedDev() || !featureOn("weatherAlerts")) {
+      this.roundAlerts = [];
+      this.alertsLocked = false;
+      return;
+    }
+    if (!canAccess("weatherAlerts", getEntitlementTier())) {
+      this.roundAlerts = [];
+      this.alertsLocked = true;
+      return;
+    }
+    this.alertsLocked = false;
+    const alerts = [];
+    for (const round of this.persistence.getUpcomingRounds()) {
+      const pair = getRoundWeatherPair(round.id);
+      if (!pair?.original || !pair?.latest) continue;
+      const betterTee = this.openedRoundId === round.id ? this.getForecastState().betterTee : null;
+      alerts.push(...compareRoundWeather(pair.original, pair.latest, { roundId: round.id, betterTee }));
+    }
+    this.roundAlerts = suppressDuplicateAlerts(alerts, getSeenFingerprints());
+  }
+
+  dismissAlert(fingerprint) {
+    rememberSeenFingerprint(fingerprint);
+    this.syncRoundAlerts();
+    trackDevEvent(DevAnalyticsEvents.ALERT_DISMISSED);
+    this.render();
+  }
+
+  historyByRound() {
+    const map = {};
+    if (!isAdvancedDev() || !featureOn("savedRounds")) return map;
+    for (const round of this.persistence.getRounds()) {
+      const pair = getRoundWeatherPair(round.id);
+      if (pair) map[round.id] = pair;
+    }
+    return map;
+  }
+
+  async ensureGround() {
+    if (!isAdvancedDev() || !featureOn("groundConditionRisk") || !this.norm || !this.selectedCourse) {
+      this.groundSignals = null;
+      return;
+    }
+    try {
+      this.groundSignals = await loadDevGroundSignals(this.norm, {
+        lat: this.selectedCourse.lat,
+        lon: this.selectedCourse.lon,
+        units: this.units,
+        allowFetch: true,
+      });
+    } catch {
+      this.groundSignals = { pastRain: null, freezing: null, drying: null, source: "unavailable" };
+    }
+  }
+
+  practicePreferenceInputs() {
+    if (!isAdvancedDev() || !featureOn("golferPreferences")) return {};
+    try {
+      const prefs = loadGolferPreferences();
+      return {
+        paceMins: prefs.paceMins,
+        daylightSafetyMarginMins: prefs.daylightSafetyMarginMins,
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  async ensureDaylight() {
+    if (
+      !isAdvancedDev() ||
+      !featureOn("eveningPractice") ||
+      !canAccess("eveningPractice", getEntitlementTier()) ||
+      !this.norm ||
+      !this.selectedCourse
+    ) {
+      this.daylightSeries = [];
+      return;
+    }
+    this.daylightSeries = await loadDevDaylightSeries(this.norm, {
+      lat: this.selectedCourse.lat,
+      lon: this.selectedCourse.lon,
+    });
+  }
+
+  eveningPracticeHtml() {
+    if (!isAdvancedDev() || !featureOn("eveningPractice") || !this.norm) return "";
+    const tzOffset = this.norm.timezoneOffset || 0;
+    const series = this.daylightSeries || [];
+    const daylight = series.find((day) => day.date === this.selectedDateKey) || null;
+    if (!daylight) return renderEveningPractice({ unavailable: true });
+
+    const now = Math.floor(Date.now() / 1000);
+    const plan = buildPracticePlan({
+      holes: this.practiceHoles,
+      daylight,
+      upcoming: series,
+      hourly: this.norm.hourly || [],
+      now,
+      units: this.units,
+      countryCode: this.courseService.getCountry(),
+      tzOffset,
+      ...this.practicePreferenceInputs(),
+    });
+    const dateIsToday = courseTodayKey(now, daylight.timezone, tzOffset) === daylight.date;
+    const from = eveningFocusFrom({
+      now,
+      teeTimeUnix: this.selectedTeeTime,
+      lastPlayableLight: daylight.lastPlayableLight,
+      sunrise: daylight.sunrise,
+      dateIsToday,
+    });
+    const hours = focusEveningHours(this.norm.hourly || [], from, daylight.lastPlayableLight);
+    if (!this.eveningTracked) {
+      this.eveningTracked = true;
+      trackDevEvent(DevAnalyticsEvents.EVENING_PRACTICE_VIEWED, {
+        holes: plan.holes,
+        daylightStatus: plan.daylightStatus,
+      });
+    }
+    return renderEveningPractice({
+      daylight,
+      plan,
+      hours,
+      tzOffset,
+      units: this.units,
+    });
+  }
+
+  onPracticeHoles(holes) {
+    const next = normalizePracticeHoles(holes);
+    if (next === this.practiceHoles) return;
+    this.practiceHoles = next;
+    trackDevEvent(DevAnalyticsEvents.PRACTICE_HOLES_SELECTED, { holes: next });
+    this.render();
+  }
+
+  dimensionsFor(state) {
+    const empty = { html: "", scoreCaption: "", safetyActive: false };
+    if (!isAdvancedDev() || !state?.verdict) return empty;
+    try {
+      const flags = {
+        golferPreferences: featureOn("golferPreferences"),
+        forecastConfidence: featureOn("forecastConfidence"),
+        groundConditionRisk: featureOn("groundConditionRisk"),
+        safetyOverrides: featureOn("safetyOverrides"),
+        courseStatus: featureOn("courseStatus"),
+      };
+      if (!Object.values(flags).some(Boolean)) return empty;
+
+      let preferences = null;
+      if (flags.golferPreferences) {
+        try {
+          preferences = loadGolferPreferences();
+        } catch {
+          preferences = null;
+        }
+      }
+
+      let originalSnapshot = null;
+      let latestSnapshot = null;
+      if (flags.forecastConfidence && this.openedRoundId) {
+        const pair = getRoundWeatherPair(this.openedRoundId);
+        const sameCheck =
+          pair?.original &&
+          pair?.latest &&
+          pair.original.checkedAt != null &&
+          pair.original.checkedAt === pair.latest.checkedAt;
+        if (pair?.original && pair?.latest && !sameCheck) {
+          originalSnapshot = pair.original;
+          latestSnapshot = pair.latest;
+        }
+      }
+
+      const model = buildForecastDimensions({
+        flags,
+        verdict: state.verdict,
+        preferences,
+        nowUnix: Math.floor(Date.now() / 1000),
+        teeTimeUnix: state.selectedTeeTime,
+        windowHours: state.windowHours,
+        hourly: state.hourly,
+        units: state.units,
+        originalSnapshot,
+        latestSnapshot,
+        groundSignals: flags.groundConditionRisk ? this.groundSignals : null,
+        course: state.course,
+        nowMs: Date.now(),
+      });
+      return {
+        html: model.hasPanel ? renderForecastDimensions(model) : "",
+        scoreCaption: model.scoreCaption,
+        safetyActive: model.safetyActive,
+      };
+    } catch {
+      return empty;
+    }
+  }
+
+  forecastExtras() {
+    const empty = {
+      extendedOutlookHtml: "",
+      radarHtml: "",
+      sponsoredHtml: "",
+      eveningHtml: "",
+      premiumHtml: "",
+    };
+    if (!isAdvancedDev()) return { ...empty, premiumHtml: renderPremiumLocks() };
+    if (!this.norm) return empty;
+    const tier = getEntitlementTier();
+    let extendedOutlookHtml = "";
+    let radarHtml = "";
+    let sponsoredHtml = "";
+    let eveningHtml = "";
+    const premiumHtml = canAccess("radar", tier) ? "" : renderPremiumLocks();
+
+    if (featureOn("eveningPractice")) {
+      eveningHtml = canAccess("eveningPractice", tier)
+        ? this.eveningPracticeHtml()
+        : renderSoftGate({
+            title: "Evening practice",
+            body: "Premium finds the best remaining window for 3, 6 or 9 holes and makes sure it finishes before last playable light.",
+          });
+    }
+
+    if (featureOn("extendedOutlook")) {
+      if (canAccess("extendedOutlook", tier)) {
+        const outlook = buildExtendedOutlook(this.norm, {
+          units: this.units,
+          countryCode: this.courseService.getCountry(),
+          windowHours: getRoundDurationHours(this.holes),
+        });
+        extendedOutlookHtml = renderExtendedOutlook(outlook);
+        if (!this.outlookTracked) {
+          this.outlookTracked = true;
+          trackDevEvent(DevAnalyticsEvents.OUTLOOK_VIEWED, { days: outlook.days?.length || 0 });
+        }
+      } else {
+        extendedOutlookHtml = renderSoftGate({
+          title: "Extended outlook",
+          body: "Extra days sit below the five-day strip on Premium preview. Scores are only shown when hourly data already exists.",
+        });
+      }
+    }
+
+    if (featureOn("radarFoundation")) {
+      if (canAccess("radar", tier)) {
+        radarHtml = renderRadarPanel(loadRadarFoundation());
+        if (!this.radarTracked) {
+          this.radarTracked = true;
+          trackDevEvent(DevAnalyticsEvents.RADAR_PANEL_VIEWED);
+        }
+      } else {
+        radarHtml = renderSoftGate({
+          title: "Rain radar",
+          body: "The radar foundation stays on mock layers. Live radar is not connected.",
+        });
+      }
+    }
+
+    if (featureOn("monetisationHooks")) {
+      const selection = selectSponsoredPlacement({
+        affiliateCards: devFeatures.affiliateCards,
+        adsenseSlot: devFeatures.adsenseSlot,
+        monetisationHooks: true,
+        surface: "forecast",
+      });
+      sponsoredHtml = `${renderSponsoredGolfCard(selection)}${renderAdsenseSlot({ enabled: devFeatures.adsenseSlot })}`;
+      if (!this.sponsorTracked) {
+        this.sponsorTracked = true;
+        trackDevEvent(DevAnalyticsEvents.SPONSORED_PLACEMENT_EVALUATED, {
+          placement: selection.placement || "none",
+        });
+      }
+    }
+
+    return { extendedOutlookHtml, radarHtml, sponsoredHtml, eveningHtml, premiumHtml };
+  }
+
+  openMore() {
+    openSheet("More", renderMoreMenu(this.moreItems()), document.getElementById("fwMoreBtn"));
+    document.querySelectorAll("[data-more-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        closeSheet();
+        this.navigate(btn.getAttribute("data-more-tab"));
+      });
+    });
+  }
+
+  moreItems() {
+    const items = [];
+    if (featureOn("weatherAlerts")) items.push({ id: "alerts", label: "Alerts", hint: "In-app weather changes" });
+    if (featureOn("societyWeather")) items.push({ id: "society", label: "Society", hint: "Score a run of tee times" });
+    if (featureOn("premiumShell")) items.push({ id: "account", label: "Account", hint: "Preview access on this device" });
+    items.push({
+      id: "settings",
+      label: "Settings",
+      hint: featureOn("golferPreferences") ? "Preferences, disclosure, and offline" : "Disclosure and offline",
+    });
+    return items;
+  }
+
+  societyCourses() {
+    const map = new Map();
+    const add = (course) => {
+      if (!course) return;
+      const key = course.id || favKey(course);
+      if (key) map.set(key, course);
+    };
+    add(this.selectedCourse);
+    this.persistence.getFavourites().forEach(add);
+    this.persistence.getRecentCourses().forEach(add);
+    return [...map.values()];
+  }
+
+  async scoreSociety(form) {
+    if (!isAdvancedDev() || !featureOn("societyWeather")) return;
+    this.societyForm = { ...this.societyForm, ...form };
+    if (!canAccess("society", getEntitlementTier())) {
+      this.render();
+      return;
+    }
+    const course =
+      this.societyCourses().find((item) => (item.id || favKey(item)) === form.courseId) ||
+      this.resolveCourse(form.courseId);
+    if (!course) {
+      this.societyError = "Choose a course you have opened or saved.";
+      this.societyResult = null;
+      this.render();
+      return;
+    }
+
+    if (!Number.isFinite(Number(course.lat)) || !Number.isFinite(Number(course.lon))) {
+      this.societyError = "This course has no location, so it can't be scored.";
+      this.societyResult = null;
+      this.render();
+      return;
+    }
+
+    this.societyLoading = true;
+    this.societyError = null;
+    this.render();
+    try {
+      let norm = this.norm;
+      const sameCourse = this.selectedCourse && favKey(this.selectedCourse) === favKey(course);
+      if (!norm || !sameCourse) {
+        const raw = await fetchWeather(this.apiBase, course.lat, course.lon, this.units);
+        norm = normalizeWeather(raw);
+      }
+      this.societyResult = generateSocietySlots({
+        norm,
+        dateKey: form.date,
+        firstTee: form.firstTee,
+        intervalMinutes: form.interval,
+        groups: form.groups,
+        playersPerGroup: form.players,
+        windowHours: getRoundDurationHours(18),
+        units: this.units,
+        countryCode: course.country || this.courseService.getCountry(),
+      });
+      if (this.societyResult?.error) this.societyError = this.societyResult.error;
+      trackDevEvent(DevAnalyticsEvents.SOCIETY_SCORED, { groups: Number(form.groups) || 0 });
+    } catch (err) {
+      this.societyError = err.message || "Could not score these tee times.";
+      this.societyResult = null;
+    } finally {
+      this.societyLoading = false;
+      this.render();
+    }
+  }
+
+  saveRoundEdit(id, patch) {
+    const round = this.persistence.getRound(id);
+    if (!round) return;
+    const next = applyRoundEdit(round, patch);
+    this.persistence.updateRound(id, next);
+    this.editingRoundId = null;
+    this.roundSummaries.delete(id);
+    trackDevEvent(DevAnalyticsEvents.ROUND_EDITED);
+    this.render();
+    this.loadRoundSummaries();
+  }
+
+  setTier(tier) {
+    setEntitlementTier(tier);
+    this.syncRoundAlerts();
+    trackDevEvent(DevAnalyticsEvents.ENTITLEMENT_CHANGED, { tier });
+    if (this.norm && featureOn("eveningPractice")) {
+      this.ensureDaylight().finally(() => this.render());
+      return;
+    }
+    this.render();
+  }
+
+  offlineNote() {
+    if (!featureOn("pwaReadiness")) return "";
+    try {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        return `<p class="fw-offline-note" role="status">You're offline. Saved courses and rounds on this device are still available. Live weather is not stored.</p>`;
+      }
+    } catch {
+      /* ignore */
+    }
+    return "";
+  }
+
+  alertsLockedHtml() {
+    if (!this.alertsLocked) return "";
+    return renderSoftGate({
+      title: "Weather alerts",
+      body: "Alerts compare a saved round with the latest check. Premium preview includes them. Delivery stays in the app.",
+    });
+  }
+
   render() {
     mountCourseHeader(document.getElementById("fwCourseHeaderMount"), this.selectedCourse, {
       onChange: () => this.navigate("courses"),
       isFavourite: this.persistence.isFavourite(this.selectedCourse),
       onToggleFavourite: (course) => this.toggleFavourite(course),
+      showFavourite: featureOn("favouriteCourses"),
     });
 
     const main = document.getElementById("fwMain");
@@ -813,6 +1432,18 @@ class FairwayApp {
       this.wireCourses(main);
     } else if (this.activeTab === "forecast") {
       const state = this.getForecastState();
+      const extras = this.forecastExtras();
+      const dimensions = this.dimensionsFor(state);
+      state.dimensionsHtml = state.weatherLoading && !state.verdict ? "" : dimensions.html;
+      state.scoreCaption = dimensions.scoreCaption;
+      state.safetyActive = dimensions.safetyActive;
+      state.showSaveRound = featureOn("savedRounds");
+      state.roundLimitNote = this.roundLimitNote;
+      state.extendedOutlookHtml = extras.extendedOutlookHtml;
+      state.radarHtml = extras.radarHtml;
+      state.sponsoredHtml = extras.sponsoredHtml;
+      state.eveningHtml = state.weatherLoading && !state.verdict ? "" : extras.eveningHtml;
+      state.premiumHtml = extras.premiumHtml;
       main.innerHTML = renderForecastView(state);
       wireForecastView(main, {
         onNavigate: (tab) => this.navigate(tab),
@@ -820,6 +1451,7 @@ class FairwayApp {
         onDaySelect: (key) => this.onDaySelect(key),
         onTeeTimeChange: (t) => this.onTeeTimeChange(t),
         onHolesChange: (h) => this.onHolesChange(h),
+        onPracticeHoles: (h) => this.onPracticeHoles(h),
         onUseBetterTee: (t) => this.onUseBetterTee(t),
         onSaveRound: () => this.saveCurrentRound(),
         onToggleFavourite: () => this.toggleFavourite(this.selectedCourse),
@@ -835,20 +1467,102 @@ class FairwayApp {
         getVerdict: () => state.verdict,
         getBetterTee: () => state.betterTee,
       });
+      wireSoftGate(main, () => this.navigate("account"));
     } else if (this.activeTab === "rounds") {
+      const savedOn = featureOn("savedRounds");
       main.innerHTML = renderRoundsView({
-        upcoming: this.persistence.getUpcomingRounds(),
-        past: this.persistence.getPastRounds(),
+        upcoming: savedOn ? this.persistence.getUpcomingRounds() : [],
+        past: savedOn ? this.persistence.getPastRounds() : [],
         summaries: this.roundSummaries,
         loading: this.roundLoading,
         units: this.units,
+        alerts: this.roundAlerts,
+        alertHtml: this.alertsLockedHtml(),
+        historyByRound: this.historyByRound(),
+        editingId: this.editingRoundId,
+        showExtended: isAdvancedDev() && savedOn,
+        disabled: isAdvancedDev() && !savedOn,
       });
       wireRoundsView(main, {
         onOpen: (id) => this.openRound(id),
         onDelete: (id) => this.deleteRound(id),
         onPlayAgain: (id) => this.playAgain(id),
+        onEdit: (id) => {
+          this.editingRoundId = id;
+          this.render();
+        },
+        onCancelEdit: () => {
+          this.editingRoundId = null;
+          this.render();
+        },
+        onSaveEdit: (id, patch) => this.saveRoundEdit(id, patch),
+        onDismissAlert: (fingerprint) => this.dismissAlert(fingerprint),
+      });
+      wireSoftGate(main, () => this.navigate("account"));
+    } else if (this.activeTab === "alerts") {
+      main.innerHTML = renderAlertsView({
+        alerts: this.roundAlerts,
+        lockedHtml: !featureOn("weatherAlerts")
+          ? `<p class="fw-muted">Weather alerts are turned off in this preview.</p>`
+          : this.alertsLockedHtml(),
+      });
+      wireAlerts(main, { onDismiss: (fingerprint) => this.dismissAlert(fingerprint) });
+      wireSoftGate(main, () => this.navigate("account"));
+    } else if (this.activeTab === "society") {
+      const locked =
+        featureOn("societyWeather") && !canAccess("society", getEntitlementTier())
+          ? renderSoftGate({
+              title: "Society weather",
+              body: "Score a run of tee times on Premium preview. The page stays on this device.",
+            })
+          : "";
+      const off = !featureOn("societyWeather");
+      main.innerHTML = off
+        ? `<div class="fw-view"><h1 class="fw-page-title">Society</h1><p class="fw-muted">Society weather is turned off in this preview.</p></div>`
+        : renderSocietyView({
+            courses: this.societyCourses(),
+            form: { ...this.societyForm, courseId: this.societyForm.courseId || this.selectedCourse?.id || "" },
+            result: this.societyResult,
+            error: this.societyError,
+            loading: this.societyLoading,
+            lockedHtml: locked,
+          });
+      wireSocietyView(main, { onScore: (form) => this.scoreSociety(form) });
+      wireSoftGate(main, () => this.navigate("account"));
+    } else if (this.activeTab === "account") {
+      main.innerHTML = featureOn("premiumShell")
+        ? renderAccountView({ tier: getEntitlementTier() })
+        : `<div class="fw-view"><h1 class="fw-page-title">Account</h1><p class="fw-muted">Account preview is turned off.</p></div>`;
+      wireAccountView(main, { onTier: (tier) => this.setTier(tier) });
+    } else if (this.activeTab === "settings") {
+      const showPreferences = featureOn("golferPreferences");
+      let preferences = null;
+      if (showPreferences) {
+        try {
+          preferences = loadGolferPreferences();
+        } catch {
+          preferences = null;
+        }
+      }
+      main.innerHTML = renderSettingsView({
+        notificationMode: this.notifications.mode,
+        showPreferences,
+        preferences,
+      });
+      wireSettingsView(main, {
+        onPreferencesChange: (prefs) => {
+          try {
+            return saveGolferPreferences(prefs);
+          } catch {
+            return false;
+          }
+        },
       });
     }
+
+    const note = this.offlineNote();
+    if (note) main.insertAdjacentHTML("afterbegin", note);
+    setActiveTab(this.activeTab);
 
     if (typeof lucide !== "undefined") lucide.createIcons();
   }

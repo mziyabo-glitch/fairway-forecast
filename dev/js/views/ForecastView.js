@@ -16,6 +16,7 @@ import { renderHourlyForecast, wireHourlyForecast } from "../components/HourlyFo
 import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js";
 import { openSheet } from "../components/AppShell.js";
 import { esc } from "../../../shared/utils.js";
+import { wireEveningPractice } from "../components/EveningPractice.js";
 
 export function renderForecastView(state) {
   const {
@@ -43,6 +44,16 @@ export function renderForecastView(state) {
     roundSaved = false,
     teeAdjusted = null,
     weatherIcon = "🌤️",
+    showSaveRound = true,
+    roundLimitNote = "",
+    extendedOutlookHtml = "",
+    radarHtml = "",
+    sponsoredHtml = "",
+    eveningHtml = "",
+    dimensionsHtml = "",
+    scoreCaption = "",
+    safetyActive = false,
+    premiumHtml = renderPremiumLocks(),
   } = state;
 
   if (noCourse) {
@@ -84,6 +95,8 @@ export function renderForecastView(state) {
         verdict,
         decision,
         weatherIcon,
+        scoreCaption,
+        safetyActive,
       });
 
   const roundHtml = renderRoundSelector({
@@ -120,17 +133,27 @@ export function renderForecastView(state) {
       }
       <div id="fwDayStripMount">${dayStripHtml}</div>
       <div id="fwHeroMount">${heroHtml}</div>
+      ${dimensionsHtml ? `<div id="fwDimensionsMount">${dimensionsHtml}</div>` : ""}
       <div id="fwRoundMount">${roundHtml}</div>
-      <div class="fw-forecast-save-row">
+      ${
+        showSaveRound
+          ? `<div class="fw-forecast-save-row">
         <button type="button" class="fw-btn fw-btn-ghost" id="fwSaveRound" aria-live="polite">
           ${roundSaved ? "✓ Round saved" : "Save this round"}
         </button>
-      </div>
+        ${roundLimitNote ? `<p class="fw-muted">${esc(roundLimitNote)}</p>` : ""}
+      </div>`
+          : ""
+      }
       <div id="fwRainMount">${rainHtml}</div>
       <div id="fwImpactMount">${impactHtml}</div>
+      ${eveningHtml ? `<div id="fwEveningMount">${eveningHtml}</div>` : ""}
       <div id="fwBetterMount">${betterHtml}</div>
       <div id="fwHourlyMount">${hourlyHtml}</div>
-      <div id="fwPremiumMount">${renderPremiumLocks()}</div>
+      ${premiumHtml ? `<div id="fwPremiumMount">${premiumHtml}</div>` : ""}
+      ${extendedOutlookHtml ? `<div id="fwExtendedOutlookMount">${extendedOutlookHtml}</div>` : ""}
+      ${radarHtml ? `<div id="fwRadarMount">${radarHtml}</div>` : ""}
+      ${sponsoredHtml ? `<div id="fwSponsoredMount">${sponsoredHtml}</div>` : ""}
     </div>`;
 }
 
@@ -163,6 +186,7 @@ export function wireForecastView(container, handlers) {
     if (bt?.teeTime) handlers.onUseBetterTee?.(bt.teeTime) ?? handlers.onTeeTimeChange?.(bt.teeTime);
   });
 
+  wireEveningPractice(container.querySelector("#fwEveningMount"), handlers.onPracticeHoles);
   wireHourlyForecast(container.querySelector("#fwHourlyMount"), handlers.onHourlyExpand);
   wirePremiumLocks(container.querySelector("#fwPremiumMount"), (id) => handlers.onPremium?.(id));
 }

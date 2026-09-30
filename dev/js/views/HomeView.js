@@ -59,6 +59,7 @@ export function renderHomeView(state = {}) {
     isFavourite = false,
     freshness = null,
     weatherIcon = "🌤️",
+    showFavourites = true,
   } = state;
 
   const teeLabel =
@@ -129,14 +130,18 @@ export function renderHomeView(state = {}) {
           : ""
       }
 
-      <section class="fw-home-favs" aria-label="Favourite courses">
+      ${
+        showFavourites
+          ? `<section class="fw-home-favs" aria-label="Favourite courses">
         <h2 class="fw-section-title">Favourite courses</h2>
         ${
           favouriteCards.length
             ? `<ul class="fw-fav-list">${favouriteCards.map(renderFavCard).join("")}</ul>`
             : `<p class="fw-muted">Star a course from search or the forecast to see where you should play.</p>`
         }
-      </section>
+      </section>`
+          : ""
+      }
 
       ${renderPremiumLocks()}
     </div>`;

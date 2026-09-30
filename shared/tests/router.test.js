@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { tabFromPath, pathForTab, getDevBase } from "../../dev/js/router.js";
+import { tabFromPath, pathForTab, getDevBase, isDevRoute } from "../../dev/js/router.js";
 
 describe("History API helpers", () => {
   it("maps /dev/ paths to tabs", () => {
@@ -11,7 +11,13 @@ describe("History API helpers", () => {
     assert.equal(tabFromPath("/dev/courses/"), "courses");
     assert.equal(tabFromPath("/dev/forecast"), "forecast");
     assert.equal(tabFromPath("/dev/rounds"), "rounds");
+    assert.equal(tabFromPath("/dev/alerts"), "alerts");
+    assert.equal(tabFromPath("/dev/society"), "society");
+    assert.equal(tabFromPath("/dev/account"), "account");
+    assert.equal(tabFromPath("/dev/settings"), "settings");
     assert.equal(tabFromPath("/dev/unknown"), "home");
+    assert.equal(tabFromPath("/society"), "home");
+    assert.equal(tabFromPath("/alerts"), "home");
   });
 
   it("builds restore paths that stay under /dev/", () => {
@@ -19,6 +25,10 @@ describe("History API helpers", () => {
     assert.equal(pathForTab("courses"), "/dev/courses");
     assert.equal(pathForTab("forecast"), "/dev/forecast");
     assert.equal(pathForTab("rounds"), "/dev/rounds");
+    assert.equal(pathForTab("society"), "/dev/society");
+    assert.equal(pathForTab("alerts"), "/dev/alerts");
+    assert.equal(pathForTab("account"), "/dev/account");
+    assert.equal(pathForTab("settings"), "/dev/settings");
     assert.match(pathForTab("forecast"), /^\/dev\//);
   });
 
@@ -29,6 +39,9 @@ describe("History API helpers", () => {
       assert.equal(getDevBase(), "/workspace/dev");
       assert.equal(pathForTab("rounds"), "/workspace/dev/rounds");
       assert.equal(tabFromPath("/workspace/dev/forecast"), "forecast");
+      assert.equal(tabFromPath("/workspace/dev/settings"), "settings");
+      assert.equal(isDevRoute("/workspace/dev/settings"), true);
+      assert.equal(isDevRoute("/forecast"), false);
     } finally {
       if (prev === undefined) delete globalThis.location;
       else globalThis.location = prev;

@@ -346,6 +346,20 @@
   font-weight: 500;
 }
 
+.fw-verdict-score-caption {
+  display: block;
+  margin: -4px 0 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fw-verdict-hero--safety {
+  box-shadow: inset 0 0 0 1px rgba(184, 69, 58, 0.28);
+}
+
 .fw-verdict-message {
   max-width: 22rem;
   margin: 0 auto var(--space-md);
@@ -980,3 +994,357 @@
   border: 1px solid var(--border-card);
   box-shadow: none;
 }
+
+/* Advanced /dev surfaces */
+.fw-more-btn.is-current {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.fw-more-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.fw-more-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border-card);
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 12px 14px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.fw-more-item-label {
+  font-weight: 600;
+  color: var(--brand-ink);
+}
+
+.fw-more-item-hint {
+  color: var(--text-secondary);
+  font-size: var(--text-caption);
+}
+
+.fw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: var(--space-md);
+}
+
+.fw-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+.fw-field .fw-search-input,
+.fw-field .fw-select {
+  width: 100%;
+}
+
+.fw-form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.fw-soft-gate,
+.fw-radar-panel,
+.fw-outlook,
+.fw-settings-block,
+.fw-society-slot,
+.fw-alert,
+.fw-sponsored {
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.fw-soft-gate p,
+.fw-settings-block p,
+.fw-radar-status,
+.fw-radar-attribution,
+.fw-outlook-note {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: var(--text-support);
+}
+
+.fw-alert-list,
+.fw-outlook-list,
+.fw-society-list,
+.fw-radar-layers,
+.fw-access-list,
+.fw-flag-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fw-alert {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fw-alert p,
+.fw-society-slot p,
+.fw-round-compare {
+  margin: 4px 0 0;
+}
+
+.fw-outlook-day,
+.fw-society-slot,
+.fw-radar-layer,
+.fw-access-list li,
+.fw-flag-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.fw-outlook-confidence,
+.fw-society-tag,
+.fw-sponsored-kicker {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.fw-society-summary {
+  margin: 16px 0 8px;
+  font-weight: 600;
+}
+
+.fw-account-tier {
+  margin: 8px 0 12px;
+}
+
+.fw-tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fw-offline-note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  color: var(--text-secondary);
+  font-size: var(--text-support);
+}
+
+.fw-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+}
+
+.fw-sponsored-link {
+  font-weight: 600;
+}
+
+.fw-round-edit {
+  margin-top: 12px;
+}
+
+.fw-evening {
+  min-width: 0;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.fw-evening-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+}
+
+.fw-evening-times p {
+  margin: 0;
+  font-size: var(--text-support);
+}
+
+.fw-evening-kicker {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fw-evening-note,
+.fw-evening-summary,
+.fw-evening-recommend {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.fw-evening-summary {
+  color: var(--text-primary);
+}
+
+.fw-evening-holes {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fw-evening-holes button {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.fw-evening-holes button[aria-pressed="true"] {
+  background: var(--brand-surface);
+  border-color: var(--brand);
+  color: var(--brand-deep);
+  font-weight: 600;
+}
+
+.fw-evening-hours {
+  display: flex;
+  gap: 8px;
+  max-width: 100%;
+  margin: 12px 0 0;
+  padding: 0 0 2px;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.fw-evening-hour {
+  flex: 0 0 auto;
+  min-width: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--brand-softer);
+  font-size: 0.8125rem;
+}
+
+.fw-evening-hour time {
+  font-weight: 600;
+}
+
+.fw-dimensions {
+  background: var(--surface);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fw-dim-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.fw-dim-row strong {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.fw-dim-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.fw-dim-kicker {
+  display: inline;
+  margin-right: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fw-dim-safety {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--status-avoid-bg);
+  color: var(--status-avoid);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.fw-dim-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fw-dim-link {
+  color: var(--brand);
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.fw-pref-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.fw-pref-pace {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fw-pref-pace legend {
+  margin-bottom: 8px;
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+.fw-view-settings .fw-search-input,
+.fw-view-settings .fw-select {
+  min-height: 44px;
+  font-size: 16px;
+}
+

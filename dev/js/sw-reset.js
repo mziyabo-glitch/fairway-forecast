@@ -1,11 +1,9 @@
-/* Drop a service worker that predates the brand mark.
-   That worker cache-firsts /dev/js/app.js and its own script, so a preview
-   that opened /dev/ on main keeps drawing the old shell with no logo after
-   this branch is checked out. A controlling worker that does not report
-   version 4 is unregistered once, then the page reloads from the network. */
+/* Drop a service worker that predates the advanced /dev shell.
+   A controlling /dev worker that does not report version 5 is unregistered once,
+   then the page reloads from the network. */
 (function () {
   if (!("serviceWorker" in navigator)) return;
-  var KEY = "fw-sw-brand-v4";
+  var KEY = "fw-sw-brand-v5";
   if (sessionStorage.getItem(KEY) === "ok") return;
   var controller = navigator.serviceWorker.controller;
   if (!controller) {
@@ -44,7 +42,7 @@
     }
     var channel = new MessageChannel();
     channel.port1.onmessage = function (event) {
-      if (event.data && event.data.version === 4) fresh();
+      if (event.data && event.data.version === 5) fresh();
       else stale();
     };
     try {

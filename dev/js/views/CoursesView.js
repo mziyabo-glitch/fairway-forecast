@@ -3,7 +3,10 @@ import { formatDistance } from "../../../shared/geo.js";
 import { renderFavouriteStar, wireFavouriteStars } from "../components/FavouriteStar.js";
 import { renderLoadingMark } from "../components/BrandMark.js";
 
-function courseRow(c, { favouriteIds = new Set(), showDistance = false, distanceUnits = "metric" } = {}) {
+function courseRow(
+  c,
+  { favouriteIds = new Set(), showDistance = false, distanceUnits = "metric", showStars = true } = {}
+) {
   const loc =
     [...new Set([c.city, c.state, c.country].filter(Boolean))].join(", ") || c.location || "";
   const dist =
@@ -14,7 +17,7 @@ function courseRow(c, { favouriteIds = new Set(), showDistance = false, distance
         <span class="fw-course-result-name">${esc(c.name)}</span>
         <span class="fw-course-result-meta">${esc(loc)}${dist ? ` · ${esc(dist)}` : ""}</span>
       </button>
-      ${renderFavouriteStar(favouriteIds.has(c.id), { courseId: c.id, compact: true })}
+      ${showStars ? renderFavouriteStar(favouriteIds.has(c.id), { courseId: c.id, compact: true }) : ""}
     </li>`;
 }
 
@@ -34,6 +37,9 @@ export function renderCoursesView({
   nearbyLoading = false,
   nearbyError = null,
   distanceUnits = "metric",
+  showFavourites = true,
+  showRecents = true,
+  showNearby = true,
 } = {}) {
   return `
     <div class="fw-view fw-view-courses">
@@ -46,43 +52,47 @@ export function renderCoursesView({
           aria-label="Search golf courses" />
       </div>
 
-      <button type="button" class="fw-btn fw-btn-secondary fw-nearby-btn" id="fwNearbyBtn">
+      ${
+        showNearby
+          ? `<button type="button" class="fw-btn fw-btn-secondary fw-nearby-btn" id="fwNearbyBtn">
         <span aria-hidden="true">📍</span> Courses near me
       </button>
       ${nearbyLoading ? `<div class="fw-loading">${renderLoadingMark(18)} Finding courses near you…</div>` : ""}
-      ${nearbyError ? `<div class="fw-error" role="alert">${esc(nearbyError)}</div>` : ""}
+      ${nearbyError ? `<div class="fw-error" role="alert">${esc(nearbyError)}</div>` : ""}`
+          : ""
+      }
 
       ${
-        nearby.length
+        showNearby && nearby.length
           ? `
         <section class="fw-nearby-results" aria-label="Courses near you">
           <h2 class="fw-section-title fw-section-title--subtle">Near you</h2>
           <ul class="fw-course-results">
-            ${nearby.map((c) => courseRow(c, { favouriteIds, showDistance: true, distanceUnits })).join("")}
+            ${nearby.map((c) => courseRow(c, { favouriteIds, showDistance: true, distanceUnits, showStars: showFavourites })).join("")}
           </ul>
         </section>`
           : ""
       }
 
       ${
-        recentCourses.length
+        showRecents && recentCourses.length
           ? `
         <section class="fw-courses-recent" aria-label="Recent courses">
           <h2 class="fw-section-title fw-section-title--subtle">Recent</h2>
           <ul class="fw-course-results">
-            ${recentCourses.slice(0, 5).map((c) => courseRow(c, { favouriteIds })).join("")}
+            ${recentCourses.slice(0, 5).map((c) => courseRow(c, { favouriteIds, showStars: showFavourites })).join("")}
           </ul>
         </section>`
           : ""
       }
 
       ${
-        favouriteCourses.length
+        showFavourites && favouriteCourses.length
           ? `
         <section class="fw-courses-favourites" aria-label="Favourite courses">
           <h2 class="fw-section-title fw-section-title--subtle">Favourites</h2>
           <ul class="fw-course-results">
-            ${favouriteCourses.slice(0, 8).map((c) => courseRow(c, { favouriteIds })).join("")}
+            ${favouriteCourses.slice(0, 8).map((c) => courseRow(c, { favouriteIds, showStars: showFavourites })).join("")}
           </ul>
         </section>`
           : ""
@@ -120,7 +130,7 @@ export function renderCoursesView({
       <ul class="fw-course-results" aria-live="polite">
         ${
           results?.length
-            ? results.map((c) => courseRow(c, { favouriteIds })).join("")
+            ? results.map((c) => courseRow(c, { favouriteIds, showStars: showFavourites })).join("")
             : !loading && query
               ? `<li class="fw-empty">No courses found</li>`
               : !loading && query === ""
