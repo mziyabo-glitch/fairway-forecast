@@ -6,7 +6,7 @@ import {
 } from "./components/AppShell.js";
 import { mountCourseHeader } from "./components/CourseHeader.js";
 import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js";
-import { renderForecastView, wireForecastView } from "./views/ForecastView.js";
+import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20260930-2";
 import { renderHomeView, wireHomeView } from "./views/HomeView.js";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
@@ -14,7 +14,7 @@ import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
 import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
 import { renderAccountView, wireAccountView } from "./views/AccountView.js";
 import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js";
-import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20260930-1";
+import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20260930-2";
 import { featureOn, isAdvancedDev } from "./features/gates.js";
 import { closeSheet, openSheet } from "./components/AppShell.js";
 import { renderMoreMenu } from "./components/MoreMenu.js";
@@ -532,8 +532,8 @@ class FairwayApp {
       teeAdjusted: this.teeAdjusted,
       isFavourite: this.persistence.isFavourite(this.selectedCourse),
       weatherIcon: weatherIdToIcon(
-        this.norm?.current?.weather?.[0]?.id ??
-          this.norm?.hourly?.find((h) => h.dt >= (this.selectedTeeTime || 0))?.weather?.[0]?.id
+        this.norm?.hourly?.find((h) => h.dt >= (this.selectedTeeTime || 0))?.weather?.[0]?.id ??
+          this.norm?.current?.weather?.[0]?.id
       ),
     };
   }

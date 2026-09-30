@@ -285,11 +285,20 @@
   opacity: 0.92;
 }
 
-.fw-verdict-icon {
-  display: block;
-  font-size: 2.875rem;
-  line-height: 1;
+.fw-verdict-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   margin-bottom: var(--space-md);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.fw-verdict-cue svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke-width: 2;
 }
 
 .fw-verdict-label {

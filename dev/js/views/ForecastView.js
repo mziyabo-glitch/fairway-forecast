@@ -3,7 +3,7 @@ import {
   renderGolfVerdictHero,
   renderVerdictHeroSkeleton,
   wireGolfVerdictHero,
-} from "../components/GolfVerdictHero.js";
+} from "../components/GolfVerdictHero.js?v=20260930-2";
 import { renderRoundSelector, wireRoundSelector } from "../components/RoundSelector.js";
 import { renderRainTimeline, renderRainTimelineSkeleton } from "../components/RainTimeline.js";
 import { renderWeatherImpactCards } from "../components/WeatherImpactCard.js";

@@ -1,5 +1,5 @@
 import { isDevFeatureEnabled } from "../config/devFeatures.js";
-import { isDevRoute } from "../router.js?v=20260930-1";
+import { isDevRoute } from "../router.js?v=20260930-2";
 
 const MAX_BUFFER = 100;
 
