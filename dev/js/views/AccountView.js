@@ -40,6 +40,7 @@ function featureLabel(key) {
     weatherAlerts: "Weather alerts",
     radar: "Radar foundation",
     extendedOutlook: "Extended outlook",
+    eveningPractice: "Evening practice planner",
     society: "Society weather",
     advancedNotifications: "Advanced notifications",
   };

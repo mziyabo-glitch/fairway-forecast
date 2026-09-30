@@ -10,6 +10,7 @@ function read(rel) {
 
 const html = read("index.html");
 const sw = read("sw.js");
+const app = read("dev/js/app.js");
 
 describe("production shell is the premium app", () => {
   it("marks the new shell and boots /dev/js/app.js", () => {
@@ -51,22 +52,24 @@ describe("legacy entry points leave a stale document", () => {
 });
 
 describe("production service worker", () => {
-  it("activates immediately and deletes every cache", () => {
+  it("retires itself after deleting every cache", () => {
     assert.match(sw, /skipWaiting\s*\(/);
-    assert.match(sw, /clients\.claim\s*\(/);
     assert.match(sw, /caches\.keys\s*\(/);
     assert.match(sw, /caches\.delete\s*\(/);
-    assert.doesNotMatch(sw, /startsWith\("fairwayweather"\)/);
-    assert.doesNotMatch(sw, /cacheFirst|caches\.open|cache\.put|cache\.addAll/);
+    assert.match(sw, /registration\.unregister\s*\(/);
   });
 
-  it("loads navigations and the app shell from the network", () => {
-    assert.match(sw, /request\.mode === "navigate"/);
-    assert.match(sw, /request\.destination === "document"/);
-    assert.match(sw, /pathname === "\/app\.js"/);
-    assert.match(sw, /pathname === "\/dev\/js\/app\.js"/);
-    assert.match(sw, /cache:\s*"reload"/);
-    assert.match(sw, /fw_net/);
-    assert.match(sw, /endsWith\("\/sw\.js"\)/);
+  it("never intercepts a navigation or manufactures an offline response", () => {
+    assert.doesNotMatch(sw, /addEventListener\("fetch"/);
+    assert.doesNotMatch(sw, /respondWith|new Response|status:\s*503|fw_net/);
+  });
+
+  it("is unregistered by the production app while /dev keeps its worker", () => {
+    assert.match(app, /getRegistrations\s*\(/);
+    assert.match(app, /registration\.unregister\s*\(/);
+    assert.match(app, /fw-production-worker-retired/);
+    assert.match(app, /location\.reload\s*\(/);
+    assert.match(app, /register\("\/dev\/sw\.js"/);
+    assert.match(app, /scope:\s*"\/dev\/"/);
   });
 });

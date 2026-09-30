@@ -162,6 +162,25 @@ describe("evening practice window", () => {
     assert.match(plan.summary, /tight/i);
   });
 
+  it("keeps future recommendations in the late-day practice window", () => {
+    const { daylight } = londonDay();
+    const now = Math.floor(Date.UTC(2026, 8, 28, 12, 0) / 1000);
+    const hourly = [];
+    for (let dt = daylight.sunrise; dt <= daylight.sunset; dt += 15 * 60) {
+      hourly.push(point(dt));
+    }
+    const plan = buildPracticePlan({
+      holes: 3,
+      daylight,
+      hourly,
+      now,
+      tzOffset: 0,
+    });
+
+    assert.ok(plan.recommendedStart >= daylight.lastPlayableLight - 4 * 60 * 60);
+    assert.ok(plan.recommendedEnd <= daylight.lastPlayableLight);
+  });
+
   it("formats course time across daylight saving", () => {
     const winterNoon = zonedLocalToUnix(2026, 1, 15, 12, 0, "Europe/London");
     const summerNoon = zonedLocalToUnix(2026, 6, 21, 12, 0, "Europe/London");

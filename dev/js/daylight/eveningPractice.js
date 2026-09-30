@@ -22,6 +22,7 @@ export const LAST_PLAYABLE_LEAD_MIN = 15;
 
 const STEP_SEC = 15 * 60;
 const TIGHT_SLACK_SEC = 30 * 60;
+const EVENING_LOOKBACK_SEC = 4 * 60 * 60;
 
 export function normalizePracticeHoles(holes) {
   const n = Number(holes);
@@ -335,8 +336,12 @@ function ceilToStep(unix, step) {
 
 function practiceFloor(daylight, now, tzOffset) {
   const today = courseTodayKey(now, daylight?.timezone, tzOffset) === daylight?.date;
-  if (today) return now;
-  return Number.isFinite(daylight?.sunrise) ? daylight.sunrise : now;
+  const sunrise = Number.isFinite(daylight?.sunrise) ? daylight.sunrise : now;
+  const eveningStart = Number.isFinite(daylight?.lastPlayableLight)
+    ? daylight.lastPlayableLight - EVENING_LOOKBACK_SEC
+    : sunrise;
+  const daylightStart = Math.max(sunrise, eveningStart);
+  return today ? Math.max(now, daylightStart) : daylightStart;
 }
 
 export function findNextSuitableEvening({ holes, upcoming = [], now, tzOffset = 0, paceMins } = {}) {
@@ -477,9 +482,13 @@ export function eveningFocusFrom({
   sunrise,
   dateIsToday = false,
 } = {}) {
-  let from = dateIsToday ? now : Number.isFinite(sunrise) ? sunrise : now;
+  const daylightStart = Math.max(
+    Number.isFinite(sunrise) ? sunrise : now,
+    Number.isFinite(lastPlayableLight) ? lastPlayableLight - EVENING_LOOKBACK_SEC : now
+  );
+  let from = dateIsToday ? Math.max(now, daylightStart) : daylightStart;
   if (Number.isFinite(teeTimeUnix) && Number.isFinite(lastPlayableLight)) {
-    const lower = dateIsToday ? now : Number.isFinite(sunrise) ? sunrise : teeTimeUnix;
+    const lower = dateIsToday ? Math.max(now, daylightStart) : daylightStart;
     if (teeTimeUnix >= lower - 60 && teeTimeUnix <= lastPlayableLight) {
       from = Math.max(from, teeTimeUnix);
     }

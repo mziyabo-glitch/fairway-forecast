@@ -5,7 +5,7 @@ import {
   wireSheet,
 } from "./components/AppShell.js";
 import { mountCourseHeader } from "./components/CourseHeader.js";
-import { renderPremiumSheet } from "./components/PremiumLock.js";
+import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js";
 import { renderForecastView, wireForecastView } from "./views/ForecastView.js";
 import { renderHomeView, wireHomeView } from "./views/HomeView.js";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js";
@@ -128,6 +128,7 @@ class FairwayApp {
     this.searchResults = [];
     this.searchLoading = false;
     this.searchError = null;
+    this.searchRequestId = 0;
     this.usStates = [];
 
     this.nearbyResults = [];
@@ -223,10 +224,32 @@ class FairwayApp {
   registerPwa() {
     if (!("serviceWorker" in navigator)) return;
     const onDev = /\/dev(?:\/|$)/i.test(location.pathname || "");
-    const script = onDev ? "/dev/sw.js" : "/sw.js";
-    const scope = onDev ? "/dev/" : "/";
+    if (!onDev) {
+      const hadController = Boolean(navigator.serviceWorker.controller);
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) =>
+          Promise.all(
+            registrations
+              .filter((registration) => new URL(registration.scope).pathname === "/")
+              .map((registration) => registration.unregister())
+          )
+        )
+        .then(() => {
+          if (!hadController) return;
+          const key = "fw-production-worker-retired";
+          if (sessionStorage.getItem(key) === "1") return;
+          sessionStorage.setItem(key, "1");
+          location.reload();
+        })
+        .catch(() => {
+          /* best-effort cleanup of the retired production worker */
+        });
+      return;
+    }
+
     navigator.serviceWorker
-      .register(script, { scope, updateViaCache: "none" })
+      .register("/dev/sw.js", { scope: "/dev/", updateViaCache: "none" })
       .then((registration) => registration.update())
       .catch(() => {
         /* optional */
@@ -623,23 +646,36 @@ class FairwayApp {
   }
 
   async onSearch(query) {
+    const requestId = ++this.searchRequestId;
+    const restoreFocus = document.activeElement?.id === "fwCourseSearch";
     this.searchQuery = query;
-    this.searchLoading = true;
     this.searchError = null;
-    this.render();
     track(AnalyticsEvents.COURSE_SEARCH, { qLen: query.trim().length });
 
     try {
-      if (!this.courseService.currentFuse) {
+      if (!this.courseService.currentDocs.length) {
+        this.searchLoading = true;
+        this.render();
         await this.courseService.refreshDataset();
       }
+      if (requestId !== this.searchRequestId) return;
       this.searchResults = query.trim() ? this.courseService.search(query) : [];
     } catch {
+      if (requestId !== this.searchRequestId) return;
       this.searchError = "Could not search courses.";
       this.searchResults = [];
     } finally {
+      if (requestId !== this.searchRequestId) return;
       this.searchLoading = false;
       this.render();
+      if (restoreFocus) {
+        requestAnimationFrame(() => {
+          const input = document.getElementById("fwCourseSearch");
+          if (!input || this.searchQuery !== query) return;
+          input.focus({ preventScroll: true });
+          input.setSelectionRange?.(input.value.length, input.value.length);
+        });
+      }
       if (typeof lucide !== "undefined") lucide.createIcons();
     }
   }
@@ -1022,7 +1058,13 @@ class FairwayApp {
   }
 
   async ensureDaylight() {
-    if (!isAdvancedDev() || !featureOn("eveningPractice") || !this.norm || !this.selectedCourse) {
+    if (
+      !isAdvancedDev() ||
+      !featureOn("eveningPractice") ||
+      !canAccess("eveningPractice", getEntitlementTier()) ||
+      !this.norm ||
+      !this.selectedCourse
+    ) {
       this.daylightSeries = [];
       return;
     }
@@ -1147,13 +1189,30 @@ class FairwayApp {
   }
 
   forecastExtras() {
-    const empty = { extendedOutlookHtml: "", radarHtml: "", sponsoredHtml: "", eveningHtml: "" };
-    if (!isAdvancedDev() || !this.norm) return empty;
+    const empty = {
+      extendedOutlookHtml: "",
+      radarHtml: "",
+      sponsoredHtml: "",
+      eveningHtml: "",
+      premiumHtml: "",
+    };
+    if (!isAdvancedDev()) return { ...empty, premiumHtml: renderPremiumLocks() };
+    if (!this.norm) return empty;
     const tier = getEntitlementTier();
     let extendedOutlookHtml = "";
     let radarHtml = "";
     let sponsoredHtml = "";
-    const eveningHtml = featureOn("eveningPractice") ? this.eveningPracticeHtml() : "";
+    let eveningHtml = "";
+    const premiumHtml = canAccess("radar", tier) ? "" : renderPremiumLocks();
+
+    if (featureOn("eveningPractice")) {
+      eveningHtml = canAccess("eveningPractice", tier)
+        ? this.eveningPracticeHtml()
+        : renderSoftGate({
+            title: "Evening practice",
+            body: "Premium finds the best remaining window for 3, 6 or 9 holes and makes sure it finishes before last playable light.",
+          });
+    }
 
     if (featureOn("extendedOutlook")) {
       if (canAccess("extendedOutlook", tier)) {
@@ -1206,7 +1265,7 @@ class FairwayApp {
       }
     }
 
-    return { extendedOutlookHtml, radarHtml, sponsoredHtml, eveningHtml };
+    return { extendedOutlookHtml, radarHtml, sponsoredHtml, eveningHtml, premiumHtml };
   }
 
   openMore() {
@@ -1317,6 +1376,10 @@ class FairwayApp {
     setEntitlementTier(tier);
     this.syncRoundAlerts();
     trackDevEvent(DevAnalyticsEvents.ENTITLEMENT_CHANGED, { tier });
+    if (this.norm && featureOn("eveningPractice")) {
+      this.ensureDaylight().finally(() => this.render());
+      return;
+    }
     this.render();
   }
 
@@ -1380,6 +1443,7 @@ class FairwayApp {
       state.radarHtml = extras.radarHtml;
       state.sponsoredHtml = extras.sponsoredHtml;
       state.eveningHtml = state.weatherLoading && !state.verdict ? "" : extras.eveningHtml;
+      state.premiumHtml = extras.premiumHtml;
       main.innerHTML = renderForecastView(state);
       wireForecastView(main, {
         onNavigate: (tab) => this.navigate(tab),

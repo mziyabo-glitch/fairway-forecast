@@ -8,6 +8,10 @@ const inFlight = new Map();
 const SNAP_KEY = "fw_weather_snap_v1";
 const MAX_SNAPS = 8;
 
+function browserIsOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
 function cacheGetFresh(key, ttlMs) {
   const hit = memCache.get(key);
   if (!hit) return null;
@@ -79,13 +83,14 @@ export function formatForecastFreshness(meta, now = Date.now()) {
   if (!meta) return null;
   const stale = Boolean(meta.offline || meta.stale);
   if (!stale) return null;
+  const label = meta.offline ? "Offline forecast" : "Saved forecast · Live update unavailable";
   if (Number.isFinite(meta.fetchedAt)) {
     const d = new Date(meta.fetchedAt);
     const hh = d.getHours().toString().padStart(2, "0");
     const mm = d.getMinutes().toString().padStart(2, "0");
-    return `Offline forecast · Last updated ${hh}:${mm}`;
+    return `${label} · Last updated ${hh}:${mm}`;
   }
-  return "Offline forecast";
+  return label;
 }
 
 export function weatherCacheKey(lat, lon, units = "metric") {
@@ -104,12 +109,14 @@ export async function apiGet(apiBase, path) {
     if (res.status === 429) {
       const err = new Error("Too many requests. Please wait a moment and try again.");
       err.status = 429;
+      err.offline = false;
       throw err;
     }
 
     if (!res.ok) {
       const err = new Error("Weather service is temporarily unavailable.");
       err.status = res.status;
+      err.offline = false;
       throw err;
     }
 
@@ -117,7 +124,12 @@ export async function apiGet(apiBase, path) {
   } catch (err) {
     clearTimeout(timer);
     if (err.name === "AbortError") {
-      throw new Error("Request timed out. Check your connection and try again.");
+      const timeout = new Error("Request timed out. Please try again.");
+      timeout.offline = browserIsOffline();
+      throw timeout;
+    }
+    if (err && typeof err === "object" && err.status == null && err.name === "TypeError") {
+      err.offline = true;
     }
     throw err;
   }
@@ -141,10 +153,12 @@ async function fetchWeatherUncached(apiBase, lat, lon, units, key) {
     const staleMem = cacheGetAny(key);
     const snap = staleMem || readSnap(key);
     if (snap?.data) {
+      const offline = Boolean(err?.offline || browserIsOffline());
       return attachMeta(snap.data, {
         fromCache: true,
         stale: true,
-        offline: true,
+        offline,
+        reason: offline ? "offline" : "service_unavailable",
         fetchedAt: snap.t,
       });
     }

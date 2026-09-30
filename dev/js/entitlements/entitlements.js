@@ -11,6 +11,7 @@ export const FEATURE_ACCESS = {
   weatherAlerts: ["premium_preview", "premium"],
   radar: ["premium_preview", "premium"],
   extendedOutlook: ["premium_preview", "premium"],
+  eveningPractice: ["premium_preview", "premium"],
   society: ["premium_preview", "premium"],
   advancedNotifications: ["premium_preview", "premium"],
 };

@@ -53,6 +53,7 @@ export function renderForecastView(state) {
     dimensionsHtml = "",
     scoreCaption = "",
     safetyActive = false,
+    premiumHtml = renderPremiumLocks(),
   } = state;
 
   if (noCourse) {
@@ -149,7 +150,7 @@ export function renderForecastView(state) {
       ${eveningHtml ? `<div id="fwEveningMount">${eveningHtml}</div>` : ""}
       <div id="fwBetterMount">${betterHtml}</div>
       <div id="fwHourlyMount">${hourlyHtml}</div>
-      <div id="fwPremiumMount">${renderPremiumLocks()}</div>
+      ${premiumHtml ? `<div id="fwPremiumMount">${premiumHtml}</div>` : ""}
       ${extendedOutlookHtml ? `<div id="fwExtendedOutlookMount">${extendedOutlookHtml}</div>` : ""}
       ${radarHtml ? `<div id="fwRadarMount">${radarHtml}</div>` : ""}
       ${sponsoredHtml ? `<div id="fwSponsoredMount">${sponsoredHtml}</div>` : ""}

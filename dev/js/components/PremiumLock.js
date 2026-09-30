@@ -16,6 +16,11 @@ export const PREMIUM_FEATURES = [
     title: "7-day golf outlook",
     blurb: "A full week of golf-scored windows so you can pick the best society or weekend day, not just the next five.",
   },
+  {
+    id: "evening",
+    title: "Evening practice planner",
+    blurb: "Use sunset, last playable light and the hourly forecast to find the best remaining window for 3, 6 or 9 holes.",
+  },
 ];
 
 export function renderPremiumLocks(features = PREMIUM_FEATURES) {

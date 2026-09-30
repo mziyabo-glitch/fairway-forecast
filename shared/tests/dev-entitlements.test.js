@@ -14,7 +14,7 @@ describe("entitlements", () => {
   });
 
   it("allows premium preview and premium through the soft gates", () => {
-    for (const feature of ["unlimitedSavedRounds", "weatherAlerts", "radar", "extendedOutlook", "society", "advancedNotifications"]) {
+    for (const feature of ["unlimitedSavedRounds", "weatherAlerts", "radar", "extendedOutlook", "eveningPractice", "society", "advancedNotifications"]) {
       assert.equal(canAccess(feature, "premium_preview"), true, feature);
       assert.equal(canAccess(feature, "premium"), true, feature);
     }
@@ -26,6 +26,7 @@ describe("entitlements", () => {
       assert.equal(canAccess("weatherAlerts", tier), false);
       assert.equal(canAccess("radar", tier), false);
       assert.equal(canAccess("extendedOutlook", tier), false);
+      assert.equal(canAccess("eveningPractice", tier), false);
       assert.equal(canAccess("unlimitedSavedRounds", tier), false);
       assert.equal(canAccess("advancedNotifications", tier), false);
     }
