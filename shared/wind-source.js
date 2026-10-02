@@ -4,7 +4,7 @@
  * If it fails, retry the configured existing Worker. No third-party API keys
  * or unlicensed weather services.
  */
-import { fetchWeather, normalizeWeather, getWeatherMeta } from "./weather-service.js";
+import { apiGet, fetchWeather, normalizeWeather, getWeatherMeta } from "./weather-service.js";
 import { mpsToMph } from "./wind-caddie.js";
 
 export function selectWindReading(raw, { nowSec = Date.now() / 1000 } = {}) {
@@ -41,11 +41,15 @@ export async function loadWindEstimate(lat, lon, {
   const endpoints = ["", workerUrl].filter((endpoint, index, all) => index === 0 || (endpoint && !all.slice(0, index).includes(endpoint)));
   let lastError = null;
   let staleFallback = null;
+  let firstResponseHadMissingWind = false;
   for (const endpoint of endpoints) {
     try {
-      const raw = await fetcher(endpoint, lat, lon, "metric");
+      const raw = firstResponseHadMissingWind && endpoint && fetcher === fetchWeather
+        ? await apiGet(endpoint, `/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&units=metric`)
+        : await fetcher(endpoint, lat, lon, "metric");
       const reading = selectWindReading(raw, { nowSec: clock() / 1000 });
       if (!reading) {
+        firstResponseHadMissingWind = true;
         lastError = new Error("The weather service returned no usable wind speed and direction.");
         continue;
       }
