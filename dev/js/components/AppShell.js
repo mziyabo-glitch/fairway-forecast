@@ -23,7 +23,7 @@ export function renderAppShell(activeTab = "home") {
       <span class="fw-dev-dot" aria-hidden="true"></span>
       <span>DEV — Premium UI preview</span>
       <a href="/" class="fw-dev-link">Production</a>
-      <button type="button" class="fw-dev-more" id="fwMoreBtn" aria-haspopup="dialog">More</button>
+      
     </div>`
     : "";
   return `
