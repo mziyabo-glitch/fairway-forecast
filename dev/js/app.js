@@ -16,7 +16,7 @@ import { renderAccountView, wireAccountView } from "./views/AccountView.js?v=202
 import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js?v=20261003-free";
 import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261003-free";
 import { featureOn, isAdvancedDev } from "./features/gates.js?v=20261003-free";
-import { closeSheet, openSheet } from "./components/AppShell.js";
+import { closeSheet, openSheet } from "./components/AppShell.js?v=20261003-free";
 import { renderMoreMenu } from "./components/MoreMenu.js";
 import { renderSoftGate, wireSoftGate } from "./components/SoftGate.js";
 import { renderExtendedOutlook } from "./components/ExtendedOutlook.js";
