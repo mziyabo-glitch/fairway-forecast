@@ -10,11 +10,11 @@ import { mpsToMph } from "./wind-caddie.js";
 export function selectWindReading(raw, { nowSec = Date.now() / 1000 } = {}) {
   const norm = normalizeWeather(raw);
   const valid = row => row && Number.isFinite(row.wind_speed) &&
-    row.wind_speed >= 0 && Number.isFinite(row.wind_deg);
+    row.wind_speed >= 0 && (Number.isFinite(row.wind_deg) || row.wind_speed === 0);
   const current = norm.current;
   // Prefer observed/current model wind. If missing, use the closest near-term
   // forecast, but NEVER silently use tomorrow's 3-hour forecast as live wind.
-  let row = valid(current) ? current : null;
+  let row = raw?.current && valid(current) && (!Number.isFinite(current.dt) || Math.abs(current.dt - nowSec) <= 4 * 3600) ? current : null;
   let kind = "current";
   if (!row) {
     row = (norm.hourly || [])
@@ -26,7 +26,7 @@ export function selectWindReading(raw, { nowSec = Date.now() / 1000 } = {}) {
   return {
     speed: mpsToMph(row.wind_speed),
     gust: Number.isFinite(row.wind_gust) ? mpsToMph(row.wind_gust) : null,
-    deg: row.wind_deg,
+    deg: Number.isFinite(row.wind_deg) ? row.wind_deg : 0,
     kind,
     validFor: Number.isFinite(row.dt) ? row.dt * 1000 : null,
   };
