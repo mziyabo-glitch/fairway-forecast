@@ -5,7 +5,7 @@ export const devFeatures = {
   weatherAlerts: true,
   favouriteCourses: true,
   nearbyCourses: true,
-  premiumShell: true,
+  premiumShell: false,
   radarFoundation: true,
   extendedOutlook: true,
   societyWeather: true,
