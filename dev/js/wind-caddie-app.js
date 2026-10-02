@@ -1,4 +1,4 @@
-import { fetchWeather, normalizeWeather, getWeatherMeta } from "../../shared/weather-service.js";
+import { fetchWeather, normalizeWeather, getWeatherMeta } from "../../shared/weather-service.js?v=20261003-windfix";
 import { windRelativeToShot, cardinal, wrapBearing, mpsToMph } from "../../shared/wind-caddie.js";
 import { PersistenceService } from "../../shared/persistence.js";
 const $ = id => document.getElementById(id);
