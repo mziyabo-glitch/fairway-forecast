@@ -41,17 +41,26 @@ export function pathForTab(tab, pathname = currentPathname()) {
   return `${base}/${tab}`;
 }
 
-export function syncHistory(tab, { replace = false } = {}) {
+function courseQuery(course) {
+  const value = String(course || "").trim();
+  if (!value) return "";
+  return `?course=${encodeURIComponent(value)}`;
+}
+
+export function syncHistory(tab, { replace = false, course = undefined } = {}) {
   if (typeof history === "undefined" || typeof location === "undefined") return;
   const path = pathForTab(tab);
+  const search = courseQuery(course);
   const current = location.pathname.replace(/\/+$/, "") || "/";
   const next = path.replace(/\/+$/, "") || "/";
+  const currentSearch = location.search || "";
   const onIndex = /\/index\.html$/.test(location.pathname);
-  if (tab === "home" && onIndex && !replace) return;
-  if (current === next && !onIndex && !replace) return;
-  const state = { tab };
-  if (replace) history.replaceState(state, "", path);
-  else history.pushState(state, "", path);
+  if (tab === "home" && onIndex && !replace && !search) return;
+  if (current === next && currentSearch === search && !onIndex && !replace) return;
+  const state = { tab, course: search ? String(course) : null };
+  const url = `${path}${search}`;
+  if (replace) history.replaceState(state, "", url);
+  else history.pushState(state, "", url);
 }
 
 export function restoreTabFromLocation() {
@@ -61,7 +70,13 @@ export function restoreTabFromLocation() {
 export function wireHistory(onTab) {
   if (typeof window === "undefined") return;
   if (!history.state?.tab) {
-    syncHistory(tabFromPath(), { replace: true });
+    let course = "";
+    try {
+      course = new URLSearchParams(location.search || "").get("course") || "";
+    } catch {
+      course = "";
+    }
+    syncHistory(tabFromPath(), { replace: true, course: course || undefined });
   }
   window.addEventListener("popstate", (e) => {
     const tab = e.state?.tab || tabFromPath();

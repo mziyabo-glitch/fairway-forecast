@@ -4,17 +4,17 @@ import {
   setActiveTab,
   wireSheet,
 } from "./components/AppShell.js";
-import { mountCourseHeader } from "./components/CourseHeader.js";
+import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
 import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js";
 import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20260930-2";
-import { renderHomeView, wireHomeView } from "./views/HomeView.js";
-import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js";
+import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261002-share";
+import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
 import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
 import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
 import { renderAccountView, wireAccountView } from "./views/AccountView.js";
 import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js";
-import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20260930-2";
+import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261002-share";
 import { featureOn, isAdvancedDev } from "./features/gates.js";
 import { closeSheet, openSheet } from "./components/AppShell.js";
 import { renderMoreMenu } from "./components/MoreMenu.js";
@@ -51,14 +51,16 @@ import { buildForecastDimensions } from "./dimensions/forecastDimensions.js";
 import { renderForecastDimensions } from "./components/ForecastDimensions.js";
 import { applyRoundEdit } from "./rounds/editRound.js";
 import { forgetRoundWeather, getRoundWeatherPair, recordRoundWeather } from "./rounds/roundWeatherHistory.js";
-import { CourseService } from "../../shared/course-service.js";
+import { CourseService } from "../../shared/course-service.js?v=20261002-share";
 import {
   PersistenceService,
   createLastKnownForecast,
   favKey,
   normalizeCourse,
   sameRoundPlan,
-} from "../../shared/persistence.js";
+} from "../../shared/persistence.js?v=20261002-share";
+import { encodeCourseParam, readCourseParam, shareCourseLink } from "../../shared/course-share.js?v=20261002-share";
+import { showShareCopied } from "./components/ShareCourseButton.js?v=20261002-share";
 import {
   fetchWeather,
   normalizeWeather,
@@ -114,6 +116,8 @@ class FairwayApp {
     });
 
     this.selectedCourse = null;
+    this.sharedCourseParam = "";
+    this.sharedCourseMissing = false;
     this.norm = null;
     this.weatherMeta = null;
     this.weatherLoading = false;
@@ -174,6 +178,12 @@ class FairwayApp {
     const root = document.getElementById("app");
     if (!root) return;
 
+    try {
+      this.sharedCourseParam = readCourseParam(location.search);
+    } catch {
+      this.sharedCourseParam = "";
+    }
+
     const restorePath = sessionStorage.getItem("fwDevRestorePath");
     if (restorePath) {
       sessionStorage.removeItem("fwDevRestorePath");
@@ -202,12 +212,34 @@ class FairwayApp {
       console.warn("[Fairway Rebuild] Init warning:", err);
     }
 
-    const lastCourse = this.persistence.getLastCourse();
-    if (lastCourse && (lastCourse.id || lastCourse.lat != null)) {
-      this.selectedCourse = lastCourse;
-      const pref = this.persistence.getTeeTimePreference();
-      if (pref.dateKey) this.selectedDateKey = pref.dateKey;
-      await this.loadWeather({ silent: false });
+    if (this.sharedCourseParam) {
+      try {
+        const shared = await this.courseService.openSharedCourse(this.sharedCourseParam);
+        if (shared?.id) {
+          await this.selectCourse(shared, { source: "share" });
+        } else {
+          this.sharedCourseMissing = true;
+        }
+      } catch (err) {
+        console.warn("[Fairway Rebuild] Shared course warning:", err);
+        this.sharedCourseMissing = true;
+      }
+    }
+
+    if (!this.selectedCourse && !this.sharedCourseMissing) {
+      const lastCourse = this.persistence.getLastCourse();
+      if (lastCourse && (lastCourse.id || lastCourse.lat != null)) {
+        this.selectedCourse = this.withDataset(lastCourse);
+        const pref = this.persistence.getTeeTimePreference();
+        if (pref.dateKey) this.selectedDateKey = pref.dateKey;
+        await this.loadWeather({ silent: false });
+      }
+    }
+
+    if (this.sharedCourseMissing) {
+      this.selectedCourse = null;
+      this.activeTab = "home";
+      syncHistory("home", { replace: true, course: this.sharedCourseParam });
     }
 
     if (this.activeTab === "forecast" && !this.selectedCourse) {
@@ -261,7 +293,10 @@ class FairwayApp {
       tab = "home";
     }
     this.activeTab = tab;
-    if (history) syncHistory(tab);
+    if (history) {
+      const course = tab === "forecast" ? this.shareParam() : this.sharedCourseMissing ? this.sharedCourseParam : "";
+      syncHistory(tab, { course: course || undefined });
+    }
     setActiveTab(this.activeTab);
     this.roundJustSaved = false;
     this.render();
@@ -299,11 +334,47 @@ class FairwayApp {
     return null;
   }
 
-  async selectCourse(courseOrId, { source = "search" } = {}) {
-    const course =
-      typeof courseOrId === "object" && courseOrId ? normalizeCourse(courseOrId) : this.resolveCourse(courseOrId);
-    if (!course) return;
+  withDataset(course) {
+    if (!course) return course;
+    const fromCourse = String(course.datasetCountry || course.country || "").toLowerCase();
+    const country = /^[a-z]{2}$/.test(fromCourse)
+      ? fromCourse
+      : String(this.courseService.getCountry() || "").toLowerCase();
+    let state = String(course.datasetState || "");
+    if (!state && country === "us" && this.courseService.getCountry() === "us") {
+      state = this.courseService.getState();
+    }
+    return normalizeCourse({ ...course, datasetCountry: country, datasetState: state });
+  }
 
+  shareParam(course = this.selectedCourse) {
+    if (!course?.id) return "";
+    return encodeCourseParam({
+      id: course.id,
+      country: course.datasetCountry || course.country,
+      state: course.datasetState || "",
+    });
+  }
+
+  async onShareCourse() {
+    const course = this.selectedCourse;
+    if (!course?.id) return;
+    const result = await shareCourseLink({
+      id: course.id,
+      name: course.name,
+      country: course.datasetCountry || course.country,
+      state: course.datasetState || "",
+    });
+    if (result.method === "copy") showShareCopied(document);
+  }
+
+  async selectCourse(courseOrId, { source = "search" } = {}) {
+    const resolved =
+      typeof courseOrId === "object" && courseOrId ? courseOrId : this.resolveCourse(courseOrId);
+    if (!resolved) return;
+    const course = this.withDataset(resolved);
+
+    this.sharedCourseMissing = false;
     this.selectedCourse = course;
     this.persistence.saveLastCourse(course);
     this.daylightSeries = [];
@@ -935,6 +1006,7 @@ class FairwayApp {
       showFavourites: featureOn("favouriteCourses"),
       showRecents: true,
       showNearby: featureOn("nearbyCourses"),
+      unresolvedShare: this.sharedCourseMissing,
     };
   }
 
@@ -1408,6 +1480,7 @@ class FairwayApp {
       onChange: () => this.navigate("courses"),
       isFavourite: this.persistence.isFavourite(this.selectedCourse),
       onToggleFavourite: (course) => this.toggleFavourite(course),
+      onShare: () => this.onShareCourse(),
       showFavourite: featureOn("favouriteCourses"),
     });
 
@@ -1424,6 +1497,7 @@ class FairwayApp {
         onOpenBestWeek: () => this.openBestWeek(),
         onNearby: () => this.findNearbyCourses(),
         onToggleFavourite: (id) => this.toggleFavourite(id),
+        onShare: () => this.onShareCourse(),
         onPremium: (id) => this.openPremium(id),
       });
       if (!this.selectedCourse) this.wireCourses(main);

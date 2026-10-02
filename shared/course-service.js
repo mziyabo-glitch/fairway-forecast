@@ -1,6 +1,7 @@
 /** Static course datasets, search, and favourites */
 
 import { findNearbyCourses } from "./geo.js";
+import { parseCourseParam } from "./course-share.js";
 import { PersistenceService, favKey } from "./persistence.js";
 
 const LS_COUNTRY = "ff_country";
@@ -177,16 +178,64 @@ export class CourseService {
       ? this.currentFuse.search(q, { limit: this.maxResults }).map(({ item }) => item)
       : fallbackSearch(this.currentDocs, q, this.maxResults);
 
-    return matches.map((item) => ({
-        id: `static-${item.idx}`,
-        name: item.name,
-        lat: item.lat,
-        lon: item.lon,
-        country: this.currentCountry.toUpperCase(),
-        state: item.region,
-        city: item.region,
-        source: "osm",
-      }));
+    return matches.map((item) => this.docToCourse(item));
+  }
+
+  docToCourse(item) {
+    if (!item) return null;
+    return {
+      id: `static-${item.idx}`,
+      name: item.name,
+      lat: item.lat,
+      lon: item.lon,
+      country: this.currentCountry.toUpperCase(),
+      state: item.region,
+      city: item.region,
+      source: "osm",
+    };
+  }
+
+  /** Resolve a dataset id (`static-N`) or an exact course name. Unknown ids return null. */
+  findById(id) {
+    const raw = String(id || "").trim();
+    if (!raw) return null;
+    const match = raw.match(/^static-(\d+)$/);
+    if (match) {
+      const idx = Number(match[1]);
+      const item = (this.currentDocs || []).find((doc) => doc.idx === idx);
+      return item ? this.docToCourse(item) : null;
+    }
+    const named = this.search(raw).find((course) => course.name.toLowerCase() === raw.toLowerCase());
+    return named || null;
+  }
+
+  async openSharedCourse(param) {
+    const parsed = parseCourseParam(param);
+    if (!parsed?.id) return null;
+
+    const previousCountry = this.getCountry();
+    const previousState = this.getState();
+
+    const useDataset = async (country, state) => {
+      if (country && country !== this.getCountry()) this.setCountry(country);
+      if (country === "us" && state && state !== this.getState()) this.setState(state);
+      await this.refreshDataset();
+    };
+
+    if (parsed.country) {
+      await useDataset(parsed.country, parsed.state);
+      return this.findById(parsed.id);
+    }
+
+    const current = this.findById(parsed.id);
+    if (current || previousCountry === "gb") return current;
+
+    await useDataset("gb", "");
+    const fromGb = this.findById(parsed.id);
+    if (fromGb) return fromGb;
+
+    await useDataset(previousCountry, previousCountry === "us" ? previousState : "");
+    return null;
   }
 
   findNearby(lat, lon, radiusKm = 40, maxResults = 12, excludeId = null) {

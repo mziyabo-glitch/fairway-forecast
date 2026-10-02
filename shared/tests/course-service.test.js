@@ -27,4 +27,16 @@ describe("course search fallback", () => {
 
     assert.equal(service.search("Swindon").length, 1);
   });
+
+  it("finds a course by dataset id and ignores unknown ids", () => {
+    const service = new CourseService({ defaultCountry: "gb" });
+    service.currentDocs = [
+      { idx: 12, name: "Aberfeldy Golf Club", region: "Aberfeldy", lat: 56.62, lon: -3.86 },
+    ];
+    const found = service.findById("static-12");
+    assert.equal(found.name, "Aberfeldy Golf Club");
+    assert.equal(found.id, "static-12");
+    assert.equal(service.findById("static-999999"), null);
+    assert.equal(service.findById(""), null);
+  });
 });

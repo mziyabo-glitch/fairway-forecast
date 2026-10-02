@@ -40,6 +40,7 @@ export function renderCoursesView({
   showFavourites = true,
   showRecents = true,
   showNearby = true,
+  unresolvedShare = false,
 } = {}) {
   return `
     <div class="fw-view fw-view-courses">
@@ -131,7 +132,7 @@ export function renderCoursesView({
         ${
           results?.length
             ? results.map((c) => courseRow(c, { favouriteIds, showStars: showFavourites })).join("")
-            : !loading && query
+            : !loading && (query || unresolvedShare)
               ? `<li class="fw-empty">No courses found</li>`
               : !loading && query === ""
                 ? ""

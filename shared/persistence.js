@@ -61,6 +61,8 @@ export function normalizeCourse(course) {
     country,
     city,
     state,
+    datasetCountry: String(course.datasetCountry || "").toLowerCase(),
+    datasetState: String(course.datasetState || ""),
   };
 }
 

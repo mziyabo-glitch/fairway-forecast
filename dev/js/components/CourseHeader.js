@@ -1,6 +1,7 @@
 import { esc } from "../../../shared/utils.js";
 import { renderFavouriteStar, wireFavouriteStars } from "./FavouriteStar.js";
 import { renderShellMark, renderWordmark } from "./BrandMark.js";
+import { renderShareButton, wireShareButtons } from "./ShareCourseButton.js";
 
 export function renderCourseHeader(course, { onChange, isFavourite = false, showMore = false, showFavourite = true } = {}) {
   const location = course
@@ -27,6 +28,7 @@ export function renderCourseHeader(course, { onChange, isFavourite = false, show
         course || showMore
           ? `<div class="fw-course-header-actions">
         ${course && showFavourite ? renderFavouriteStar(isFavourite, { courseId: course.id }) : ""}
+        ${course ? renderShareButton(course) : ""}
         ${
           course && onChange
             ? `<button type="button" class="fw-btn-text" id="fwChangeCourse">Change</button>`
@@ -46,5 +48,6 @@ export function mountCourseHeader(container, course, handlers = {}) {
     handlers.onChange?.();
   });
   wireFavouriteStars(container, () => handlers.onToggleFavourite?.(course));
+  wireShareButtons(container, () => handlers.onShare?.());
   document.getElementById("fwMoreBtn")?.addEventListener("click", () => handlers.onMore?.());
 }

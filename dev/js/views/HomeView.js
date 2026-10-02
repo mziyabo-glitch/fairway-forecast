@@ -1,5 +1,6 @@
 import { esc, fmtTimeCourse, scoreToVerdict } from "../../../shared/utils.js";
 import { renderFavouriteStar, wireFavouriteStars } from "../components/FavouriteStar.js";
+import { renderShareButton, wireShareButtons } from "../components/ShareCourseButton.js";
 import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js";
 import { renderFirstRunIntro, renderLoadingMark } from "../components/BrandMark.js";
 
@@ -87,7 +88,10 @@ export function renderHomeView(state = {}) {
           <div>
             <strong class="fw-home-course-name">${esc(course.name)}</strong>
           </div>
-          ${renderFavouriteStar(isFavourite, { courseId: course.id })}
+          <div class="fw-home-course-actions">
+            ${renderFavouriteStar(isFavourite, { courseId: course.id })}
+            ${renderShareButton(course)}
+          </div>
         </div>
         ${freshness ? `<p class="fw-freshness">${esc(freshness)}</p>` : ""}
         ${
@@ -172,5 +176,6 @@ export function wireHomeView(container, handlers) {
   });
 
   wireFavouriteStars(container, (id) => handlers.onToggleFavourite?.(id));
+  wireShareButtons(container, () => handlers.onShare?.());
   wirePremiumLocks(container, (id) => handlers.onPremium?.(id));
 }
