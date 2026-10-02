@@ -3,19 +3,19 @@ import {
   wireBottomNav,
   setActiveTab,
   wireSheet,
-} from "./components/AppShell.js";
+} from "./components/AppShell.js?v=20261003-free";
 import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
-import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js";
-import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20260930-2";
-import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261002-share";
+import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js?v=20261003-free";
+import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261003-free";
+import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261003-free";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
 import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
 import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
-import { renderAccountView, wireAccountView } from "./views/AccountView.js";
-import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js";
-import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261002-share";
-import { featureOn, isAdvancedDev } from "./features/gates.js";
+import { renderAccountView, wireAccountView } from "./views/AccountView.js?v=20261003-free";
+import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js?v=20261003-free";
+import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261003-free";
+import { featureOn, isAdvancedDev } from "./features/gates.js?v=20261003-free";
 import { closeSheet, openSheet } from "./components/AppShell.js";
 import { renderMoreMenu } from "./components/MoreMenu.js";
 import { renderSoftGate, wireSoftGate } from "./components/SoftGate.js";
@@ -31,11 +31,11 @@ import {
   FREE_SAVED_ROUND_LIMIT,
   getEntitlementTier,
   setEntitlementTier,
-} from "./entitlements/entitlements.js";
-import { devFeatures } from "./config/devFeatures.js";
+} from "./entitlements/entitlements.js?v=20261003-free";
+import { devFeatures } from "./config/devFeatures.js?v=20261003-free";
 import { selectSponsoredPlacement } from "./monetisation/placement.js";
 import { renderAdsenseSlot, renderSponsoredGolfCard } from "./monetisation/SponsoredGolfCard.js";
-import { DevAnalyticsEvents, trackDevEvent } from "./analytics/analytics.js";
+import { DevAnalyticsEvents, trackDevEvent } from "./analytics/analytics.js?v=20261003-free";
 import { renderEveningPractice } from "./components/EveningPractice.js";
 import { loadDevDaylightSeries } from "./daylight/daylightRequest.js";
 import {
