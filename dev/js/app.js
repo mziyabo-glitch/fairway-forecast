@@ -1354,7 +1354,7 @@ class FairwayApp {
     const items = [];
     if (featureOn("weatherAlerts")) items.push({ id: "alerts", label: "Alerts", hint: "In-app weather changes" });
     if (featureOn("societyWeather")) items.push({ id: "society", label: "Society", hint: "Score a run of tee times" });
-    if (featureOn("premiumShell")) items.push({ id: "account", label: "Account", hint: "Preview access on this device" });
+
     items.push({
       id: "settings",
       label: "Settings",
@@ -1482,6 +1482,8 @@ class FairwayApp {
       onToggleFavourite: (course) => this.toggleFavourite(course),
       onShare: () => this.onShareCourse(),
       showFavourite: featureOn("favouriteCourses"),
+      showMore: true,
+      onMore: () => this.openMore(),
     });
 
     const main = document.getElementById("fwMain");
@@ -1592,7 +1594,7 @@ class FairwayApp {
           : "";
       const off = !featureOn("societyWeather");
       main.innerHTML = off
-        ? `<div class="fw-view"><h1 class="fw-page-title">Society</h1><p class="fw-muted">Society weather is turned off in this preview.</p></div>`
+        ? `<div class="fw-view"><h1 class="fw-page-title">Society</h1><p class="fw-muted">Society weather is currently unavailable.</p></div>`
         : renderSocietyView({
             courses: this.societyCourses(),
             form: { ...this.societyForm, courseId: this.societyForm.courseId || this.selectedCourse?.id || "" },
