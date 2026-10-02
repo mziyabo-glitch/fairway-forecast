@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-fw-shell="premium">
+<head>
+  <meta charset="utf-8" />
+  <script>
+    /* If a controlling worker handed us something other than this shell,
+       drop every registration and reload once. The legacy document does
+       not contain this script — /sw.js taking control is what replaces it. */
+    (function () {
+      var KEY = "fw-shell-reload";
+      try {
+        var cur = new URL(location.href);
+        if (cur.searchParams.has("fw_shell")) {
+          cur.searchParams.delete("fw_shell");
+          history.replaceState(history.state, "", cur.pathname + cur.search + cur.hash);
+        }
+      } catch (e) {}
+      if (!("serviceWorker" in navigator)) return;
+      if (!navigator.serviceWorker.controller) return;
+      if (document.documentElement.getAttribute("data-fw-shell") === "premium") return;
+      try {
+        if (sessionStorage.getItem(KEY) === "1") return;
+        sessionStorage.setItem(KEY, "1");
+      } catch (e) {
+        return;
+      }
+      var clear = window.caches
+        ? caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+          })
+        : Promise.resolve();
+      clear.catch(function () {}).then(function () {
+        return navigator.serviceWorker.getRegistrations();
+      }).then(function (regs) {
+        return Promise.all((regs || []).map(function (reg) { return reg.unregister(); }));
+      }).then(function () { location.reload(); }, function () { location.reload(); });
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>FairwayWeather — Golf Course Weather &amp; Tee Time Forecast</title>
+  <meta name="description" content="Know before you tee. Personalised golf weather — favourites, saved rounds, and play verdicts. Check wind, rain, and playability before your round." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://www.fairwayweather.com/alerts" />
+  <meta name="theme-color" content="#175C4D" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FairwayWeather" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://www.fairwayweather.com/" />
+  <meta property="og:site_name" content="FairwayWeather" />
+  <meta property="og:title" content="FairwayWeather — Know before you tee" />
+  <meta property="og:description" content="Personalised golf weather — favourites, saved rounds, and play verdicts." />
+  <meta property="og:image" content="https://www.fairwayweather.com/icons/icon-512.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FairwayWeather — Know before you tee" />
+  <meta name="twitter:description" content="Personalised golf weather — favourites, saved rounds, and play verdicts." />
+  <meta name="twitter:image" content="https://www.fairwayweather.com/icons/icon-512.png" />
+
+  <link rel="icon" href="/dev/assets/brand/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/icons/favicon-32.png" type="image/png" sizes="32x32" />
+  <link rel="icon" href="/icons/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script async src="https://unpkg.com/lucide@latest"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+  <script src="/playability.js"></script>
+  <script src="/dev/config.js"></script>
+
+  <link rel="stylesheet" href="/dev/css/tokens.css" />
+  <link rel="stylesheet" href="/dev/css/app.css" />
+  <link rel="stylesheet" href="/dev/css/premium.css?v=20261002-share" />
+</head>
+<body class="fw-production">
+  <div id="app"></div>
+  <script type="module" src="/dev/js/app.js?v=20261002-share"></script>
+</body>
+</html>
