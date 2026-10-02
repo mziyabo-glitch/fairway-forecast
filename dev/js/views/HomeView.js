@@ -1,7 +1,7 @@
 import { esc, fmtTimeCourse, scoreToVerdict } from "../../../shared/utils.js";
 import { renderFavouriteStar, wireFavouriteStars } from "../components/FavouriteStar.js";
 import { renderShareButton, wireShareButtons } from "../components/ShareCourseButton.js";
-import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js";
+import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js?v=20261003-free";
 import { renderFirstRunIntro, renderLoadingMark } from "../components/BrandMark.js";
 
 function greeting() {

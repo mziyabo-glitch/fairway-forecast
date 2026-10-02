@@ -16,8 +16,10 @@ describe("History API helpers", () => {
     assert.equal(tabFromPath("/dev/account"), "account");
     assert.equal(tabFromPath("/dev/settings"), "settings");
     assert.equal(tabFromPath("/dev/unknown"), "home");
-    assert.equal(tabFromPath("/society"), "home");
-    assert.equal(tabFromPath("/alerts"), "home");
+    assert.equal(tabFromPath("/society"), "society");
+    assert.equal(tabFromPath("/alerts"), "alerts");
+    assert.equal(tabFromPath("/settings"), "settings");
+    assert.equal(tabFromPath("/account"), "account");
   });
 
   it("builds restore paths that stay under /dev/", () => {

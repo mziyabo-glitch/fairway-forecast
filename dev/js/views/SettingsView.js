@@ -86,7 +86,7 @@ export function renderSettingsView({ notificationMode = "in_app_only", showPrefe
       <section class="fw-settings-block" aria-label="Affiliate disclosure">
         <h2 class="fw-section-title">Affiliate disclosure</h2>
         <p>FairwayWeather may later show one sponsored golf card below the forecast verdict, rain timeline, and tee selector. Sponsored cards are off in this preview, so nothing is rendered. If a partner link is enabled later, it will use <span class="fw-code">rel="sponsored noopener"</span>.</p>
-        <p class="fw-muted">Advertising slots are off. This preview does not load an ad script or iframe.</p>
+        <p class="fw-muted">Advertising slots are off. Ad scripts and sponsored offers remain disabled until approved and configured.</p>
       </section>
       <section class="fw-settings-block" aria-label="Notifications">
         <h2 class="fw-section-title">Notifications</h2>
@@ -96,7 +96,7 @@ export function renderSettingsView({ notificationMode = "in_app_only", showPrefe
         <h2 class="fw-section-title">On this device</h2>
         <p>Saved courses and rounds stay in local storage. Live weather is not cached. If you are offline, open a saved course or round after the app shell has loaded.</p>
       </section>
-      <section class="fw-settings-block" aria-label="Feature flags">
+      <section class="fw-settings-block" aria-label="Feature flags" hidden>
         <h2 class="fw-section-title">Preview flags</h2>
         <ul class="fw-flag-list">${flags}</ul>
       </section>

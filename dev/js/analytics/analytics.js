@@ -49,7 +49,7 @@ export function resetDevAnalytics() {
 
 /**
  * In-memory /dev analytics. No network beacon.
- * Returns null when analytics is disabled or the route is not /dev.
+ * In-memory analytics on /dev and production; never sends a beacon.
  */
 export function trackDevEvent(event, props = {}) {
   if (!event) return null;
@@ -58,7 +58,7 @@ export function trackDevEvent(event, props = {}) {
 
   const payload = {
     event: String(event),
-    routeNamespace: "dev",
+    routeNamespace: isDevRoute() ? "dev" : "production",
     sessionId: getDevSessionId(),
     props: sanitizeProps(props),
     t: Date.now(),

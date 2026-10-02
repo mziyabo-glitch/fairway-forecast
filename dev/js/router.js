@@ -1,7 +1,7 @@
 /** Lightweight History API. Production lives at `/`; the preview stays under `/dev/`. */
 
 const PRIMARY_TABS = new Set(["home", "courses", "forecast", "rounds"]);
-const DEV_EXTRA_TABS = new Set(["alerts", "society", "account", "settings"]);
+const EXTRA_TABS = new Set(["alerts", "society", "account", "settings"]);
 
 export function isDevRoute(pathname = currentPathname()) {
   return /\/dev(?:\/|$)/i.test(String(pathname || ""));
@@ -31,7 +31,7 @@ export function tabFromPath(pathname = currentPathname()) {
   const first = rest.split("/")[0] || "";
   if (first === "index.html" || first === "") return "home";
   if (PRIMARY_TABS.has(first)) return first;
-  if (base && DEV_EXTRA_TABS.has(first)) return first;
+  if (EXTRA_TABS.has(first)) return first;
   return "home";
 }
 

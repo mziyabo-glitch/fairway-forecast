@@ -3,20 +3,20 @@ import {
   wireBottomNav,
   setActiveTab,
   wireSheet,
-} from "./components/AppShell.js";
+} from "./components/AppShell.js?v=20261003-free";
 import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
-import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js";
-import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20260930-2";
-import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261002-share";
+import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js?v=20261003-free";
+import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261003-free";
+import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261003-free";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
 import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
 import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
-import { renderAccountView, wireAccountView } from "./views/AccountView.js";
-import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js";
-import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261002-share";
-import { featureOn, isAdvancedDev } from "./features/gates.js";
-import { closeSheet, openSheet } from "./components/AppShell.js";
+import { renderAccountView, wireAccountView } from "./views/AccountView.js?v=20261003-free";
+import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js?v=20261003-free";
+import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261003-free";
+import { featureOn, isAdvancedDev } from "./features/gates.js?v=20261003-free";
+import { closeSheet, openSheet } from "./components/AppShell.js?v=20261003-free";
 import { renderMoreMenu } from "./components/MoreMenu.js";
 import { renderSoftGate, wireSoftGate } from "./components/SoftGate.js";
 import { renderExtendedOutlook } from "./components/ExtendedOutlook.js";
@@ -31,11 +31,11 @@ import {
   FREE_SAVED_ROUND_LIMIT,
   getEntitlementTier,
   setEntitlementTier,
-} from "./entitlements/entitlements.js";
-import { devFeatures } from "./config/devFeatures.js";
+} from "./entitlements/entitlements.js?v=20261003-free";
+import { devFeatures } from "./config/devFeatures.js?v=20261003-free";
 import { selectSponsoredPlacement } from "./monetisation/placement.js";
 import { renderAdsenseSlot, renderSponsoredGolfCard } from "./monetisation/SponsoredGolfCard.js";
-import { DevAnalyticsEvents, trackDevEvent } from "./analytics/analytics.js";
+import { DevAnalyticsEvents, trackDevEvent } from "./analytics/analytics.js?v=20261003-free";
 import { renderEveningPractice } from "./components/EveningPractice.js";
 import { loadDevDaylightSeries } from "./daylight/daylightRequest.js";
 import {
@@ -1354,7 +1354,7 @@ class FairwayApp {
     const items = [];
     if (featureOn("weatherAlerts")) items.push({ id: "alerts", label: "Alerts", hint: "In-app weather changes" });
     if (featureOn("societyWeather")) items.push({ id: "society", label: "Society", hint: "Score a run of tee times" });
-    if (featureOn("premiumShell")) items.push({ id: "account", label: "Account", hint: "Preview access on this device" });
+
     items.push({
       id: "settings",
       label: "Settings",
@@ -1482,6 +1482,8 @@ class FairwayApp {
       onToggleFavourite: (course) => this.toggleFavourite(course),
       onShare: () => this.onShareCourse(),
       showFavourite: featureOn("favouriteCourses"),
+      showMore: true,
+      onMore: () => this.openMore(),
     });
 
     const main = document.getElementById("fwMain");
@@ -1592,7 +1594,7 @@ class FairwayApp {
           : "";
       const off = !featureOn("societyWeather");
       main.innerHTML = off
-        ? `<div class="fw-view"><h1 class="fw-page-title">Society</h1><p class="fw-muted">Society weather is turned off in this preview.</p></div>`
+        ? `<div class="fw-view"><h1 class="fw-page-title">Society</h1><p class="fw-muted">Society weather is currently unavailable.</p></div>`
         : renderSocietyView({
             courses: this.societyCourses(),
             form: { ...this.societyForm, courseId: this.societyForm.courseId || this.selectedCourse?.id || "" },

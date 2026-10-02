@@ -16,7 +16,7 @@ describe("production shell is the premium app", () => {
   it("marks the new shell and boots /dev/js/app.js", () => {
     assert.match(html, /<html lang="en" data-fw-shell="premium">/);
     assert.match(html, /<title>FairwayWeather/);
-    assert.match(html, /<script type="module" src="\/dev\/js\/app.js\?v=20261002-share"><\/script>/);
+    assert.match(html, /<script type="module" src="\/dev\/js\/app.js\?v=20261003-free"><\/script>/);
     assert.doesNotMatch(html, /src="\.\/app\.js"/);
     assert.doesNotMatch(html, /src="\/app\.js"/);
   });

@@ -1,46 +1,42 @@
-import { isDevFeatureEnabled } from "../config/devFeatures.js";
+/**
+ * Compatibility API for legacy locally stored tiers.
+ * Every implemented feature is included for all visitors; no paywall or
+ * saved-round limit. The old tier is intentionally ignored.
+ */
 import { createJsonStore } from "../storage/jsonStore.js";
 
-export const ENTITLEMENT_TIERS = ["anonymous", "free", "premium_preview", "premium"];
+export const ENTITLEMENT_TIERS = ["free"];
+export const FREE_SAVED_ROUND_LIMIT = Number.POSITIVE_INFINITY;
+export const FEATURE_ACCESS = Object.freeze({
+  unlimitedSavedRounds: true,
+  weatherAlerts: true,
+  radar: true,
+  extendedOutlook: true,
+  eveningPractice: true,
+  society: true,
+  advancedNotifications: true,
+});
 
-export const FREE_SAVED_ROUND_LIMIT = 2;
+const legacyTierStore = createJsonStore("fw_dev_entitlement_tier");
 
-/** Soft-gated features. Anonymous and free stay local; no checkout. */
-export const FEATURE_ACCESS = {
-  unlimitedSavedRounds: ["premium_preview", "premium"],
-  weatherAlerts: ["premium_preview", "premium"],
-  radar: ["premium_preview", "premium"],
-  extendedOutlook: ["premium_preview", "premium"],
-  eveningPractice: ["premium_preview", "premium"],
-  society: ["premium_preview", "premium"],
-  advancedNotifications: ["premium_preview", "premium"],
-};
-
-const store = createJsonStore("fw_dev_entitlement_tier");
-
-export function canAccess(featureKey, tier = "anonymous") {
-  const allowed = FEATURE_ACCESS[featureKey];
-  if (!allowed) return false;
-  return allowed.includes(tier);
+export function canAccess(featureKey) {
+  return Object.hasOwn(FEATURE_ACCESS, featureKey) && FEATURE_ACCESS[featureKey] === true;
 }
 
 export function defaultEntitlementTier() {
-  return isDevFeatureEnabled("premiumShell") ? "premium_preview" : "anonymous";
+  return "free";
 }
 
 export function getEntitlementTier() {
-  const saved = store.read();
-  const tier = typeof saved === "string" ? saved : saved?.tier;
-  if (ENTITLEMENT_TIERS.includes(tier)) return tier;
-  return defaultEntitlementTier();
+  return "free";
 }
 
-export function setEntitlementTier(tier) {
-  if (!ENTITLEMENT_TIERS.includes(tier)) return getEntitlementTier();
-  store.write({ tier });
-  return tier;
+/** Kept for older callers; users cannot be downgraded via stored tiers. */
+export function setEntitlementTier() {
+  legacyTierStore.clear();
+  return "free";
 }
 
 export function resetEntitlementTier() {
-  store.clear();
+  legacyTierStore.clear();
 }

@@ -13,7 +13,7 @@ import {
   wireBestTeeTimeCard,
 } from "../components/ScoreExplanation.js";
 import { renderHourlyForecast, wireHourlyForecast } from "../components/HourlyForecast.js";
-import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js";
+import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js?v=20261003-free";
 import { openSheet } from "../components/AppShell.js";
 import { esc } from "../../../shared/utils.js";
 import { wireEveningPractice } from "../components/EveningPractice.js";
