@@ -6,7 +6,7 @@ import {
 } from "./components/AppShell.js?v=20261003-free";
 import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
 import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js?v=20261003-free";
-import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261003-free";
+import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261003-wind";
 import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261003-free";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
