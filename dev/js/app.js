@@ -6,7 +6,7 @@ import {
 } from "./components/AppShell.js?v=20261003-free";
 import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
 import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js?v=20261003-free";
-import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261003-free";
+import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261003-wind";
 import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261003-free";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
@@ -1345,13 +1345,16 @@ class FairwayApp {
     document.querySelectorAll("[data-more-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
         closeSheet();
-        this.navigate(btn.getAttribute("data-more-tab"));
+        const target = btn.getAttribute("data-more-tab");
+        if (target === "wind") { location.href = isAdvancedDev() && location.pathname.startsWith("/dev/") ? "/dev/wind/" : "/wind/"; return; }
+        this.navigate(target);
       });
     });
   }
 
   moreItems() {
     const items = [];
+    items.push({ id: "wind", label: "Wind Caddie", hint: "Point phone at target · headwind and crosswind" });
     if (featureOn("weatherAlerts")) items.push({ id: "alerts", label: "Alerts", hint: "In-app weather changes" });
     if (featureOn("societyWeather")) items.push({ id: "society", label: "Society", hint: "Score a run of tee times" });
 

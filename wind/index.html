@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#175c4d"><title>Wind Caddie · FairwayWeather</title><meta name="description" content="Point your phone at the target to see estimated headwind, tailwind and crosswind on the golf course."><link rel="icon" href="/dev/assets/brand/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/dev/css/wind-caddie.css"></head>
+<body><main><div class="top"><span class="brand">FairwayWeather</span><a id="back" href="/forecast">← Forecast</a></div>
+<h1>Wind Caddie</h1><p class="sub">Point the top of your phone towards the target to see how the estimated wind affects this shot.</p>
+<section class="card"><span class="pill">On-course tool · Free</span><h2 style="margin:12px 0 4px;font-size:20px">Your location</h2>
+<p id="source" class="small">Choose a course or use your location.</p><div class="actions"><button type="button" class="btn" id="gps">Use my location</button><button type="button" class="btn ghost" id="course">Use saved course</button></div>
+<p id="age" class="small"></p><p id="status" role="status" class="small"></p></section>
+<section class="card"><h2 style="font-size:20px;margin:0 0 4px">Point towards the flag</h2><p class="small">Hold the phone upright with its top edge facing your target. Compass support varies by browser and device. You can always set the bearing manually.</p>
+<div class="actions"><button type="button" class="btn" id="compassStart">Start compass</button><button type="button" class="btn ghost" id="lock">Lock bearing</button></div>
+<p id="heading" class="small">No compass reading</p>
+<label for="bearing">Shot direction: <strong id="shotLabel">0° N</strong></label><input type="range" min="0" max="359" step="1" id="bearing" value="0">
+<div class="field"><label for="manual">Or enter bearing (°)</label><input type="number" min="0" max="359" step="1" id="manual" value="0" inputmode="numeric"></div></section>
+<section class="card result" aria-label="Wind relative to your shot"><svg id="compass" class="diagram" viewBox="0 0 320 300" role="img" aria-label="Compass with target direction in green and wind flowing in blue"></svg>
+<p id="compassInfo" class="small">Awaiting forecast</p><p class="label" id="interpretation">Awaiting wind</p><div class="metrics"><div class="metric"><strong id="head">—</strong><span id="headType">Head / tail</span></div><div class="metric"><strong id="cross">—</strong><span id="crossType">Crosswind</span></div></div>
+<p class="small" style="margin-top:16px">Wind is modelled for your location and may differ at the ball because of trees, terrain, elevation and gusts.</p></section>
+<section class="card"><label class="field" for="competition" style="justify-content:space-between"><span>Competition mode<br><small class="small">Show direction only; no club advice</small></span><input id="competition" type="checkbox" checked></label>
+<p class="small" id="advice">Load the wind and choose a direction.</p></section>
+<p class="small">Wind Caddie does not measure wind with your phone. Check your competition's rules before using electronic aids; turn on Competition mode to hide shot advice.</p>
+</main><script src="/dev/config.js"></script><script type="module" src="/dev/js/wind-caddie-app.js?v=20261003a"></script></body></html>
