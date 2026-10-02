@@ -37,6 +37,14 @@ describe("Wind Caddie source resilience",()=>{
   const w=await loadWindEstimate(51,-1,{fetcher:async()=>raw({current:{wind_speed:3,wind_deg:90},stale:true}),clock:()=>now*1000});
   assert.equal(w.stale,true);
  });
+ it("treats calm 0 m/s without direction as calm instead of missing",()=>{
+  const r=selectWindReading(raw({current:{wind_speed:0,wind_deg:null}}),{nowSec:now});
+  assert.ok(r);assert.equal(r.speed,0);assert.equal(r.deg,0);
+ });
+ it("does not call a future forecast current",()=>{
+  const r=selectWindReading(raw({list:[{dt:now+3600,main:{temp:9},wind:{speed:3,deg:120}}]}),{nowSec:now});
+  assert.equal(r.kind,"near-term forecast");
+ });
  it("does not invent missing wind",async()=>{
   await assert.rejects(loadWindEstimate(51,-1,{fetcher:async()=>raw({current:{temp:15}}),clock:()=>now*1000}),/wind/i);
  });
