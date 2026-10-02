@@ -1,0 +1,25 @@
+name: Free advanced feature regression
+on:
+  push:
+    branches: [chatgpt/free-advanced-on-main-20261002, main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run application tests
+        run: npm test
+      - name: Check Javascript syntax
+        run: |
+          node --check dev/js/app.js
+          node --check dev/js/features/gates.js
+          node --check dev/js/entitlements/entitlements.js
+          node --check dev/js/router.js
