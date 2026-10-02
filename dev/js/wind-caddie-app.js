@@ -1,0 +1,96 @@
+import { fetchWeather, normalizeWeather, getWeatherMeta } from "../../shared/weather-service.js";
+import { windRelativeToShot, cardinal, wrapBearing, mpsToMph } from "../../shared/wind-caddie.js";
+import { PersistenceService } from "../../shared/persistence.js";
+const $ = id => document.getElementById(id);
+const isDev = location.pathname.startsWith("/dev/");
+$("back").href = isDev ? "/dev/forecast" : "/forecast";
+const APP = window.APP_CONFIG || {};
+const store = new PersistenceService();
+const last = store.getLastCourse();
+let coords = Number.isFinite(last?.lat) && Number.isFinite(last?.lon) ? {lat:last.lat,lon:last.lon,name:last.name} : null;
+let wind = null, heading = null, listening = false, locked = false;
+let shot = 0;
+let competition = true;
+$("source").textContent = coords ? "Saved course: " + coords.name : "Tap Use my location or choose a saved course in Forecast.";
+$("manual").value = "0";
+$("bearing").value = "0";
+const status = txt => { $("status").textContent = txt; };
+function arrowPoint(bearing,radius,cx=160,cy=150) {
+ const angle=bearing*Math.PI/180;
+ return [cx+radius*Math.sin(angle),cy-radius*Math.cos(angle)];
+}
+function draw(result) {
+ const svg=$("compass");if(!result){svg.innerHTML='<circle cx="160" cy="150" r="112" fill="#F2F7F3" stroke="#D9E7DC"/><text x="160" y="148" text-anchor="middle" fill="#61796D" font-size="14">Choose location to load wind</text>';return;}
+ const [sx,sy]=arrowPoint(result.shotBearing,86);
+ const [wx,wy]=arrowPoint(result.windFrom,100);
+ const [tx,ty]=arrowPoint(result.windFrom+180,40);
+ svg.innerHTML=`<defs><marker id="tip" markerWidth="7" markerHeight="7" refX="4" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="#1c654e"/></marker><marker id="wtip" markerWidth="7" markerHeight="7" refX="4" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="#2b8aaf"/></marker></defs>
+ <circle cx="160" cy="150" r="112" fill="#f3f8f4" stroke="#d4e7db" stroke-width="1.5"/>
+ <circle cx="160" cy="150" r="87" fill="none" stroke="#dae6dd" stroke-dasharray="3 6"/>
+ <text x="160" y="23" text-anchor="middle" font-size="12" fill="#61796d">N</text><text x="160" y="288" text-anchor="middle" font-size="12" fill="#61796d">S</text><text x="28" y="153" text-anchor="middle" font-size="12" fill="#61796d">W</text><text x="293" y="153" text-anchor="middle" font-size="12" fill="#61796d">E</text>
+ <path d="M160 150 L${sx} ${sy}" stroke="#1c654e" stroke-width="4" stroke-linecap="round" marker-end="url(#tip)"/>
+ <path d="M${wx} ${wy} L${tx} ${ty}" stroke="#2b8aaf" stroke-width="4" stroke-linecap="round" marker-end="url(#wtip)"/>
+ <circle cx="160" cy="150" r="7" fill="#1c654e" stroke="#fff" stroke-width="3"/>
+ <text x="160" y="182" font-size="11" text-anchor="middle" fill="#61796d">YOU</text>`;
+}
+function render() {
+ const result=windRelativeToShot({windFrom:wind?.deg,shotBearing:shot,speedMph:wind?.speed,gustMph:wind?.gust});
+ draw(result);
+ $("shotLabel").textContent=shot+"° "+cardinal(shot);
+ $("heading").textContent=heading==null?"No compass reading":"Phone heading: "+Math.round(heading)+"° "+cardinal(heading)+(locked?" · locked":"");
+ $("compassInfo").textContent=wind?"Wind from "+cardinal(wind.deg)+" ("+Math.round(wind.deg)+"°) · "+Math.round(wind.speed)+" mph"+(wind.gust!=null?" · gust "+Math.round(wind.gust)+" mph":""):"Awaiting local forecast";
+ $("interpretation").textContent=result?.label||"Awaiting wind and target bearing";
+ $("head").textContent=result ? result.headMagnitudeMph+" mph" : "—";
+ $("headType").textContent=result?.headType||"Head / tail";
+ $("cross").textContent=result ? result.crossMagnitudeMph+" mph" : "—";
+ $("crossType").textContent=result?.crossType||"Crosswind";
+ $("advice").textContent=!result?"Load wind and choose your shot direction." : competition?"Competition mode: directional information only. Check your event rules.":result.headMph>8?"Notable headwind: consider testing an extra club using your known carry distances.":result.headMph< -8?"Helping wind: check whether a shorter club suits your usual ball flight.":"Use the wind components and your normal carry distances; club changes are not precise without personal calibration.";
+}
+function orientation(event) {
+ if (locked) return;
+ let value=null;
+ if(Number.isFinite(event.webkitCompassHeading)) value=event.webkitCompassHeading;
+ else if(event.absolute===true && Number.isFinite(event.alpha)) value=360-event.alpha;
+ if(!Number.isFinite(value))return;
+ heading=wrapBearing(value);
+ shot=Math.round(heading);
+ $("bearing").value=String(shot);$("manual").value=String(shot);
+ render();
+}
+$("compassStart").addEventListener("click",async()=>{
+ if(!("DeviceOrientationEvent" in window)){status("Compass unavailable on this browser. Set direction manually.");return;}
+ try{
+  if(typeof DeviceOrientationEvent.requestPermission==="function"){
+   const permission=await DeviceOrientationEvent.requestPermission();
+   if(permission!=="granted"){status("Compass permission denied. Use manual direction.");return;}
+  }
+  if(!listening){window.addEventListener("deviceorientationabsolute",orientation);window.addEventListener("deviceorientation",orientation);listening=true;}
+  locked=false;status("Compass started. Point the top of your phone towards the target, away from magnetic objects. Tap Lock bearing when ready.");
+ }catch{status("Compass unavailable. Use manual bearing.");}
+});
+$("lock").addEventListener("click",()=>{if(heading!=null){shot=Math.round(heading);locked=true;$("bearing").value=String(shot);$("manual").value=String(shot);status("Shot direction locked. Recheck before your next shot.");render();}else status("No reliable compass reading yet. Use manual direction.");});
+$("bearing").addEventListener("input",e=>{locked=true;shot=Number(e.target.value);$("manual").value=String(shot);render();});
+$("manual").addEventListener("change",e=>{const n=Number(e.target.value);if(!Number.isFinite(n)||n<0||n>=360){status("Enter a bearing from 0 to 359 degrees.");return;}locked=true;shot=Math.round(n);$("bearing").value=String(shot);render();});
+$("competition").addEventListener("change",e=>{competition=e.target.checked;render();});
+async function load(lat,lon,label){
+ coords={lat,lon,name:label};status("Loading latest nearby wind estimate…");$("source").textContent=label;
+ try{
+  const raw=await fetchWeather(APP.WORKER_BASE_URL,lat,lon,"metric");
+  const meta=getWeatherMeta(raw),norm=normalizeWeather(raw);const c=norm.current;
+  if(!Number.isFinite(c?.wind_speed)||!Number.isFinite(c?.wind_deg))throw Error("Wind direction isn't available for this location.");
+  wind={speed:mpsToMph(c.wind_speed),gust:Number.isFinite(c.wind_gust)?mpsToMph(c.wind_gust):null,deg:c.wind_deg};
+  status(meta.stale?"Using a saved forecast — wind may have changed.":"Wind is a weather-model estimate, not a measurement at your ball.");
+  $("age").textContent="Forecast source: FairwayWeather · "+(meta.fetchedAt?new Date(meta.fetchedAt).toLocaleTimeString():"time unavailable")+(meta.stale?" · STALE":"");
+  render();
+ }catch(e){wind=null;status(e?.message||"Couldn't load wind. Retry when online.");render();}
+}
+$("gps").addEventListener("click",()=>{
+ if(!navigator.geolocation){status("Geolocation unsupported. Use a saved course.");return;}
+ status("Waiting for location permission…");
+ navigator.geolocation.getCurrentPosition(p=>load(p.coords.latitude,p.coords.longitude,"Near your current position"),
+ e=>status("Could not access location ("+e.message+"). Use saved course instead."),
+ {enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+});
+$("course").addEventListener("click",()=>coords?load(coords.lat,coords.lon,coords.name):status("Choose a golf course in Forecast first."));
+if(coords){$("course").disabled=false;}else{$("course").disabled=true;}
+render();
