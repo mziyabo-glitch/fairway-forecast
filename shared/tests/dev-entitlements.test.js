@@ -1,47 +1,34 @@
 import { beforeEach, describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  canAccess,
-  defaultEntitlementTier,
-  getEntitlementTier,
-  resetEntitlementTier,
-  setEntitlementTier,
+  canAccess, defaultEntitlementTier, getEntitlementTier,
+  resetEntitlementTier, setEntitlementTier,
 } from "../../dev/js/entitlements/entitlements.js";
 
-describe("entitlements", () => {
-  beforeEach(() => {
-    resetEntitlementTier();
-  });
+const tools = [
+  "unlimitedSavedRounds", "weatherAlerts", "radar", "extendedOutlook",
+  "eveningPractice", "society", "advancedNotifications",
+];
 
-  it("allows premium preview and premium through the soft gates", () => {
-    for (const feature of ["unlimitedSavedRounds", "weatherAlerts", "radar", "extendedOutlook", "eveningPractice", "society", "advancedNotifications"]) {
-      assert.equal(canAccess(feature, "premium_preview"), true, feature);
-      assert.equal(canAccess(feature, "premium"), true, feature);
+describe("all golf-planning tools are free", () => {
+  beforeEach(() => resetEntitlementTier());
+
+  it("grants every implemented tool to anonymous, free and old tiers", () => {
+    for (const tier of ["anonymous", "free", "premium_preview", "premium"]) {
+      for (const tool of tools) assert.equal(canAccess(tool, tier), true, `${tier}: ${tool}`);
     }
   });
 
-  it("keeps anonymous and free outside the soft gates", () => {
-    for (const tier of ["anonymous", "free"]) {
-      assert.equal(canAccess("society", tier), false);
-      assert.equal(canAccess("weatherAlerts", tier), false);
-      assert.equal(canAccess("radar", tier), false);
-      assert.equal(canAccess("extendedOutlook", tier), false);
-      assert.equal(canAccess("eveningPractice", tier), false);
-      assert.equal(canAccess("unlimitedSavedRounds", tier), false);
-      assert.equal(canAccess("advancedNotifications", tier), false);
-    }
+  it("does not allow unknown feature keys", () => {
+    assert.equal(canAccess("checkout"), false);
+    assert.equal(canAccess(""), false);
   });
 
-  it("rejects unknown features", () => {
-    assert.equal(canAccess("checkout", "premium"), false);
-    assert.equal(canAccess("", "premium_preview"), false);
-  });
-
-  it("defaults the dev shell to premium preview and stores a chosen tier", () => {
-    assert.equal(defaultEntitlementTier(), "premium_preview");
-    assert.equal(getEntitlementTier(), "premium_preview");
-    assert.equal(setEntitlementTier("free"), "free");
+  it("ignores old local subscription tiers and stays free", () => {
+    assert.equal(defaultEntitlementTier(), "free");
     assert.equal(getEntitlementTier(), "free");
-    assert.equal(setEntitlementTier("nope"), "free");
+    assert.equal(setEntitlementTier("anonymous"), "free");
+    assert.equal(setEntitlementTier("premium"), "free");
+    assert.equal(getEntitlementTier(), "free");
   });
 });
