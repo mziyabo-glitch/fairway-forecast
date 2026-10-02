@@ -147,6 +147,7 @@ export function renderForecastView(state) {
       }
       <div id="fwRainMount">${rainHtml}</div>
       <div id="fwImpactMount">${impactHtml}</div>
+      <a class="fw-btn fw-btn-primary" style="display:block;text-align:center;text-decoration:none;margin:16px 0" href="${location.pathname.startsWith("/dev/") ? "/dev/wind/" : "/wind/"}">Wind Caddie · Check wind at your shot →</a>
       ${eveningHtml ? `<div id="fwEveningMount">${eveningHtml}</div>` : ""}
       <div id="fwBetterMount">${betterHtml}</div>
       <div id="fwHourlyMount">${hourlyHtml}</div>
