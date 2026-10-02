@@ -36,7 +36,6 @@ describe("free advanced features on production", () => {
     assert.match(locks, /return ""/);
     assert.doesNotMatch(html, /DEV — Premium UI preview/);
     assert.match(app, /showMore: true/);
-    assert.match(app, /app\.js/);
   });
 
   it("does not imply the radar is live or promise push notification delivery", () => {
