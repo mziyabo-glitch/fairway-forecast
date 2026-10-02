@@ -20,6 +20,8 @@ jobs:
       - name: Check Javascript syntax
         run: |
           node --check dev/js/app.js
+          node --check dev/js/wind-caddie-app.js
+          node --check shared/wind-source.js
           node --check dev/js/features/gates.js
           node --check dev/js/entitlements/entitlements.js
           node --check dev/js/router.js
