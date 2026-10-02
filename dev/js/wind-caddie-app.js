@@ -1,5 +1,5 @@
-import { fetchWeather, normalizeWeather, getWeatherMeta } from "../../shared/weather-service.js?v=20261003-windfix";
-import { windRelativeToShot, cardinal, wrapBearing, mpsToMph } from "../../shared/wind-caddie.js";
+import { loadWindEstimate } from "../../shared/wind-source.js?v=20261003-reliable";
+import { windRelativeToShot, cardinal, wrapBearing } from "../../shared/wind-caddie.js";
 import { PersistenceService } from "../../shared/persistence.js";
 const $ = id => document.getElementById(id);
 const isDev = location.pathname.startsWith("/dev/");
@@ -10,12 +10,17 @@ const last = store.getLastCourse();
 const savedCourse = Number.isFinite(last?.lat) && Number.isFinite(last?.lon) ? { lat: last.lat, lon: last.lon, name: last.name } : null;
 let coords = Number.isFinite(last?.lat) && Number.isFinite(last?.lon) ? {lat:last.lat,lon:last.lon,name:last.name} : null;
 let wind = null, heading = null, listening = false, locked = false;
+let loading = false;
+let latestRequest = 0;
 let shot = 0;
 let competition = true;
 $("source").textContent = coords ? "Saved course: " + coords.name : "Tap Use my location or choose a saved course in Forecast.";
 $("manual").value = "0";
 $("bearing").value = "0";
 const status = txt => { $("status").textContent = txt; };
+const initialPrompt = savedCourse ? "Loading wind for your saved course…" : "Tap Use my location to load a nearby wind estimate.";
+status(initialPrompt);
+$("compassInfo").textContent = initialPrompt;
 function arrowPoint(bearing,radius,cx=160,cy=150) {
  const angle=bearing*Math.PI/180;
  return [cx+radius*Math.sin(angle),cy-radius*Math.cos(angle)];
@@ -39,7 +44,7 @@ function render() {
  draw(result);
  $("shotLabel").textContent=shot+"° "+cardinal(shot);
  $("heading").textContent=heading==null?"No compass reading":"Phone heading: "+Math.round(heading)+"° "+cardinal(heading)+(locked?" · locked":"");
- $("compassInfo").textContent=wind?"Wind from "+cardinal(wind.deg)+" ("+Math.round(wind.deg)+"°) · "+Math.round(wind.speed)+" mph"+(wind.gust!=null?" · gust "+Math.round(wind.gust)+" mph":""):"Awaiting local forecast";
+ $("compassInfo").textContent=wind?"Wind from "+cardinal(wind.deg)+" ("+Math.round(wind.deg)+"°) · "+Math.round(wind.speed)+" mph"+(wind.gust!=null?" · gust "+Math.round(wind.gust)+" mph":""):(loading ? "Loading wind…" : savedCourse ? "Wind not loaded — use location or retry saved course" : "Tap Use my location to load wind");
  $("interpretation").textContent=result?.label||"Awaiting wind and target bearing";
  $("head").textContent=result ? result.headMagnitudeMph+" mph" : "—";
  $("headType").textContent=result?.headType||"Head / tail";
@@ -73,17 +78,34 @@ $("lock").addEventListener("click",()=>{if(heading!=null){shot=Math.round(headin
 $("bearing").addEventListener("input",e=>{locked=true;shot=Number(e.target.value);$("manual").value=String(shot);render();});
 $("manual").addEventListener("change",e=>{const n=Number(e.target.value);if(!Number.isFinite(n)||n<0||n>=360){status("Enter a bearing from 0 to 359 degrees.");return;}locked=true;shot=Math.round(n);$("bearing").value=String(shot);render();});
 $("competition").addEventListener("change",e=>{competition=e.target.checked;render();});
-async function load(lat,lon,label){
- coords={lat,lon,name:label};status("Loading latest nearby wind estimate…");$("source").textContent=label;
- try{
-  const raw=await fetchWeather(APP.WORKER_BASE_URL,lat,lon,"metric");
-  const meta=getWeatherMeta(raw),norm=normalizeWeather(raw);const c=norm.current;
-  if(!Number.isFinite(c?.wind_speed)||!Number.isFinite(c?.wind_deg))throw Error("Wind direction isn't available for this location.");
-  wind={speed:mpsToMph(c.wind_speed),gust:Number.isFinite(c.wind_gust)?mpsToMph(c.wind_gust):null,deg:c.wind_deg};
-  status(meta.stale?"Using a saved forecast — wind may have changed.":"Wind is a weather-model estimate, not a measurement at your ball.");
-  $("age").textContent="Forecast source: FairwayWeather · "+(meta.fetchedAt?new Date(meta.fetchedAt).toLocaleTimeString():"time unavailable")+(meta.stale?" · STALE":"");
-  render();
- }catch(e){wind=null;status(e?.message||"Couldn't load wind. Retry when online.");render();}
+async function load(lat,lon,label) {
+ const request = ++latestRequest;
+ coords = {lat,lon,name:label};
+ loading = true; wind = null;
+ status("Loading local wind…"); $("source").textContent = label;
+ $("compassInfo").textContent = "Fetching wind for " + label + "…";
+ $("age").textContent = "";
+ $("gps").disabled = true; $("course").disabled = true;
+ try {
+   const estimate = await loadWindEstimate(lat,lon,{workerUrl:APP.WORKER_BASE_URL});
+   if(request !== latestRequest) return;
+   wind = estimate;
+   status(estimate.stale ? "Saved weather: conditions may have changed. Retry for an update." : "Wind loaded. Point at your target or adjust the bearing.");
+   const validTime = estimate.validFor ? " · Wind valid for " + new Date(estimate.validFor).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "";
+   $("age").textContent = estimate.source + " · " + estimate.kind + validTime + (estimate.stale ? " · STALE" : "");
+ } catch(e) {
+   if(request !== latestRequest) return;
+   wind = null;
+   status("Unable to load wind: " + (e?.message || "Unknown error") + " Try again or select your saved course.");
+   $("compassInfo").textContent = "Wind not loaded — retry above.";
+ } finally {
+   if(request === latestRequest) {
+     loading = false;
+     $("gps").disabled = false;
+     $("course").disabled = !savedCourse;
+     render();
+   }
+ }
 }
 $("gps").addEventListener("click",()=>{
  if(!navigator.geolocation){status("Geolocation unsupported. Use a saved course.");return;}
@@ -95,3 +117,4 @@ $("gps").addEventListener("click",()=>{
 $("course").addEventListener("click",()=>savedCourse?load(savedCourse.lat,savedCourse.lon,savedCourse.name):status("Choose a golf course in Forecast first."));
 if(savedCourse){$("course").disabled=false;}else{$("course").disabled=true;}
 render();
+if(savedCourse) load(savedCourse.lat,savedCourse.lon,savedCourse.name || "Saved course");
