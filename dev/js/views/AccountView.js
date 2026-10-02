@@ -1,54 +1,28 @@
+/** Legacy account URL remains usable without showing tiers or paywall. */
 import { esc } from "../../../shared/utils.js";
-import { ENTITLEMENT_TIERS, FEATURE_ACCESS, canAccess } from "../entitlements/entitlements.js";
 
-const TIER_COPY = {
-  anonymous: "On this device only",
-  free: "Local free",
-  premium_preview: "Premium preview",
-  premium: "Premium",
-};
+const INCLUDED = [
+  "Unlimited saved rounds",
+  "In-app round weather change alerts",
+  "Extended outlook when forecast data is available",
+  "Evening practice planner",
+  "Society tee-time weather",
+  "Golfer preferences, confidence, ground and safety insights",
+];
 
-export function renderAccountView({ tier = "premium_preview" } = {}) {
-  const features = Object.keys(FEATURE_ACCESS);
+export function renderAccountView() {
   return `
     <div class="fw-view fw-view-account">
-      <h1 class="fw-page-title">Account</h1>
-      <p class="fw-muted">Anonymous play stays on this device. There is no checkout in this preview.</p>
-      <p class="fw-account-tier">Current access: <strong>${esc(TIER_COPY[tier] || tier)}</strong></p>
-      <div class="fw-tier-list" role="group" aria-label="Preview tier">
-        ${ENTITLEMENT_TIERS.map(
-          (item) => `
-          <button type="button" class="fw-btn ${item === tier ? "fw-btn-primary" : "fw-btn-secondary"}" data-tier="${esc(item)}">
-            ${esc(TIER_COPY[item])}
-          </button>`
-        ).join("")}
-      </div>
+      <h1 class="fw-page-title">FairwayWeather is free</h1>
+      <p>All available golf-planning tools are included. No account or payment is required.</p>
       <ul class="fw-access-list">
-        ${features
-          .map((feature) => {
-            const open = canAccess(feature, tier);
-            return `<li><span>${esc(featureLabel(feature))}</span><span>${open ? "Included" : "Preview locked"}</span></li>`;
-          })
-          .join("")}
+        ${INCLUDED.map(feature => `<li><span>${esc(feature)}</span><span>Included</span></li>`).join("")}
       </ul>
+      <p class="fw-muted">Saved courses, preferences and rounds remain on this device.</p>
+      <p class="fw-muted">Radar is currently an illustrative preview, not live radar. Weather alerts appear inside the app when forecasts are checked; push and email delivery are not yet available.</p>
     </div>`;
 }
 
-function featureLabel(key) {
-  const labels = {
-    unlimitedSavedRounds: "Unlimited saved rounds",
-    weatherAlerts: "Weather alerts",
-    radar: "Radar foundation",
-    extendedOutlook: "Extended outlook",
-    eveningPractice: "Evening practice planner",
-    society: "Society weather",
-    advancedNotifications: "Advanced notifications",
-  };
-  return labels[key] || key;
-}
-
-export function wireAccountView(container, handlers = {}) {
-  container?.querySelectorAll("[data-tier]").forEach((btn) => {
-    btn.addEventListener("click", () => handlers.onTier?.(btn.getAttribute("data-tier")));
-  });
+export function wireAccountView() {
+  // Tier selection was removed.
 }
