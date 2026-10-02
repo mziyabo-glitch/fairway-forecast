@@ -7,6 +7,7 @@ $("back").href = isDev ? "/dev/forecast" : "/forecast";
 const APP = window.APP_CONFIG || {};
 const store = new PersistenceService();
 const last = store.getLastCourse();
+const savedCourse = Number.isFinite(last?.lat) && Number.isFinite(last?.lon) ? { lat: last.lat, lon: last.lon, name: last.name } : null;
 let coords = Number.isFinite(last?.lat) && Number.isFinite(last?.lon) ? {lat:last.lat,lon:last.lon,name:last.name} : null;
 let wind = null, heading = null, listening = false, locked = false;
 let shot = 0;
@@ -91,6 +92,6 @@ $("gps").addEventListener("click",()=>{
  e=>status("Could not access location ("+e.message+"). Use saved course instead."),
  {enableHighAccuracy:true,timeout:12000,maximumAge:30000});
 });
-$("course").addEventListener("click",()=>coords?load(coords.lat,coords.lon,coords.name):status("Choose a golf course in Forecast first."));
-if(coords){$("course").disabled=false;}else{$("course").disabled=true;}
+$("course").addEventListener("click",()=>savedCourse?load(savedCourse.lat,savedCourse.lon,savedCourse.name):status("Choose a golf course in Forecast first."));
+if(savedCourse){$("course").disabled=false;}else{$("course").disabled=true;}
 render();
