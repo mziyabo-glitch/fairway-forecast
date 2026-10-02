@@ -1345,13 +1345,16 @@ class FairwayApp {
     document.querySelectorAll("[data-more-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
         closeSheet();
-        this.navigate(btn.getAttribute("data-more-tab"));
+        const target = btn.getAttribute("data-more-tab");
+        if (target === "wind") { location.href = isAdvancedDev() && location.pathname.startsWith("/dev/") ? "/dev/wind/" : "/wind/"; return; }
+        this.navigate(target);
       });
     });
   }
 
   moreItems() {
     const items = [];
+    items.push({ id: "wind", label: "Wind Caddie", hint: "Point phone at target · headwind and crosswind" });
     if (featureOn("weatherAlerts")) items.push({ id: "alerts", label: "Alerts", hint: "In-app weather changes" });
     if (featureOn("societyWeather")) items.push({ id: "society", label: "Society", hint: "Score a run of tee times" });
 
