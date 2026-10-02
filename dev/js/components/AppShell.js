@@ -21,7 +21,7 @@ export function renderAppShell(activeTab = "home") {
   const devBanner = isDevPreview()
     ? `<div class="fw-dev-banner" role="status">
       <span class="fw-dev-dot" aria-hidden="true"></span>
-      <span>DEV — Premium UI preview</span>
+      <span>DEV — Testing preview</span>
       <a href="/" class="fw-dev-link">Production</a>
       
     </div>`
