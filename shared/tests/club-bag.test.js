@@ -80,7 +80,7 @@ describe("My Golf Bag",()=>{
    const html=read(path);
    assert.match(html,/id="clubBag"/);
    assert.match(html,/id="competition" type="checkbox" checked/);
-   assert.match(html,/20261003-bag/);
+   assert.match(html,/20261003-shot/);
   }
   const code=read("dev/js/wind-caddie-app.js");
   assert.match(code,/initClubBag\(\)/);
