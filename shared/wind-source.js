@@ -18,7 +18,7 @@ export function readRainForWind(raw, reading) {
  // Never mislabel a missing current rain field as dry.
  const rawSource=fromCurrent?current:forecast;
  const hasSignal=row=>row&&(Number.isFinite(row.rain_1h)||Number.isFinite(row.rain?.["1h"])||
-   Number.isFinite(row.rain?.["3h"])||Number.isFinite(row.pop));
+   Number.isFinite(row.rain?.["3h"])||Number.isFinite(row.rain_3h)||Number.isFinite(row.pop));
  let source=rawSource;
  let period=fromCurrent?"current":"near-term forecast";
  if(fromCurrent && !hasSignal(source) && Array.isArray(raw?.list)){
@@ -29,7 +29,7 @@ export function readRainForWind(raw, reading) {
  }
  if(!source) return {known:false,mmPerHour:null,probability:null};
  const mm = source.rain_1h ?? source.rain?.["1h"] ??
-   (Number.isFinite(source.rain?.["3h"]) ? source.rain["3h"]/3 : null);
+   (Number.isFinite(source.rain?.["3h"]) ? source.rain["3h"]/3 : (Number.isFinite(source.rain_3h) ? source.rain_3h/3 : null));
  const popRaw = source.pop;
  const probability=Number.isFinite(popRaw) && popRaw>=0 && popRaw<=100
    ? (popRaw>1?popRaw/100:popRaw) : null;
