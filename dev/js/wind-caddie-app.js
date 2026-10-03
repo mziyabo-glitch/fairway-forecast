@@ -52,7 +52,7 @@ function render() {
  $("cross").textContent=result ? result.crossMagnitudeMph+" mph" : "—";
  $("crossType").textContent=result?.crossType||"Crosswind";
  syncClubBag({isCompetition:competition,result,wind,bearingConfirmed:locked});
- $("advice").textContent=!result?"Load wind and choose your shot direction." : competition?"Competition mode: directional information only. Check your event rules.":result.headMph>8?"Notable headwind: consider testing an extra club using your known carry distances.":result.headMph< -8?"Helping wind: check whether a shorter club suits your usual ball flight.":"Use the wind components and your normal carry distances; club changes are not precise without personal calibration.";
+ $("advice").textContent=!result?"Load wind and choose your shot direction." : competition?"Competition mode: directional information only. Check your event rules.":!locked?"Lock the bearing to your target for a personalised practice suggestion.":"Your wind-adjusted practice estimate appears in the target panel above.";
 }
 function orientation(event) {
  if (locked) return;
