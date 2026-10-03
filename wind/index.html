@@ -1,30 +1,60 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#175c4d"><title>Wind Caddie · FairwayWeather</title><meta name="description" content="Point your phone at the target to see estimated headwind, tailwind and crosswind on the golf course."><link rel="icon" href="/dev/assets/brand/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/dev/css/wind-caddie.css?v=20261003-shot"></head>
-<body><main><div class="top"><span class="brand">FairwayWeather</span><a id="back" href="/forecast">← Forecast</a></div>
-<h1>Wind Caddie</h1><p class="sub">Point the top of your phone towards the target to see how the estimated wind affects this shot.</p><section class="card fw-mode"><label class="field" for="competition" style="justify-content:space-between"><span><strong>Competition mode</strong><br><small class="small">On: wind only, no club suggestion<br>Off: practice / casual-play advice</small></span><input id="competition" type="checkbox" checked></label><p class="small" id="advice">Choose a target and load local wind.</p></section>
-<section id="shotPlanner" class="card fw-shot-planner" aria-labelledby="shotHeading">
- <span class="pill">WIND CADDIE · SHOT PLANNING</span>
- <h2 id="shotHeading">What club should I hit?</h2>
- <p class="small">Enter your target carry distance. Ground conditions are optional; rain and wind load automatically when available.</p>
- <label for="shotTarget" class="fw-shot-label">TARGET DISTANCE</label>
- <div class="fw-shot-target-row"><input id="shotTarget" type="number" inputmode="decimal" min="1" max="450" step="1" placeholder="160" autocomplete="off"><span id="shotUnit">yd</span></div>
- <label for="shotGround">Ground conditions (optional)</label>
- <select id="shotGround"><option value="">Not specified</option><option value="normal">Normal / dry</option><option value="soft">Soft ground</option><option value="firm">Firm ground</option><option value="wet_lie">Wet lie / soaked ground</option></select>
- <p id="shotWeatherStatus" class="small" role="status">Loading local weather or tap Use my location</p>
- <div id="shotPlannerResult" aria-live="polite" aria-atomic="true"></div>
- <a class="fw-bag-jump" href="#clubBag">Edit My Golf Bag and carry distances →</a>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#175c4d">
+<title>Wind Caddie · FairwayWeather</title>
+<meta name="description" content="Get a fast, personalised on-course club estimate from your target distance, estimated wind and rain.">
+<link rel="icon" href="/dev/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/dev/css/wind-caddie.css?v=20261003-fast">
+</head><body><main class="fw-fast-app">
+<header class="fw-fast-header">
+  <div><div class="brand">FAIRWAYWEATHER</div><h1>Wind Caddie</h1></div>
+  <div class="fw-fast-header-actions"><button id="bagOpen" type="button" class="fw-bag-nav">My Bag <span aria-hidden="true">⚙</span></button>
+  <a id="back" href="/forecast" aria-label="Back to forecast">←</a></div>
+</header>
+<section id="shotPlanner" class="card fw-shot-planner fw-fast-hero" aria-labelledby="shotHeading">
+  <h2 id="shotHeading">Your next shot</h2>
+  <label for="shotTarget" class="fw-shot-label">TARGET CARRY</label>
+  <div class="fw-shot-target-row"><input id="shotTarget" type="number" inputmode="decimal" min="1" max="450" step="1" placeholder="160" autocomplete="off"><span id="shotUnit">yd</span></div>
+  <div class="fw-shot-smallrow"><span id="shotWeatherStatus" class="small" role="status">Getting conditions…</span>
+    <details class="fw-ground-details"><summary>Ground <span aria-hidden="true">⌄</span></summary>
+      <label for="shotGround">Ground conditions (optional)</label>
+      <select id="shotGround"><option value="">Not specified</option><option value="normal">Normal / dry</option><option value="soft">Soft ground</option><option value="firm">Firm ground</option><option value="wet_lie">Wet lie / soaked ground</option></select>
+    </details>
+  </div>
+  <div id="shotPlannerResult" aria-live="polite" aria-atomic="true"><p class="small">Enter a target distance for your club estimate.</p></div>
+  <button id="bagQuickOpen" type="button" class="fw-bag-inline">Edit club distances ↗</button>
 </section>
-<section class="card"><span class="pill">On-course tool · Free</span><h2 style="margin:12px 0 4px;font-size:20px">Your location</h2>
-<p id="source" class="small">Choose a course or use your location.</p><div class="actions"><button type="button" class="btn" id="gps">Use my location</button><button type="button" class="btn ghost" id="course">Use saved course</button></div>
-<p id="age" class="small"></p><p id="status" role="status" class="small"></p></section>
-<section class="card"><h2 style="font-size:20px;margin:0 0 4px">Point towards the flag</h2><p class="small">Hold the phone upright with its top edge facing your target. Compass support varies by browser and device. You can always set the bearing manually.</p>
-<div class="actions"><button type="button" class="btn" id="compassStart">Start compass</button><button type="button" class="btn ghost" id="lock">Lock bearing</button></div>
-<p id="heading" class="small">No compass reading</p>
-<label for="bearing">Shot direction: <strong id="shotLabel">0° N</strong></label><input type="range" min="0" max="359" step="1" id="bearing" value="0">
-<div class="field"><label for="manual">Or enter bearing (°)</label><input type="number" min="0" max="359" step="1" id="manual" value="0" inputmode="numeric"></div></section>
-<section class="card result" aria-label="Wind relative to your shot"><svg id="compass" class="diagram" viewBox="0 0 320 300" role="img" aria-label="Compass with target direction in green and wind flowing in blue"></svg>
-<p id="compassInfo" class="small">Awaiting forecast</p><p class="label" id="interpretation">Awaiting wind</p><div class="metrics"><div class="metric"><strong id="head">—</strong><span id="headType">Head / tail</span></div><div class="metric"><strong id="cross">—</strong><span id="crossType">Crosswind</span></div></div>
-<p class="small" style="margin-top:16px">Wind is modelled for your location and may differ at the ball because of trees, terrain, elevation and gusts.</p></section>
-
-<section id="clubBag" class="card fw-bag" aria-label="My Golf Bag"><h2>My Golf Bag</h2><p>Loading your clubs…</p></section>
-<p class="small">Wind Caddie does not measure wind with your phone. Check your competition's rules before using electronic aids; turn on Competition mode to hide shot advice.</p>
-</main><script src="/dev/config.js"></script><script type="module" src="/dev/js/wind-caddie-app.js?v=20261003-shot"></script></body></html>
+<section class="card fw-fast-wind" aria-labelledby="windHeading">
+  <div class="fw-fast-wind-header"><h2 id="windHeading">Wind at your shot</h2><span id="directionStatus" class="small">Target not set</span></div>
+  <div class="fw-wind-row">
+    <svg id="compass" class="diagram fw-fast-diagram" viewBox="0 0 320 300" role="img" aria-label="Green arrow is target direction; blue arrow shows estimated wind movement"></svg>
+    <div class="fw-wind-snapshot"><div class="fw-wind-phrase" id="interpretation">Getting wind…</div>
+      <p id="compassInfo" class="small">Loading wind data…</p>
+      <div class="fw-fast-metrics">
+        <span><strong id="head">—</strong><small id="headType">Head / tail</small></span>
+        <span><strong id="cross">—</strong><small id="crossType">Crosswind</small></span>
+      </div>
+    </div>
+  </div>
+  <div class="fw-fast-controls">
+    <button type="button" class="btn" id="compassStart">Point at flag</button>
+    <button type="button" class="btn ghost" id="lock">Lock direction</button>
+  </div>
+  <details id="windAdjust" class="fw-bearing-details"><summary>Manual bearing <strong id="shotLabel">0° N</strong></summary>
+    <p class="small" id="heading">No compass reading</p>
+    <label for="bearing">Shot bearing (°)</label><input type="range" min="0" max="359" step="1" id="bearing" value="0">
+    <div class="field"><label for="manual">Exact bearing</label><input type="number" min="0" max="359" step="1" id="manual" value="0" inputmode="numeric"></div>
+  </details>
+  <div class="fw-location-mini"><span id="source" class="small">Select a course or your position</span>
+    <div class="fw-location-actions"><button type="button" id="gps">Use my location</button>
+    <button type="button" id="course">Saved course</button></div>
+    <span id="age" class="small"></span><span id="status" class="small" role="status"></span>
+  </div>
+</section>
+<dialog id="clubBag" class="fw-bag-dialog" aria-label="My Golf Bag">
+  <p class="small">Loading club distances…</p>
+</dialog>
+<p class="fw-fast-disclaimer">Estimated weather and practice-only club guidance—not a measurement at the ball. Check event rules before using shot advice in competition.</p>
+</main><script src="/dev/config.js"></script>
+<script type="module" src="/dev/js/wind-caddie-app.js?v=20261003-fast"></script></body></html>
