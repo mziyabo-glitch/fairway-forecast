@@ -33,7 +33,8 @@ export function readRainForWind(raw, reading) {
  const popRaw = source.pop;
  const probability=Number.isFinite(popRaw) && popRaw>=0 && popRaw<=100
    ? (popRaw>1?popRaw/100:popRaw) : null;
- return {known:Number.isFinite(mm)||probability!=null,mmPerHour:Number.isFinite(mm)?Math.max(0,mm):null,probability,period};
+ if(!Number.isFinite(mm) && probability==null) return {known:false,mmPerHour:null,probability:null};
+ return {known:true,mmPerHour:Number.isFinite(mm)?Math.max(0,mm):null,probability,period};
 }
 export function selectWindReading(raw, { nowSec = Date.now() / 1000 } = {}) {
   const norm = normalizeWeather(raw);
