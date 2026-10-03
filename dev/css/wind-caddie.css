@@ -1,1 +1,36 @@
 :root{--forest:#175c4d;--ink:#142a20;--muted:#667c70;--border:rgba(25,73,51,.12);--page:#f2f7f1}*{box-sizing:border-box}body{margin:0;background:var(--page);font:16px system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}button,input{font:inherit}button{cursor:pointer}main{max-width:650px;margin:auto;padding:20px 16px 50px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}.brand{font-weight:750;color:var(--forest)}a{color:var(--forest)}h1{font-size:29px;letter-spacing:-1px;margin:14px 0 6px}.sub{color:var(--muted);line-height:1.45;margin:0 0 20px}.card{background:#fff;border:1px solid var(--border);border-radius:22px;padding:19px;margin:14px 0;box-shadow:0 8px 28px rgba(20,60,42,.035)}.btn{background:var(--forest);color:white;border:0;border-radius:12px;padding:12px 16px;min-height:46px;font-weight:650}.ghost{background:#e8f1ea;color:var(--forest)}.actions{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0}.pill{background:#e8f1ea;border-radius:100px;padding:5px 10px;color:var(--forest);font-size:12px;font-weight:650}label{display:block;font-size:14px;font-weight:650;margin:14px 0 7px}input[type=range]{width:100%;accent-color:var(--forest);touch-action:pan-y}input[type=checkbox]{accent-color:var(--forest)}.field{display:flex;gap:12px;align-items:center}.field input[type=number]{width:110px;padding:10px;border:1px solid #cddfd3;border-radius:10px;background:white}.small{color:var(--muted);font-size:13px;line-height:1.45}.diagram{display:block;width:100%;max-width:350px;margin:auto}.result{text-align:center}.label{font-size:22px;font-weight:750;letter-spacing:-.4px;margin:12px 0 4px}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}.metric{background:#edf5ef;border-radius:15px;padding:14px 8px;text-align:center}.metric strong{display:block;font-size:29px;letter-spacing:-.8px}.metric span{font-size:12px;color:var(--muted)}.wind{font-size:22px;font-weight:700}.error{color:#9a3b28;font-size:14px}#status{min-height:20px}@media(min-width:700px){main{padding-top:34px}}
+/* My Golf Bag — mobile-first, same FairwayWeather premium design */
+.fw-bag-jump{display:inline-block;padding:10px 13px;margin:-4px 0 6px;border-radius:12px;background:#e5efe6;text-decoration:none;font-size:14px;font-weight:700;color:#175c4d}
+.fw-bag{scroll-margin-top:14px}
+.fw-bag-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.fw-bag h2{font-size:23px;margin:11px 0 5px;letter-spacing:-.6px}
+.fw-bag h3{font-size:17px;margin:0 0 6px}
+.fw-bag-unit-label{display:flex;flex-direction:column;gap:6px;align-items:flex-end;margin:0;font-size:12px}
+.fw-bag select,.fw-bag input[type=number],.fw-bag input[type=text]{background:white;border:1px solid #cadbd0;border-radius:10px;min-height:43px;padding:8px 10px;max-width:100%;color:#142a20}
+.fw-bag select:focus-visible,.fw-bag input:focus-visible,.fw-bag button:focus-visible{outline:3px solid #8ab5a3;outline-offset:2px}
+.fw-bag-unit-label select{min-height:37px}
+.fw-bag-progress{margin:18px 0 7px;color:#175c4d;font-weight:700;font-size:13px}
+.fw-bag-rows{border:1px solid #e0e9e1;border-radius:16px;overflow:hidden}
+.fw-bag-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 11px;border-bottom:1px solid #e9eeea}
+.fw-bag-row:last-child{border-bottom:0}
+.fw-bag-row>label{font-size:13px;font-weight:650;min-width:0;flex:1;margin:0}
+.fw-bag-field{display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:0}
+.fw-bag-field input[type=number]{width:73px;min-width:55px;padding:8px 5px;text-align:right}
+.fw-bag-units{font-size:11px;color:#667c70;min-width:18px}
+.fw-bag-icon{border:0;background:#f2f7f3;color:#175c4d;border-radius:8px;min-width:27px;min-height:36px;font-size:18px;padding:2px}
+.fw-bag-icon:disabled{opacity:.3;cursor:not-allowed}
+.fw-bag-remove{color:#925240}
+.fw-bag-add{margin-top:20px}
+.fw-bag-add>label{margin:0 0 8px}
+.fw-bag-add-row{display:flex;gap:9px}
+.fw-bag-add-row select{flex:1;min-width:0}
+.fw-bag-add-row .btn{min-width:67px}
+#bagCustomLabel{margin-top:14px}
+#bagCustomLabel[hidden]{display:none}
+#bagCustom{display:block;width:100%;margin-top:6px}
+.fw-bag-planner{margin-top:20px;padding:14px;background:#f1f7f2;border-radius:16px}
+.fw-bag-planner label{margin-bottom:6px}
+.fw-bag-planner input{width:100%;max-width:180px}
+.fw-club-suggestion{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.fw-club-suggestion strong{font-size:20px;color:#175c4d}
+@media(max-width:374px){.fw-bag-row{padding:10px 7px;gap:4px}.fw-bag-icon{min-width:24px}.fw-bag-field input[type=number]{width:60px}}
