@@ -60,3 +60,88 @@
 .fw-shot-choice .small{margin:2px 0}
 .fw-shot-planner .fw-bag-jump{margin:14px 0 0}
 @media(max-width:375px){.fw-shot-planner h2{font-size:24px}.fw-shot-target-row input{font-size:47px}}
+
+/* Wind Caddie quick-decision mobile screen, v20261003-fast */
+.fw-fast-app{width:100%;max-width:560px;padding:14px 13px 18px;margin:0 auto;overflow-wrap:anywhere}
+.fw-fast-app .card{margin:10px 0;border-radius:17px;padding:14px;box-shadow:0 3px 16px rgba(22,70,46,.04)}
+.fw-fast-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 1px 4px}
+.fw-fast-header .brand{font-size:10px;letter-spacing:1.1px}
+.fw-fast-header h1{font-size:25px;letter-spacing:-.9px;margin:2px 0 0}
+.fw-fast-header-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.fw-bag-nav{background:#e1eee5;border:1px solid #c8dacd;color:#174c37;border-radius:11px;padding:10px 12px;font-size:13px;font-weight:750;min-height:42px}
+.fw-fast-header-actions a{border:1px solid #dce8df;border-radius:11px;width:42px;min-height:42px;display:grid;place-items:center;text-decoration:none;font-size:23px;font-weight:550}
+.fw-fast-hero{background:#fff;border-color:#bed8c5}
+.fw-fast-hero h2{font-size:19px;letter-spacing:-.5px;margin:0 0 8px}
+.fw-fast-hero .fw-shot-label{margin:5px 0 0;color:#50715e;font-size:11px}
+.fw-fast-hero .fw-shot-target-row{padding:0 0 5px;gap:6px}
+.fw-fast-hero .fw-shot-target-row input{font-size:clamp(40px,11.5vw,52px);height:68px;line-height:1.08;max-width:100%;padding:2px 0}
+.fw-fast-hero .fw-shot-target-row span{font-size:16px}
+.fw-shot-smallrow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin:8px 0 9px}
+.fw-shot-smallrow #shotWeatherStatus{flex:1;min-width:0;margin:6px 0 0;font-size:12px}
+.fw-ground-details{flex-shrink:0;position:relative}
+.fw-ground-details>summary{font-size:12px;color:#175c4d;font-weight:750;background:#eaf3ec;padding:7px 9px;border-radius:8px;cursor:pointer;list-style:none}
+.fw-ground-details>summary::-webkit-details-marker{display:none}
+.fw-ground-details[open]{flex:1;max-width:210px}
+.fw-ground-details label{font-size:12px;margin:8px 0 5px}
+.fw-ground-details select{font-size:13px;padding:6px 4px;min-height:40px}
+.fw-shot-choice{gap:5px;padding:12px 13px;border-radius:13px}
+.fw-shot-main{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 11px}
+.fw-shot-club{font-size:clamp(25px,8vw,35px);letter-spacing:-.8px}
+.fw-shot-change{font-size:11px;color:#47634f;font-weight:700}
+.fw-shot-choice-kicker{font-size:9px}
+.fw-shot-meta{font-size:12px}
+.fw-shot-chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 0}
+.fw-shot-chips>span{background:#f8fbf9;color:#325a43;border:1px solid #d6e6d9;border-radius:8px;font-size:10px;padding:4px 6px;max-width:100%}
+.fw-shot-more{border-top:1px solid #cbded0;padding-top:4px;margin-top:2px}
+.fw-shot-more summary{font-size:11px;font-weight:750;color:#245e47;cursor:pointer;padding:3px 0}
+.fw-shot-more .fw-shot-breakdown{margin:5px 0;padding:7px 0}
+.fw-shot-more .small{font-size:11px}
+.fw-bag-inline{display:block;margin:8px 0 0 auto;border:0;background:transparent;color:#175c4d;font-size:11px;font-weight:700;padding:7px;min-height:30px}
+.fw-fast-wind h2{font-size:16px;margin:0;color:#173d2f}
+.fw-fast-wind-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px}
+.fw-fast-wind-header .small{font-size:11px;color:#3c7556;text-align:right}
+.fw-wind-row{display:grid;grid-template-columns:112px minmax(0,1fr);align-items:center;gap:7px}
+.fw-fast-diagram{width:112px;height:108px;max-width:100%;margin:0;flex-shrink:0}
+.fw-wind-snapshot{min-width:0}
+.fw-wind-phrase{font-size:16px;line-height:1.15;font-weight:750;letter-spacing:-.4px}
+.fw-wind-snapshot #compassInfo{font-size:11px;margin:5px 0 6px}
+.fw-fast-metrics{display:flex;gap:7px;flex-wrap:wrap}
+.fw-fast-metrics>span{background:#edf5ef;border-radius:9px;padding:6px 8px;min-width:0;display:flex;flex-direction:column;gap:1px}
+.fw-fast-metrics strong{font-size:17px;letter-spacing:-.3px}
+.fw-fast-metrics small{font-size:9px;color:#526b59}
+.fw-fast-controls{display:flex;gap:8px;margin:7px 0 0}
+.fw-fast-controls .btn{font-size:13px;min-height:42px;padding:8px 12px;flex:1}
+.fw-bearing-details{margin-top:6px;border-top:1px solid #ecf0eb}
+.fw-bearing-details>summary{font-size:11px;font-weight:700;color:#496c55;cursor:pointer;padding:9px 0 6px}
+.fw-bearing-details>summary strong{margin-left:7px}
+.fw-bearing-details .field{justify-content:space-between}
+.fw-bearing-details label{font-size:12px;margin:8px 0}
+.fw-bearing-details #bearing{min-height:26px}
+.fw-bearing-details input[type=number]{max-width:96px}
+.fw-location-mini{border-top:1px solid #e7eee9;margin-top:6px;padding-top:7px;display:flex;align-items:center;flex-wrap:wrap;gap:5px 9px}
+.fw-location-mini #source{font-size:11px;flex:1;min-width:120px}
+.fw-location-actions{display:flex;gap:5px;flex-wrap:wrap}
+.fw-location-actions button{border:1px solid #d5e4d9;background:#f0f6f1;color:#245c40;border-radius:8px;min-height:34px;padding:6px 8px;font-weight:650;font-size:11px}
+.fw-location-actions button:disabled{opacity:.4}
+.fw-location-mini #age,.fw-location-mini #status{flex-basis:100%;font-size:10px;margin:0}
+.fw-location-mini #status{min-height:0}
+.fw-fast-disclaimer{color:#73877a;font-size:10px;line-height:1.4;margin:8px 3px 0}
+.fw-bag-dialog{border:1px solid #d5e6d9;border-radius:19px;background:#fff;color:#17392a;width:min(520px,calc(100vw - 20px));max-height:89dvh;padding:17px 12px;overscroll-behavior:contain;overflow:auto;box-shadow:0 20px 70px #122b1d45}
+.fw-bag-dialog:not([open]){display:none}
+.fw-bag-dialog::backdrop{background:rgba(10,32,21,.52)}
+.fw-bag-dialog .fw-bag-head{align-items:center}
+.fw-bag-dialog h2{font-size:21px;margin:8px 0 0}
+.fw-bag-dialog .fw-bag-unit-label{margin-left:auto}
+.fw-bag-done{border:0;background:#185d48;color:#fff;border-radius:9px;padding:8px 11px;min-height:40px;font-weight:700;font-size:13px}
+.fw-fast-app :is(button,input,select,summary,a):focus-visible{outline:3px solid #8bbda5;outline-offset:2px}
+@media(max-width:340px){
+ .fw-fast-app{padding-left:9px;padding-right:9px}
+ .fw-fast-app .card{padding:11px}
+ .fw-wind-row{grid-template-columns:90px minmax(0,1fr);gap:6px}
+ .fw-fast-diagram{width:90px;height:94px}
+ .fw-fast-metrics>span{padding:5px 6px}
+ .fw-location-mini #source{min-width:100px}
+ .fw-fast-controls .btn{padding:8px 7px;font-size:12px}
+ .fw-bag-dialog{padding:13px 9px}
+}
+@media(min-width:700px){.fw-fast-app{padding-top:20px}}

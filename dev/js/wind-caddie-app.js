@@ -1,7 +1,7 @@
 import { loadWindEstimate } from "../../shared/wind-source.js?v=20261003-shot";
-import { windRelativeToShot, cardinal, wrapBearing } from "../../shared/wind-caddie.js";
+import { windRelativeToShot, cardinal, wrapBearing, signedAngle } from "../../shared/wind-caddie.js";
 import { PersistenceService } from "../../shared/persistence.js";
-import { initClubBag, syncClubBag } from "./components/ClubBag.js?v=20261003-shot";
+import { initClubBag, syncClubBag } from "./components/ClubBag.js?v=20261003-fast";
 const $ = id => document.getElementById(id);
 const isDev = location.pathname.startsWith("/dev/");
 $("back").href = isDev ? "/dev/forecast" : "/forecast";
@@ -14,7 +14,7 @@ let wind = null, heading = null, listening = false, locked = false;
 let loading = false;
 let latestRequest = 0;
 let shot = 0;
-let competition = true;
+let lastOrientationAt=0;
 $("source").textContent = coords ? "Saved course: " + coords.name : "Tap Use my location or choose a saved course in Forecast.";
 $("manual").value = "0";
 $("bearing").value = "0";
@@ -27,7 +27,7 @@ function arrowPoint(bearing,radius,cx=160,cy=150) {
  return [cx+radius*Math.sin(angle),cy-radius*Math.cos(angle)];
 }
 function draw(result) {
- const svg=$("compass");if(!result){svg.innerHTML='<circle cx="160" cy="150" r="112" fill="#F2F7F3" stroke="#D9E7DC"/><text x="160" y="148" text-anchor="middle" fill="#61796D" font-size="14">Choose location to load wind</text>';return;}
+ const svg=$("compass");if(!result){svg.innerHTML='<circle cx="160" cy="150" r="112" fill="#F2F7F3" stroke="#D9E7DC"/><text x="160" y="148" text-anchor="middle" fill="#61796D" font-size="15">'+(wind?"Point at flag":"Loading wind")+'</text>';return;}
  const [sx,sy]=arrowPoint(result.shotBearing,86);
  const [wx,wy]=arrowPoint(result.windFrom,100);
  const [tx,ty]=arrowPoint(result.windFrom+180,40);
@@ -41,18 +41,18 @@ function draw(result) {
  <text x="160" y="182" font-size="11" text-anchor="middle" fill="#61796d">YOU</text>`;
 }
 function render() {
- const result=windRelativeToShot({windFrom:wind?.deg,shotBearing:shot,speedMph:wind?.speed,gustMph:wind?.gust});
+ const result=locked?windRelativeToShot({windFrom:wind?.deg,shotBearing:shot,speedMph:wind?.speed,gustMph:wind?.gust}):null;
  draw(result);
  $("shotLabel").textContent=shot+"° "+cardinal(shot);
+ $("directionStatus").textContent=locked?"Target "+shot+"° · locked":heading==null?"Direction not set":"Point at flag · "+Math.round(heading)+"°";
  $("heading").textContent=heading==null?"No compass reading":"Phone heading: "+Math.round(heading)+"° "+cardinal(heading)+(locked?" · locked":"");
  $("compassInfo").textContent=wind?"Wind from "+cardinal(wind.deg)+" ("+Math.round(wind.deg)+"°) · "+Math.round(wind.speed)+" mph"+(wind.gust!=null?" · gust "+Math.round(wind.gust)+" mph":""):(loading ? "Loading wind…" : savedCourse ? "Wind not loaded — use location or retry saved course" : "Tap Use my location to load wind");
- $("interpretation").textContent=result?.label||"Awaiting wind and target bearing";
+ $("interpretation").textContent=result?.label||(wind?"Point at flag to check wind":"Loading wind…");
  $("head").textContent=result ? result.headMagnitudeMph+" mph" : "—";
  $("headType").textContent=result?.headType||"Head / tail";
  $("cross").textContent=result ? result.crossMagnitudeMph+" mph" : "—";
  $("crossType").textContent=result?.crossType||"Crosswind";
- syncClubBag({isCompetition:competition,result,wind,bearingConfirmed:locked});
- $("advice").textContent=!result?"Load wind and choose your shot direction." : competition?"Competition mode: directional information only. Check your event rules.":!locked?"Lock the bearing to your target for a personalised practice suggestion.":"Your wind-adjusted practice estimate appears in the target panel above.";
+ syncClubBag({result,wind,bearingConfirmed:locked});
 }
 function orientation(event) {
  if (locked) return;
@@ -60,7 +60,12 @@ function orientation(event) {
  if(Number.isFinite(event.webkitCompassHeading)) value=event.webkitCompassHeading;
  else if(event.absolute===true && Number.isFinite(event.alpha)) value=360-event.alpha;
  if(!Number.isFinite(value))return;
- heading=wrapBearing(value);
+ const time=Date.now();
+ if(time-lastOrientationAt<125) return;
+ const next=wrapBearing(value);
+ if(heading!=null && Math.abs(signedAngle(next-heading))<3) return;
+ lastOrientationAt=time;
+ heading=next;
  shot=Math.round(heading);
  $("bearing").value=String(shot);$("manual").value=String(shot);
  render();
@@ -79,7 +84,6 @@ $("compassStart").addEventListener("click",async()=>{
 $("lock").addEventListener("click",()=>{if(heading!=null){shot=Math.round(heading);locked=true;$("bearing").value=String(shot);$("manual").value=String(shot);status("Shot direction locked. Recheck before your next shot.");render();}else status("No reliable compass reading yet. Use manual direction.");});
 $("bearing").addEventListener("input",e=>{locked=true;shot=Number(e.target.value);$("manual").value=String(shot);render();});
 $("manual").addEventListener("change",e=>{const n=Number(e.target.value);if(!Number.isFinite(n)||n<0||n>=360){status("Enter a bearing from 0 to 359 degrees.");return;}locked=true;shot=Math.round(n);$("bearing").value=String(shot);render();});
-$("competition").addEventListener("change",e=>{competition=e.target.checked;render();});
 async function load(lat,lon,label) {
  const request = ++latestRequest;
  coords = {lat,lon,name:label};

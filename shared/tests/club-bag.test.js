@@ -75,16 +75,23 @@ describe("My Golf Bag",()=>{
   assert.equal(loadBag({getItem:()=>"{not json"}).clubs.length,defaultBag().clubs.length);
   assert.equal(saveBag(defaultBag(),{setItem:()=>{throw Error("no storage")}}),false);
  });
- it("exposes a form in both routes and keeps competition mode default on",()=>{
+ it("exposes the club editor only as a submenu and removes mode switch",()=>{
   for(const path of ["wind/index.html","dev/wind/index.html"]){
    const html=read(path);
-   assert.match(html,/id="clubBag"/);
-   assert.match(html,/id="competition" type="checkbox" checked/);
-   assert.match(html,/20261003-shot/);
+   assert.match(html,/<dialog id="clubBag"/);
+   assert.match(html,/id="bagOpen"/);
+   assert.match(html,/id="bagQuickOpen"/);
+   assert.match(html,/20261003-fast/);
+   assert.doesNotMatch(html,/id="competition"/);
+   assert.ok(html.indexOf('id="shotPlanner"') < html.indexOf('id="windHeading"'));
   }
   const code=read("dev/js/wind-caddie-app.js");
   assert.match(code,/initClubBag\(\)/);
   assert.match(code,/syncClubBag/);
-  assert.match(read("dev/js/components/ClubBag.js"),/if\(competition\)/);
+  assert.doesNotMatch(code,/competition/);
+  const editor=read("dev/js/components/ClubBag.js");
+  assert.match(editor,/openClubBag/);
+  assert.match(editor,/showModal/);
+  assert.match(editor,/closeClubBag/);
  });
 });
