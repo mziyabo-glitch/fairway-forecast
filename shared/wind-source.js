@@ -14,14 +14,26 @@ export function readRainForWind(raw, reading) {
  const forecast = !fromCurrent && Array.isArray(raw?.list)
    ? raw.list.find(h=>Number.isFinite(reading?.validFor) && h.dt*1000===reading.validFor) || null
    : null;
- const source = fromCurrent ? current : forecast;
- if (!source) return {known:false,mmPerHour:null,probability:null};
+ // Use nearby forecast precipitation if the current feed has no rain fields.
+ // Never mislabel a missing current rain field as dry.
+ const rawSource=fromCurrent?current:forecast;
+ const hasSignal=row=>row&&(Number.isFinite(row.rain_1h)||Number.isFinite(row.rain?.["1h"])||
+   Number.isFinite(row.rain?.["3h"])||Number.isFinite(row.pop));
+ let source=rawSource;
+ let period=fromCurrent?"current":"near-term forecast";
+ if(fromCurrent && !hasSignal(source) && Array.isArray(raw?.list)){
+   const time=Number.isFinite(reading.validFor)?reading.validFor/1000:Date.now()/1000;
+   source=raw.list.filter(h=>Number.isFinite(h.dt)&&Math.abs(h.dt-time)<=2*3600&&hasSignal(h))
+     .sort((a,b)=>Math.abs(a.dt-time)-Math.abs(b.dt-time))[0]||null;
+   period="near-term forecast";
+ }
+ if(!source) return {known:false,mmPerHour:null,probability:null};
  const mm = source.rain_1h ?? source.rain?.["1h"] ??
    (Number.isFinite(source.rain?.["3h"]) ? source.rain["3h"]/3 : null);
  const popRaw = source.pop;
  const probability=Number.isFinite(popRaw) && popRaw>=0 && popRaw<=100
    ? (popRaw>1?popRaw/100:popRaw) : null;
- return {known:Number.isFinite(mm)||probability!=null,mmPerHour:Number.isFinite(mm)?Math.max(0,mm):null,probability};
+ return {known:Number.isFinite(mm)||probability!=null,mmPerHour:Number.isFinite(mm)?Math.max(0,mm):null,probability,period};
 }
 export function selectWindReading(raw, { nowSec = Date.now() / 1000 } = {}) {
   const norm = normalizeWeather(raw);
