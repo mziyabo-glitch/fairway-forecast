@@ -67,13 +67,20 @@ describe("practice-only, personalized shot advisor",()=>{
 });
 describe("real rain data extraction",()=>{
  it("reads current one-hour amount and zero without inferring dry from missing fields",()=>{
-  assert.deepEqual(readRainForWind({current:{rain_1h:0,pop:0}},{kind:"current"}),{known:true,mmPerHour:0,probability:0});
+  assert.deepEqual(readRainForWind({current:{rain_1h:0,pop:0}},{kind:"current"}),{known:true,mmPerHour:0,probability:0,period:"current"});
   assert.deepEqual(readRainForWind({current:{temp:13}},{kind:"current"}),{known:false,mmPerHour:null,probability:null});
  });
  it("reads forecast 3-hour amount as a per-hour approximate intensity",()=>{
   const rain=readRainForWind({list:[{dt:1000,rain:{"3h":6},pop:.8}]},{kind:"near-term forecast",validFor:1000*1000});
   assert.equal(rain.mmPerHour,2);
   assert.equal(rain.probability,.8);
+  assert.equal(rain.period,"near-term forecast");
+ });
+ it("uses nearby forecast when current wind is available but current rain is omitted",()=>{
+  const r=readRainForWind({current:{dt:1000,wind_speed:7,wind_deg:110},
+    list:[{dt:1000+3600,rain:{"3h":3},pop:.7}]},{kind:"current",validFor:1000*1000});
+  assert.equal(r.known,true);assert.equal(r.mmPerHour,1);
+  assert.equal(r.period,"near-term forecast");
  });
  it("rejects rain data from unrelated forecast hours",()=>{
   const rain=readRainForWind({list:[{dt:1000,rain:{"3h":9},pop:.8}]},{kind:"near-term forecast",validFor:2000*1000});
