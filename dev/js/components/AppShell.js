@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { id: "home", label: "Home", icon: "home" },
   { id: "courses", label: "Courses", icon: "search" },
   { id: "forecast", label: "Forecast", icon: "cloud-sun" },
+  { id: "wind", label: "Wind", icon: "wind" },
   { id: "rounds", label: "Rounds", icon: "flag" },
 ];
 
@@ -33,12 +34,17 @@ export function renderAppShell(activeTab = "home") {
       <main id="fwMain" class="fw-main" tabindex="-1"></main>
       <nav class="fw-bottom-nav" aria-label="Main navigation">
         ${NAV_ITEMS.map(
-          (item) => `
-          <button type="button" class="fw-nav-item ${item.id === activeTab ? "is-active" : ""}"
-            data-tab="${item.id}" aria-current="${item.id === activeTab ? "page" : "false"}">
-            <i data-lucide="${item.icon}" class="fw-nav-icon" aria-hidden="true"></i>
-            <span class="fw-nav-label">${esc(item.label)}</span>
-          </button>`
+          (item) => item.id === "wind"
+            ? `<a class="fw-nav-item fw-nav-link" href="${isDevPreview() ? "/dev/wind/?src=nav" : "/wind/?src=nav"}"
+                 data-tab="wind" aria-label="Open Wind Caddie, free">
+                 <i data-lucide="wind" class="fw-nav-icon" aria-hidden="true"></i>
+                 <span class="fw-nav-label">Wind</span>
+               </a>`
+            : `<button type="button" class="fw-nav-item ${item.id === activeTab ? "is-active" : ""}"
+                 data-tab="${item.id}" aria-current="${item.id === activeTab ? "page" : "false"}">
+                 <i data-lucide="${item.icon}" class="fw-nav-icon" aria-hidden="true"></i>
+                 <span class="fw-nav-label">${esc(item.label)}</span>
+               </button>`
         ).join("")}
       </nav>
     </div>
@@ -55,7 +61,7 @@ export function renderAppShell(activeTab = "home") {
 }
 
 export function wireBottomNav(onTabChange) {
-  document.querySelectorAll(".fw-nav-item").forEach((btn) => {
+  document.querySelectorAll(".fw-nav-item[data-tab]:not(.fw-nav-link)").forEach((btn) => {
     btn.addEventListener("click", () => {
       const tab = btn.getAttribute("data-tab");
       if (tab) onTabChange(tab);
