@@ -24,6 +24,7 @@ jobs:
           node --check dev/js/components/ClubBag.js
           node --check shared/club-bag.js
           node --check shared/wind-source.js
+          node --check shared/shot-adviser.js
           node --check dev/js/features/gates.js
           node --check dev/js/entitlements/entitlements.js
           node --check dev/js/router.js
