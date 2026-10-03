@@ -1,7 +1,7 @@
-import { loadWindEstimate } from "../../shared/wind-source.js?v=20261003-reliable";
+import { loadWindEstimate } from "../../shared/wind-source.js?v=20261003-shot";
 import { windRelativeToShot, cardinal, wrapBearing } from "../../shared/wind-caddie.js";
 import { PersistenceService } from "../../shared/persistence.js";
-import { initClubBag, syncClubBag } from "./components/ClubBag.js?v=20261003-bag";
+import { initClubBag, syncClubBag } from "./components/ClubBag.js?v=20261003-shot";
 const $ = id => document.getElementById(id);
 const isDev = location.pathname.startsWith("/dev/");
 $("back").href = isDev ? "/dev/forecast" : "/forecast";
@@ -51,8 +51,8 @@ function render() {
  $("headType").textContent=result?.headType||"Head / tail";
  $("cross").textContent=result ? result.crossMagnitudeMph+" mph" : "—";
  $("crossType").textContent=result?.crossType||"Crosswind";
- syncClubBag({isCompetition:competition,result});
- $("advice").textContent=!result?"Load wind and choose your shot direction." : competition?"Competition mode: directional information only. Check your event rules.":result.headMph>8?"Notable headwind: consider testing an extra club using your known carry distances.":result.headMph< -8?"Helping wind: check whether a shorter club suits your usual ball flight.":"Use the wind components and your normal carry distances; club changes are not precise without personal calibration.";
+ syncClubBag({isCompetition:competition,result,wind,bearingConfirmed:locked});
+ $("advice").textContent=!result?"Load wind and choose your shot direction." : competition?"Competition mode: directional information only. Check your event rules.":!locked?"Lock the bearing to your target for a personalised practice suggestion.":"Your wind-adjusted practice estimate appears in the target panel above.";
 }
 function orientation(event) {
  if (locked) return;

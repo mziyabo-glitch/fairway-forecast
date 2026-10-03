@@ -34,3 +34,29 @@
 .fw-club-suggestion{display:flex;flex-direction:column;gap:5px;margin-top:10px}
 .fw-club-suggestion strong{font-size:20px;color:#175c4d}
 @media(max-width:374px){.fw-bag-row{padding:10px 7px;gap:4px}.fw-bag-icon{min-width:24px}.fw-bag-field input[type=number]{width:60px}}
+
+/* Shot planning is the primary mobile interaction; weather controls follow it. */
+.fw-mode{background:#fffdf8;margin-top:12px;padding:14px 18px}
+.fw-mode label{margin:0}
+.fw-mode input[type=checkbox]{width:23px;height:23px}
+.fw-mode #advice{margin:8px 0 0}
+.fw-shot-planner{padding:22px 18px;border:1px solid #b8d3c3;background:linear-gradient(145deg,#fff,#f4faf5);box-shadow:0 8px 35px rgba(18,76,47,.065)}
+.fw-shot-planner h2{font-size:27px;letter-spacing:-.9px;margin:14px 0 9px;color:#123e2c}
+.fw-shot-label{font-size:12px;letter-spacing:1px;color:#175c4d;margin-top:19px}
+.fw-shot-target-row{display:flex;align-items:baseline;gap:11px;border-bottom:2px solid #b1cbbb;padding-bottom:10px}
+.fw-shot-target-row input{width:100%;min-width:0;max-width:280px;border:0;background:transparent;font-size:54px;line-height:1.12;font-weight:750;color:#123e2c;outline-offset:6px}
+.fw-shot-target-row input::placeholder{color:#a8b9ac;opacity:1}
+.fw-shot-target-row span{font-weight:750;color:#567565;font-size:19px}
+.fw-shot-planner select{width:100%;border:1px solid #ccded1;border-radius:11px;min-height:47px;padding:10px 12px;background:white;color:#173d2c;font:inherit}
+#shotWeatherStatus{margin:16px 0 12px}
+#shotPlannerResult{margin-top:10px}
+.fw-shot-choice{display:flex;flex-direction:column;gap:9px;background:#e7f3e9;border-radius:16px;padding:17px;color:#173f2e}
+.fw-shot-choice-kicker{font-size:10px;letter-spacing:.8px;font-weight:750;color:#487258}
+.fw-shot-club{font-size:clamp(24px,7vw,36px);letter-spacing:-1.2px;overflow-wrap:anywhere}
+.fw-shot-meta{font-size:14px}
+.fw-shot-change{font-size:13px;font-weight:650}
+.fw-shot-breakdown{display:grid;gap:7px;margin:9px 0;padding:12px 0;border-top:1px solid #cadccc;border-bottom:1px solid #cadccc}
+.fw-shot-breakdown>div{display:flex;gap:12px;justify-content:space-between;font-size:14px}
+.fw-shot-choice .small{margin:2px 0}
+.fw-shot-planner .fw-bag-jump{margin:14px 0 0}
+@media(max-width:375px){.fw-shot-planner h2{font-size:24px}.fw-shot-target-row input{font-size:47px}}
