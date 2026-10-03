@@ -1,120 +1,157 @@
 import {
- CLUB_CATALOG,MAX_CLUBS,defaultBag,loadBag,saveBag,normalizeBag,
- toDisplay,updateCarry,addClub,removeClub,reorderClub,closestCarry
-} from "../../../shared/club-bag.js?v=20261003-bag";
-const esc = str => String(str ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-let bag=loadBag(), target="", competition=true, lastResult=null, saveMessage="";
+  CLUB_CATALOG, MAX_CLUBS, loadBag, saveBag, toDisplay, updateCarry, addClub, removeClub, reorderClub,
+} from "../../../shared/club-bag.js?v=20261003-shot";
+import { buildShotAdvice } from "../../../shared/shot-adviser.js?v=20261003-shot";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let bag=loadBag(),target="",ground="",competition=true,lastWind=null,lastResult=null,confirmed=false,saveMessage="";
 const unit=()=>bag.units==="m"?"m":"yd";
-function planner() {
- if(competition) return '<p class="small">Competition mode is on. Personalised club selection is hidden. You can set up your bag before a round.</p>';
- if (!lastResult) return '<p class="small">Load local wind to see the shot-relative wind alongside your own carry distances.</p>';
- if(!target) return '<p class="small">Enter target distance to see the nearest club by your normal carry. No automatic wind yardage adjustment is assumed.</p>';
- const club=closestCarry(bag,target);
- if(!club) return '<p class="small">Enter the carry distances for your clubs to compare your target with your usual carries.</p>';
- const gap=Math.abs(club.gapYards),units=bag.units;
- const difference=toDisplay(gap,units);
- const relation=club.gapYards > 0?"short of":club.gapYards<0?"beyond":"matching";
- const head=lastResult.headMph;
- const windNote=head>6 ? "Headwind detected. Compare the next longer entered clubs; exact adjustment depends on ball flight and actual wind at the ball." :
- head< -6 ? "Helping wind detected. Check whether the next shorter club is appropriate; the forecast cannot predict exact carry." :
- "No strong head/tail component in this forecast. Gusts and conditions at the ball can still differ.";
- return `<div class="fw-club-suggestion"><span class="small">Nearest normal carry · calm-air reference</span>
- <strong>${esc(club.name)} · ${esc(toDisplay(club.carryYards,units))} ${units}</strong>
- <span class="small">${difference<.2?"Matches target":`${esc(difference)} ${units} ${relation} target`}</span>
- <p class="small">${esc(windNote)}</p></div>`;
+const reading=()=>lastWind?.stale?"Saved forecast — no wind adjustment":lastWind?.rain?.known?"Rain data available":"Rain forecast detail unavailable";
+function renderAdvice(){
+  const panel=document.getElementById("shotPlannerResult");
+  const indicator=document.getElementById("shotUnit");
+  if(indicator) indicator.textContent=unit();
+  const targetInput=document.getElementById("shotTarget");
+  if(targetInput) targetInput.setAttribute("aria-label","Target carry distance in "+(unit()==="yd"?"yards":"metres"));
+  if(!panel) return;
+  const groundSelect=document.getElementById("shotGround");
+  if(groundSelect && groundSelect.value!==ground) groundSelect.value=ground;
+  const status=document.getElementById("shotWeatherStatus");
+  if(status) status.textContent=lastWind ? (lastWind.stale?"Saved weather: no wind/rain adjustment":reading()) : "Loading local weather or tap Use my location";
+  if(competition) {
+    panel.innerHTML='<p class="small">Competition mode is on. Club suggestions are hidden. Turn it off only when practice or event rules permit.</p>';
+    return;
+  }
+  const result=buildShotAdvice({
+    bag,target,wind:lastResult?{...lastResult,stale:!lastWind||lastWind.stale}:null,
+    rain:!lastWind?.stale?lastWind?.rain:null,ground,bearingConfirmed:confirmed
+  });
+  if(result.state==="need_target") {
+    panel.innerHTML='<p class="small">Enter the carry distance to your intended landing area to calculate a club.</p>';
+    return;
+  }
+  if(result.state==="need_bag") {
+    panel.innerHTML='<p class="small">Add at least one normal club carry in My Golf Bag below. Your saved distances will then be used automatically.</p>';
+    return;
+  }
+  const selected=result.selected;
+  const change=result.calm.id===selected.id ? "Same club as calm conditions" :
+    selected.carryYards>result.calm.carryYards ? "Longer club than calm conditions" : "Shorter club than calm conditions";
+  const adjust=Math.round((result.effectiveYards-result.targetYards)*10)/10;
+  const toDisp=y=>toDisplay(y,bag.units);
+  const rain=lastWind?.rain;
+  const rainLine=rain?.known && !lastWind?.stale
+    ? (Number.isFinite(rain.mmPerHour) ? `Forecast rain: ${rain.mmPerHour.toFixed(1)} mm/h` :
+       `Rain chance: ${Math.round(rain.probability*100)}%`)
+    : "Rain data unknown";
+  const windLine=result.usedWind
+    ? `${Math.abs(lastResult.headMph).toFixed(0)} mph ${lastResult.headMph>=0?"headwind":"tailwind"} component`
+    : "Wind not used until target bearing is locked and weather is current";
+  const optional=result.alternate
+    ? `<span class="small">Alternative to assess: ${esc(result.alternate.name)} · ${toDisp(result.alternate.carryYards)} ${unit()}</span>`
+    : "";
+  panel.innerHTML=`
+    <div class="fw-shot-choice">
+      <span class="fw-shot-choice-kicker">PRACTICE ESTIMATE · NOT A GUARANTEE</span>
+      <strong class="fw-shot-club">${esc(selected.name)}</strong>
+      <div class="fw-shot-meta">Your normal carry: <b>${toDisp(selected.carryYards)} ${unit()}</b></div>
+      <div class="fw-shot-change">${esc(change)}</div>
+      ${optional}
+      <div class="fw-shot-breakdown">
+        <div><span>Target carry</span><b>${toDisp(result.targetYards)} ${unit()}</b></div>
+        <div><span>Illustrative allowance</span><b>${adjust>=0?"+":""}${toDisp(adjust)} ${unit()}</b></div>
+        <div><span>Planning carry</span><b>${toDisp(result.effectiveYards)} ${unit()}</b></div>
+      </div>
+      <p class="small">${esc(windLine)} · ${esc(rainLine)}</p>
+      <p class="small">${esc(result.notes.join(" "))}</p>
+      <p class="small">Heuristic only: flight, elevation, temperature, wind at ball and strike quality are not modelled. Ground firmness affects rollout; this is a carry-to-target calculation.</p>
+    </div>`;
 }
-function rows(){
- return bag.clubs.map((club,index)=>{
- const putter=club.id==="putter";
- const v=toDisplay(club.carryYards,bag.units);
- return `<div class="fw-bag-row">
-  <label for="club-${esc(club.id)}">${esc(club.name)}</label>
-  <div class="fw-bag-field">
-   ${putter?'<span class="small">No carry required</span>':`<input id="club-${esc(club.id)}" data-carry="${esc(club.id)}" type="number" inputmode="decimal" min="1" max="450" step="0.1" value="${v==null?"":v}" placeholder="—" aria-label="${esc(club.name)} normal carry in ${unit()==="yd"?"yards":"metres"}">`}
-   <span class="fw-bag-units">${putter?"":unit()}</span>
-   <button class="fw-bag-icon" type="button" data-up="${esc(club.id)}" aria-label="Move ${esc(club.name)} up" ${index===0?"disabled":""}>↑</button>
-   <button class="fw-bag-icon" type="button" data-down="${esc(club.id)}" aria-label="Move ${esc(club.name)} down" ${index===bag.clubs.length-1?"disabled":""}>↓</button>
-   <button class="fw-bag-icon fw-bag-remove" type="button" data-remove="${esc(club.id)}" aria-label="Remove ${esc(club.name)}">×</button>
-  </div>
- </div>`;
+function bagRows(){
+ return bag.clubs.map((club,i)=>{
+   const val=toDisplay(club.carryYards,bag.units);
+   const putter=club.id==="putter";
+   return `<div class="fw-bag-row"><label for="club-${esc(club.id)}">${esc(club.name)}</label>
+     <div class="fw-bag-field">
+       ${putter?'<span class="small">No carry needed</span>':`<input id="club-${esc(club.id)}" data-carry="${esc(club.id)}" type="number" inputmode="decimal" min="1" max="450" step="0.1" value="${val??""}" placeholder="—" aria-label="${esc(club.name)} carry in ${unit()}">`}
+       <span class="fw-bag-units">${putter?"":unit()}</span>
+       <button type="button" class="fw-bag-icon" data-up="${esc(club.id)}" aria-label="Move ${esc(club.name)} up" ${i===0?"disabled":""}>↑</button>
+       <button type="button" class="fw-bag-icon" data-down="${esc(club.id)}" aria-label="Move ${esc(club.name)} down" ${i===bag.clubs.length-1?"disabled":""}>↓</button>
+       <button type="button" class="fw-bag-icon fw-bag-remove" data-remove="${esc(club.id)}" aria-label="Remove ${esc(club.name)}">×</button>
+     </div></div>`;
  }).join("");
 }
-function options(){
- const present=new Set(bag.clubs.map(c=>c.id));
- return CLUB_CATALOG.filter(([id])=>!present.has(id)).map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join("");
-}
-function render(){
- const el=document.getElementById("clubBag"); if(!el)return;
- const complete=bag.clubs.filter(c=>c.id!=="putter"&&Number.isFinite(c.carryYards)).length;
+function renderBag(){
+ const el=document.getElementById("clubBag");if(!el)return;
+ const completed=bag.clubs.filter(c=>c.id!=="putter"&&c.carryYards!=null).length;
+ const ids=new Set(bag.clubs.map(c=>c.id));
+ const options=CLUB_CATALOG.filter(([id])=>!ids.has(id)).map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join("");
  el.innerHTML=`
-  <div class="fw-bag-head"><div><span class="pill">Your personalised distances</span><h2>My Golf Bag</h2></div>
-  <label class="fw-bag-unit-label" for="bagUnits">Units <select id="bagUnits" aria-label="Club distance units"><option value="yd" ${bag.units==="yd"?"selected":""}>Yards</option><option value="m" ${bag.units==="m"?"selected":""}>Metres</option></select></label></div>
-  <p class="small">Enter your <strong>normal carry</strong>, not your total distance including roll. Blank clubs are fine. These distances are saved on this device.</p>
-  <div class="fw-bag-progress">${complete} club carries entered</div>
-  <div class="fw-bag-rows">${rows()}</div>
-  <div class="fw-bag-add">
-   <label for="bagClubSelect">Add a different club</label>
-   <div class="fw-bag-add-row"><select id="bagClubSelect"><option value="">Choose a club…</option>${options()}<option value="custom">Custom club…</option></select>
-   <button id="bagAdd" type="button" class="btn ghost" ${bag.clubs.length>=MAX_CLUBS?"disabled":""}>Add</button></div>
-   <label for="bagCustom" id="bagCustomLabel" hidden>Custom club name <input id="bagCustom" type="text" maxlength="32" placeholder="e.g. 62° wedge"></label>
-  </div>
-  <p id="bagSaveStatus" class="small" role="status">${esc(saveMessage)}</p>
-  <div class="fw-bag-planner" aria-label="Pre-round shot planner">
-    <h3>Compare your target</h3>
-    <label for="bagTarget">Target distance (${unit()})</label>
-    <input type="number" id="bagTarget" min="1" max="450" inputmode="decimal" step="1" placeholder="e.g. 160" value="${esc(target)}">
-    <div id="bagPlannerResult" aria-live="polite">${planner()}</div>
-  </div>`;
- wire(el);
-}
-function persist(){
- const ok=saveBag(bag);
- saveMessage=ok?"Saved on this device": "Could not save on this device. Allow browser storage, or keep this page open and copy your distances.";
- return ok;
-}
-function wire(root){
- root.querySelector("#bagUnits").addEventListener("change",event=>{
-  const prev=bag.units, next=event.target.value;
-  if(prev===next)return;
-  // Target is expressed in display units; convert it along with the bag.
-  if(target){const value=Number(target);target=String(Math.round((next==="m"?value/1.0936132983377078:value*1.0936132983377078)*10)/10);}
-  bag={...bag,units:next};persist();render();
- });
- root.querySelectorAll("[data-carry]").forEach(input=>input.addEventListener("change",()=>{
-   const newBag=updateCarry(bag,input.dataset.carry,input.value.trim());
-   if(!newBag){root.querySelector("#bagSaveStatus").textContent="Enter a realistic normal carry between 1 and 450 "+unit()+", or leave it empty.";return;}
-   bag=newBag;persist();render();
- }));
- root.querySelectorAll("[data-remove]").forEach(btn=>btn.addEventListener("click",()=>{
-   bag=removeClub(bag,btn.dataset.remove);persist();render();
- }));
- for(const [attr,delta] of [["data-up",-1],["data-down",1]]){
-  root.querySelectorAll("["+attr+"]").forEach(btn=>btn.addEventListener("click",()=>{
-   bag=reorderClub(bag,btn.getAttribute(attr),delta);persist();render();
-  }));
+   <div class="fw-bag-head"><div><span class="pill">Your personal distances</span><h2>My Golf Bag</h2></div>
+   <label class="fw-bag-unit-label" for="bagUnits">Units
+     <select id="bagUnits"><option value="yd" ${bag.units==="yd"?"selected":""}>Yards</option><option value="m" ${bag.units==="m"?"selected":""}>Metres</option></select>
+   </label></div>
+   <p class="small">Enter your normal carry, without roll. Blank clubs are fine. Saved on this device.</p>
+   <div class="fw-bag-progress">${completed} club carries entered</div>
+   <div class="fw-bag-rows">${bagRows()}</div>
+   <div class="fw-bag-add">
+     <label for="bagClubSelect">Add a club</label>
+     <div class="fw-bag-add-row"><select id="bagClubSelect"><option value="">Choose a club…</option>${options}<option value="custom">Custom club…</option></select>
+     <button id="bagAdd" type="button" class="btn ghost" ${bag.clubs.length>=MAX_CLUBS?"disabled":""}>Add</button></div>
+     <label for="bagCustom" id="bagCustomLabel" hidden>Custom club name<input id="bagCustom" type="text" maxlength="32" placeholder="e.g. 62° wedge"></label>
+   </div>
+   <p id="bagSaveStatus" class="small" role="status">${esc(saveMessage)}</p>`;
+ function changed(){
+   saveMessage=saveBag(bag)?"Saved on this device":"Could not save: check browser storage permissions";
+   renderBag();renderAdvice();
  }
- root.querySelector("#bagClubSelect").addEventListener("change",event=>{
-   root.querySelector("#bagCustomLabel").hidden=event.target.value!=="custom";
+ el.querySelector("#bagUnits").addEventListener("change",e=>{
+   const prev=bag.units,next=e.target.value;
+   if(prev===next)return;
+   if(target&&Number.isFinite(Number(target)))target=String(Math.round(
+     Number(target)*(next==="m"?1/1.0936132983377078:1.0936132983377078)*10)/10);
+   const hero=document.getElementById("shotTarget");
+   if(hero)hero.value=target;
+   bag={...bag,units:next};changed();
  });
- root.querySelector("#bagAdd").addEventListener("click",()=>{
-  const select=root.querySelector("#bagClubSelect"),custom=root.querySelector("#bagCustom");
-  if(!select.value){root.querySelector("#bagSaveStatus").textContent="Choose a club first.";return;}
-  const id=select.value==="custom"?"custom_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,6):select.value;
-  const result=addClub(bag,id,custom.value);
-  if(!result){root.querySelector("#bagSaveStatus").textContent="Enter a valid unique club name or remove another club first.";return;}
-  bag=result;persist();render();
+ el.querySelectorAll("[data-carry]").forEach(input=>input.addEventListener("change",()=>{
+   const updated=updateCarry(bag,input.dataset.carry,input.value.trim());
+   if(!updated){el.querySelector("#bagSaveStatus").textContent="Enter a carry between 1 and 450 "+unit()+" or leave blank.";return;}
+   bag=updated;changed();
+ }));
+ el.querySelectorAll("[data-remove]").forEach(btn=>btn.addEventListener("click",()=>{
+   bag=removeClub(bag,btn.dataset.remove);changed();
+ }));
+ for(const [attr,delta] of [["data-up",-1],["data-down",1]])
+   el.querySelectorAll("["+attr+"]").forEach(btn=>btn.addEventListener("click",()=>{
+     bag=reorderClub(bag,btn.getAttribute(attr),delta);changed();
+   }));
+ el.querySelector("#bagClubSelect").addEventListener("change",e=>{
+   el.querySelector("#bagCustomLabel").hidden=e.target.value!=="custom";
  });
- root.querySelector("#bagTarget").addEventListener("input",event=>{
-  target=event.target.value;
-  root.querySelector("#bagPlannerResult").innerHTML=planner();
+ el.querySelector("#bagAdd").addEventListener("click",()=>{
+   const select=el.querySelector("#bagClubSelect");
+   if(!select.value){el.querySelector("#bagSaveStatus").textContent="Choose a club first.";return;}
+   const id=select.value==="custom"?
+     "custom_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,6):select.value;
+   const next=addClub(bag,id,el.querySelector("#bagCustom").value);
+   if(!next){el.querySelector("#bagSaveStatus").textContent="Enter a valid club name or remove another club.";return;}
+   bag=next;changed();
  });
 }
 export function initClubBag(){
- bag=loadBag();render();
+ bag=loadBag();
+ renderBag();
+ const hero=document.getElementById("shotPlanner");
+ if(hero){
+   hero.querySelector("#shotTarget").addEventListener("input",e=>{target=e.target.value;renderAdvice();});
+   hero.querySelector("#shotGround").addEventListener("change",e=>{ground=e.target.value;renderAdvice();});
+ }
+ renderAdvice();
 }
-export function syncClubBag({isCompetition,result}={}){
+export function syncClubBag({isCompetition,result,wind,bearingConfirmed}={}){
  competition=Boolean(isCompetition);
  lastResult=result||null;
- const root=document.getElementById("clubBag");
- if(root?.querySelector("#bagPlannerResult"))root.querySelector("#bagPlannerResult").innerHTML=planner();
+ lastWind=wind||null;
+ confirmed=Boolean(bearingConfirmed);
+ renderAdvice();
 }
