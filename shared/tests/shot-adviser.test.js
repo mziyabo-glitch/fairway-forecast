@@ -99,7 +99,10 @@ describe("prominent shot planner",()=>{
     assert.equal((html.match(/id="shotGround"/g)||[]).length,1);
     assert.ok(html.indexOf('id="shotTarget"')<html.indexOf('id="gps"'));
     assert.ok(html.indexOf('id="shotTarget"')<html.indexOf('id="compass"'));
-    assert.match(html,/id="competition" type="checkbox" checked/);
+    assert.doesNotMatch(html,/id="competition"/);
+    assert.ok(html.indexOf('id="shotTarget"')<html.indexOf('id="windHeading"'));
+    assert.match(html,/<dialog id="clubBag"/);
+    assert.match(html,/id="bagQuickOpen"/);
   }
  });
 });
