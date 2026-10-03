@@ -7,6 +7,22 @@
 import { apiGet, fetchWeather, normalizeWeather, getWeatherMeta } from "./weather-service.js";
 import { mpsToMph } from "./wind-caddie.js";
 
+/** Only report rain when upstream supplied precipitation; missing is unknown, not dry. */
+export function readRainForWind(raw, reading) {
+ const current = raw?.current || {};
+ const fromCurrent = reading?.kind === "current";
+ const forecast = !fromCurrent && Array.isArray(raw?.list)
+   ? raw.list.find(h=>Number.isFinite(reading?.validFor) && h.dt*1000===reading.validFor) || null
+   : null;
+ const source = fromCurrent ? current : forecast;
+ if (!source) return {known:false,mmPerHour:null,probability:null};
+ const mm = source.rain_1h ?? source.rain?.["1h"] ??
+   (Number.isFinite(source.rain?.["3h"]) ? source.rain["3h"]/3 : null);
+ const popRaw = source.pop;
+ const probability=Number.isFinite(popRaw) && popRaw>=0 && popRaw<=100
+   ? (popRaw>1?popRaw/100:popRaw) : null;
+ return {known:Number.isFinite(mm)||probability!=null,mmPerHour:Number.isFinite(mm)?Math.max(0,mm):null,probability};
+}
 export function selectWindReading(raw, { nowSec = Date.now() / 1000 } = {}) {
   const norm = normalizeWeather(raw);
   const valid = row => row && Number.isFinite(row.wind_speed) &&
@@ -56,6 +72,7 @@ export async function loadWindEstimate(lat, lon, {
       const meta = getWeatherMeta(raw);
       const result = {
         ...reading,
+        rain: readRainForWind(raw, reading),
         source: endpoint ? "FairwayWeather Worker" : "FairwayWeather",
         checkedAt: meta.fetchedAt || clock(),
         stale: Boolean(meta.stale || meta.offline),
