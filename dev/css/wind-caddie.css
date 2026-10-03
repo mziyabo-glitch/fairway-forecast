@@ -52,7 +52,7 @@
 #shotPlannerResult{margin-top:10px}
 .fw-shot-choice{display:flex;flex-direction:column;gap:9px;background:#e7f3e9;border-radius:16px;padding:17px;color:#173f2e}
 .fw-shot-choice-kicker{font-size:10px;letter-spacing:.8px;font-weight:750;color:#487258}
-.fw-shot-club{font-size:36px;letter-spacing:-1.2px}
+.fw-shot-club{font-size:clamp(24px,7vw,36px);letter-spacing:-1.2px;overflow-wrap:anywhere}
 .fw-shot-meta{font-size:14px}
 .fw-shot-change{font-size:13px;font-weight:650}
 .fw-shot-breakdown{display:grid;gap:7px;margin:9px 0;padding:12px 0;border-top:1px solid #cadccc;border-bottom:1px solid #cadccc}
