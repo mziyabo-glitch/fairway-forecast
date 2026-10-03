@@ -1,6 +1,7 @@
 import { loadWindEstimate } from "../../shared/wind-source.js?v=20261003-reliable";
 import { windRelativeToShot, cardinal, wrapBearing } from "../../shared/wind-caddie.js";
 import { PersistenceService } from "../../shared/persistence.js";
+import { initClubBag, syncClubBag } from "./components/ClubBag.js?v=20261003-bag";
 const $ = id => document.getElementById(id);
 const isDev = location.pathname.startsWith("/dev/");
 $("back").href = isDev ? "/dev/forecast" : "/forecast";
@@ -50,6 +51,7 @@ function render() {
  $("headType").textContent=result?.headType||"Head / tail";
  $("cross").textContent=result ? result.crossMagnitudeMph+" mph" : "—";
  $("crossType").textContent=result?.crossType||"Crosswind";
+ syncClubBag({isCompetition:competition,result});
  $("advice").textContent=!result?"Load wind and choose your shot direction." : competition?"Competition mode: directional information only. Check your event rules.":result.headMph>8?"Notable headwind: consider testing an extra club using your known carry distances.":result.headMph< -8?"Helping wind: check whether a shorter club suits your usual ball flight.":"Use the wind components and your normal carry distances; club changes are not precise without personal calibration.";
 }
 function orientation(event) {
@@ -117,4 +119,5 @@ $("gps").addEventListener("click",()=>{
 $("course").addEventListener("click",()=>savedCourse?load(savedCourse.lat,savedCourse.lon,savedCourse.name):status("Choose a golf course in Forecast first."));
 if(savedCourse){$("course").disabled=false;}else{$("course").disabled=true;}
 render();
+initClubBag();
 if(savedCourse) load(savedCourse.lat,savedCourse.lon,savedCourse.name || "Saved course");

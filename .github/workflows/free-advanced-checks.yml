@@ -21,6 +21,8 @@ jobs:
         run: |
           node --check dev/js/app.js
           node --check dev/js/wind-caddie-app.js
+          node --check dev/js/components/ClubBag.js
+          node --check shared/club-bag.js
           node --check shared/wind-source.js
           node --check dev/js/features/gates.js
           node --check dev/js/entitlements/entitlements.js
