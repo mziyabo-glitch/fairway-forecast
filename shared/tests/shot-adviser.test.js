@@ -82,6 +82,10 @@ describe("real rain data extraction",()=>{
   assert.equal(r.known,true);assert.equal(r.mmPerHour,1);
   assert.equal(r.period,"near-term forecast");
  });
+ it("supports flat three-hour rain provided by the FairwayWeather Worker",()=>{
+  const rain=readRainForWind({current:{rain_3h:3,pop:.5}},{kind:"current"});
+  assert.equal(rain.mmPerHour,1);assert.equal(rain.probability,.5);
+ });
  it("rejects rain data from unrelated forecast hours",()=>{
   const rain=readRainForWind({list:[{dt:1000,rain:{"3h":9},pop:.8}]},{kind:"near-term forecast",validFor:2000*1000});
   assert.equal(rain.known,false);
