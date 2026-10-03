@@ -40,8 +40,8 @@ function renderAdvice(){
   const toDisp=y=>toDisplay(y,bag.units);
   const rain=lastWind?.rain;
   const rainLine=rain?.known && !lastWind?.stale
-    ? (Number.isFinite(rain.mmPerHour) ? `Forecast rain: ${rain.mmPerHour.toFixed(1)} mm/h` :
-       `Rain chance: ${Math.round(rain.probability*100)}%`)
+    ? (Number.isFinite(rain.mmPerHour) ? `Rain (${rain.period || "forecast"}): ${rain.mmPerHour.toFixed(1)} mm/h` :
+       `Rain chance (${rain.period || "forecast"}): ${Math.round(rain.probability*100)}%`)
     : "Rain data unknown";
   const windLine=result.usedWind
     ? `${Math.abs(lastResult.headMph).toFixed(0)} mph ${lastResult.headMph>=0?"headwind":"tailwind"} component`
