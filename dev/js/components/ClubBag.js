@@ -3,7 +3,7 @@ import {
 } from "../../../shared/club-bag.js?v=20261003-shot";
 import { buildShotAdvice } from "../../../shared/shot-adviser.js?v=20261003-shot";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let bag=loadBag(),target="",ground="",competition=true,lastWind=null,lastResult=null,confirmed=false,saveMessage="";
+let bag=loadBag(),target="",ground="",lastWind=null,lastResult=null,confirmed=false,saveMessage="";
 const unit=()=>bag.units==="m"?"m":"yd";
 const reading=()=>lastWind?.stale?"Saved forecast — no wind adjustment":lastWind?.rain?.known?"Rain data available":"Rain forecast detail unavailable";
 function renderAdvice(){
@@ -16,10 +16,12 @@ function renderAdvice(){
   const groundSelect=document.getElementById("shotGround");
   if(groundSelect && groundSelect.value!==ground) groundSelect.value=ground;
   const status=document.getElementById("shotWeatherStatus");
-  if(status) status.textContent=lastWind ? (lastWind.stale?"Saved weather: no wind/rain adjustment":reading()) : "Loading local weather or tap Use my location";
-  if(competition) {
-    panel.innerHTML='<p class="small">Competition mode is on. Club suggestions are hidden. Turn it off only when practice or event rules permit.</p>';
-    return;
+  if(status){
+    if(!lastWind) status.textContent="Wind pending · enter your target";
+    else if(lastWind.stale) status.textContent="Saved wind · using normal carries";
+    else status.textContent=Math.round(lastWind.speed)+" mph · "+
+      (lastWind.rain?.known && Number.isFinite(lastWind.rain.mmPerHour)
+      ? lastWind.rain.mmPerHour.toFixed(1)+" mm/h rain" : lastWind.rain?.known?"rain outlook available":"rain unknown");
   }
   const result=buildShotAdvice({
     bag,target,wind:lastResult?{...lastResult,stale:!lastWind||lastWind.stale}:null,
@@ -30,7 +32,7 @@ function renderAdvice(){
     return;
   }
   if(result.state==="need_bag") {
-    panel.innerHTML='<p class="small">Add at least one normal club carry in My Golf Bag below. Your saved distances will then be used automatically.</p>';
+    panel.innerHTML='<p class="small">Add your normal carry distances in My Bag to see your club suggestion.</p>';
     return;
   }
   const selected=result.selected;
@@ -51,20 +53,22 @@ function renderAdvice(){
     : "";
   panel.innerHTML=`
     <div class="fw-shot-choice">
-      <span class="fw-shot-choice-kicker">PRACTICE ESTIMATE · NOT A GUARANTEE</span>
-      <strong class="fw-shot-club">${esc(selected.name)}</strong>
-      <div class="fw-shot-meta">Your normal carry: <b>${toDisp(selected.carryYards)} ${unit()}</b></div>
-      <div class="fw-shot-change">${esc(change)}</div>
-      ${optional}
-      <div class="fw-shot-breakdown">
-        <div><span>Target carry</span><b>${toDisp(result.targetYards)} ${unit()}</b></div>
-        <div><span>Illustrative allowance</span><b>${adjust>=0?"+":""}${toDisp(adjust)} ${unit()}</b></div>
-        <div><span>Planning carry</span><b>${toDisp(result.effectiveYards)} ${unit()}</b></div>
-      </div>
-      <p class="small">${esc(windLine)} · ${esc(rainLine)}</p>
-      <p class="small">${esc(result.notes.join(" "))}</p>
-      <p class="small">Heuristic only: flight, elevation, temperature, wind at ball and strike quality are not modelled. Ground firmness affects rollout; this is a carry-to-target calculation.</p>
-    </div>`;
+      <span class="fw-shot-choice-kicker">${result.usedWind?"WIND-ADJUSTED PRACTICE ESTIMATE":"PERSONAL CARRY ESTIMATE"}</span>
+      <div class="fw-shot-main"><strong class="fw-shot-club">${esc(selected.name)}</strong>
+        <span class="fw-shot-change">${esc(change)}</span></div>
+      <div class="fw-shot-meta">Plan for <b>${toDisp(result.effectiveYards)} ${unit()}</b> · Your carry <b>${toDisp(selected.carryYards)} ${unit()}</b></div>
+      <div class="fw-shot-chips"><span>${esc(windLine)}</span><span>${esc(rainLine)}</span></div>
+      <details class="fw-shot-more"><summary>Why this club</summary>
+        <div class="fw-shot-breakdown">
+          <div><span>Target carry</span><b>${toDisp(result.targetYards)} ${unit()}</b></div>
+          <div><span>Illustrative allowance</span><b>${adjust>=0?"+":""}${toDisp(adjust)} ${unit()}</b></div>
+          <div><span>Planning carry</span><b>${toDisp(result.effectiveYards)} ${unit()}</b></div>
+        </div>
+        ${optional}
+        <p class="small">${esc(result.notes.join(" "))}</p>
+        <p class="small">Heuristic only: ball flight, elevation and actual wind at the ball are not measured. This estimates carry, not rollout.</p>
+      </details>
+  </div>`;
 }
 function bagRows(){
  return bag.clubs.map((club,i)=>{
@@ -89,7 +93,7 @@ function renderBag(){
    <div class="fw-bag-head"><div><span class="pill">Your personal distances</span><h2>My Golf Bag</h2></div>
    <label class="fw-bag-unit-label" for="bagUnits">Units
      <select id="bagUnits"><option value="yd" ${bag.units==="yd"?"selected":""}>Yards</option><option value="m" ${bag.units==="m"?"selected":""}>Metres</option></select>
-   </label></div>
+   </label><button id="bagClose" type="button" class="fw-bag-done" aria-label="Close My Golf Bag">Done</button></div>
    <p class="small">Enter your normal carry, without roll. Blank clubs are fine. Saved on this device.</p>
    <div class="fw-bag-progress">${completed} club carries entered</div>
    <div class="fw-bag-rows">${bagRows()}</div>
@@ -100,6 +104,7 @@ function renderBag(){
      <label for="bagCustom" id="bagCustomLabel" hidden>Custom club name<input id="bagCustom" type="text" maxlength="32" placeholder="e.g. 62° wedge"></label>
    </div>
    <p id="bagSaveStatus" class="small" role="status">${esc(saveMessage)}</p>`;
+ el.querySelector("#bagClose")?.addEventListener("click", closeClubBag);
  function changed(){
    saveMessage=saveBag(bag)?"Saved on this device":"Could not save: check browser storage permissions";
    renderBag();renderAdvice();
@@ -138,9 +143,26 @@ function renderBag(){
    bag=next;changed();
  });
 }
+export function closeClubBag(){
+ const dialog=document.getElementById("clubBag");
+ if(!dialog)return;
+ if(typeof dialog.close==="function" && dialog.open)dialog.close();
+ else dialog.removeAttribute("open");
+}
+export function openClubBag(){
+ const dialog=document.getElementById("clubBag");
+ if(!dialog)return;
+ if(typeof dialog.showModal==="function"){if(!dialog.open)dialog.showModal();}
+ else dialog.setAttribute("open","");
+}
 export function initClubBag(){
- bag=loadBag();
- renderBag();
+ bag=loadBag();renderBag();
+ for(const id of ["bagOpen","bagQuickOpen"]){
+   document.getElementById(id)?.addEventListener("click",openClubBag);
+ }
+ document.getElementById("clubBag")?.addEventListener("click",e=>{
+   if(e.target===e.currentTarget)closeClubBag();
+ });
  const hero=document.getElementById("shotPlanner");
  if(hero){
    hero.querySelector("#shotTarget").addEventListener("input",e=>{target=e.target.value;renderAdvice();});
@@ -148,8 +170,7 @@ export function initClubBag(){
  }
  renderAdvice();
 }
-export function syncClubBag({isCompetition,result,wind,bearingConfirmed}={}){
- competition=Boolean(isCompetition);
+export function syncClubBag({result,wind,bearingConfirmed}={}){
  lastResult=result||null;
  lastWind=wind||null;
  confirmed=Boolean(bearingConfirmed);
