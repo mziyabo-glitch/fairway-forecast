@@ -136,11 +136,12 @@ export function renderShotCaddieView(state) {
   const showPointControl = conditions.windKnown;
   const compassControls = showPointControl
     ? `<p class="fw-shot-aim-line" id="fwShotAimLine">${esc(aimLine)}</p>
-        ${renderShotWindDialMarkup()}
+        ${renderShotWindDialMarkup({ windKnown: conditions.windKnown })}
+        <button type="button" class="fw-shot-point-btn" id="fwShotPointAtTarget" aria-pressed="${compass.locked ? "true" : "false"}">${esc(pointLabel)}</button>
         ${
-          compass.available !== false
-            ? `<button type="button" class="fw-shot-point-btn" id="fwShotPointAtTarget" aria-pressed="${compass.locked ? "true" : "false"}">${esc(pointLabel)}</button>`
-            : `<p class="fw-shot-compass-status">Compass unavailable — pick Head, Cross, or Tail below.</p>`
+          compass.available === false
+            ? `<p class="fw-shot-note">Compass sensor unavailable — dial shows forecast wind only; pick Head, Cross, or Tail below.</p>`
+            : ""
         }
         <p class="fw-shot-compass-status" id="fwShotCompassStatus">${compassStatus}</p>
         <p class="fw-shot-yardage-hint">Enter the yardage from your rangefinder or marker.</p>`

@@ -13,9 +13,9 @@ import {
   wireShotCaddieView,
   formatWindLine,
   formatAimLine,
-} from "./views/ShotCaddieView.js?v=20261004-wind-dial";
-import { createShotCompass } from "./shot-compass.js?v=20261004-aim";
-import { updateShotWindDial } from "./shot-wind-dial.js?v=20261004-wind-dial";
+} from "./views/ShotCaddieView.js?v=20261004-aim-dial-2";
+import { createShotCompass } from "./shot-compass.js?v=20261004-aim-dial-2";
+import { updateShotWindDial } from "./shot-wind-dial.js?v=20261004-aim-dial-2";
 import {
   classifyWindOnShot,
   windArrowRelativeToShot,

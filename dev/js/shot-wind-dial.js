@@ -11,7 +11,7 @@ export function shotWindDialViewState({ windKnown, windDeg, shotBearing, availab
     note: null,
   };
   if (available === false) {
-    state.note = "Compass unavailable — wind from forecast";
+    state.note = "Wind-only mode — compass unavailable on this device";
     return state;
   }
   if (shotBearing == null) {
@@ -23,9 +23,10 @@ export function shotWindDialViewState({ windKnown, windDeg, shotBearing, availab
   return state;
 }
 
-export function renderShotWindDialMarkup() {
+export function renderShotWindDialMarkup({ windKnown = true } = {}) {
+  const wrapHidden = windKnown ? "" : " hidden";
   return `
-    <div class="fw-shot-wind-dial-wrap" id="fwShotWindDialWrap" hidden>
+    <div class="fw-shot-wind-dial-wrap" id="fwShotWindDialWrap"${wrapHidden}>
       <div class="fw-shot-wind-dial" id="fwShotWindDial" role="img" aria-labelledby="fwShotWindDialAria">
         <svg class="fw-shot-wind-dial-svg" viewBox="0 0 72 72" aria-hidden="true">
           <circle class="fw-shot-wind-dial-ring" cx="36" cy="36" r="31" />

@@ -17,7 +17,7 @@ describe("shot wind dial", () => {
     assert.equal(state.hidden, false);
     assert.equal(state.windRotate, 270);
     assert.equal(state.showAim, false);
-    assert.match(state.note, /Compass unavailable/);
+    assert.match(state.note, /Wind-only mode/);
   });
 
   it("shows both aim and wind when bearing is known", () => {

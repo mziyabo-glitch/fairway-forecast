@@ -124,6 +124,21 @@ describe("Shot Caddie analytics", () => {
   });
 });
 
+describe("Shot Caddie aim UI", () => {
+  it("renders point-at-target, wind dial, and rangefinder hint when weather is loaded", () => {
+    const view = read("dev/js/views/ShotCaddieView.js");
+    const dial = read("dev/js/shot-wind-dial.js");
+    assert.doesNotMatch(view, /What are you hitting/);
+    assert.match(view, /fwShotPointAtTarget/);
+    assert.match(view, /Point at target/);
+    assert.match(view, /fw-shot-yardage-hint/);
+    assert.match(view, /renderShotWindDialMarkup/);
+    assert.match(dial, /fw-shot-wind-dial-tag--aim/);
+    assert.match(dial, />You</);
+    assert.match(dial, />Wind</);
+  });
+});
+
 describe("Shot Caddie is in the primary shell", () => {
   it("adds a Caddie nav item and Plan this shot under the verdict", () => {
     const shell = read("dev/js/components/AppShell.js");
