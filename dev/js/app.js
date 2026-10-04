@@ -13,8 +13,9 @@ import {
   wireShotCaddieView,
   formatWindLine,
   formatAimLine,
-} from "./views/ShotCaddieView.js?v=20261004-aim";
+} from "./views/ShotCaddieView.js?v=20261004-wind-dial";
 import { createShotCompass } from "./shot-compass.js?v=20261004-aim";
+import { updateShotWindDial } from "./shot-wind-dial.js?v=20261004-wind-dial";
 import {
   classifyWindOnShot,
   windArrowRelativeToShot,
@@ -1663,6 +1664,13 @@ class FairwayApp {
       pointBtn.setAttribute("aria-pressed", compass.locked ? "true" : "false");
     }
 
+    updateShotWindDial(document.getElementById("fwShotWindDial"), {
+      windKnown: conditions.windKnown,
+      windDeg: conditions.windDeg,
+      shotBearing: compass.shotBearing,
+      available: compass.available,
+    });
+
     const rec = recommendShot({
       target: this.shotTarget || "",
       units,
@@ -1934,8 +1942,8 @@ class FairwayApp {
           if (!this.shotWindManual) {
             this.applyCompassWindSegment(this.shotConditionsOnly(), this.shotCompass.shotBearing());
           }
-          this.updateShotCompassDom();
         }
+        this.updateShotCompassDom();
         this.maybeTrackShotRecommendation(this.shotRecommendation());
       }
     } else if (this.activeTab === "alerts") {

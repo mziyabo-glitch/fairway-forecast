@@ -2,6 +2,7 @@ import { esc } from "../../../shared/utils.js";
 import { displayCarry } from "../../../shared/shot-clubs.js";
 import { recommendShot } from "../../../shared/shot-recommendation.js";
 import { cardinal } from "../../../shared/wind-caddie.js";
+import { renderShotWindDialMarkup } from "../shot-wind-dial.js";
 
 const WIND_OPTIONS = [
   ["head", "Headwind"],
@@ -135,6 +136,7 @@ export function renderShotCaddieView(state) {
   const showPointControl = conditions.windKnown;
   const compassControls = showPointControl
     ? `<p class="fw-shot-aim-line" id="fwShotAimLine">${esc(aimLine)}</p>
+        ${renderShotWindDialMarkup()}
         ${
           compass.available !== false
             ? `<button type="button" class="fw-shot-point-btn" id="fwShotPointAtTarget" aria-pressed="${compass.locked ? "true" : "false"}">${esc(pointLabel)}</button>`
