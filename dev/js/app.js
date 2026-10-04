@@ -18,6 +18,7 @@ import {
   classifyWindOnShot,
   windArrowRelativeToShot,
   windRelativeToShot,
+  wrapBearing,
 } from "../../shared/wind-caddie.js";
 import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261003-free";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
