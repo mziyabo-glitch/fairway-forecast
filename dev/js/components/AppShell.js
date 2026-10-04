@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { id: "home", label: "Home", icon: "home" },
   { id: "courses", label: "Courses", icon: "search" },
   { id: "forecast", label: "Forecast", icon: "cloud-sun" },
+  { id: "caddie", label: "Caddie", icon: "target" },
   { id: "rounds", label: "Rounds", icon: "flag" },
 ];
 

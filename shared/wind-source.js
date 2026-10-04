@@ -1,5 +1,5 @@
 /**
- * Wind Caddie weather loading, separate from the UI so loading can be tested.
+ * Weather loading for the compass wind tool, separate from the UI so loading can be tested.
  * Use our own same-origin Pages Function first (no cross-origin browser issue).
  * If it fails, retry the configured existing Worker. No third-party API keys
  * or unlicensed weather services.

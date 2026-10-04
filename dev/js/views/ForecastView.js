@@ -132,7 +132,14 @@ export function renderForecastView(state) {
           : ""
       }
       <div id="fwDayStripMount">${dayStripHtml}</div>
-      <div id="fwHeroMount">${heroHtml}</div>
+      <div class="fw-verdict-stack">
+        <div id="fwHeroMount">${heroHtml}</div>
+        ${
+          showSkeleton || !verdict
+            ? ""
+            : `<button type="button" class="fw-btn fw-btn-primary fw-shot-plan" id="fwPlanShot">Plan this shot</button>`
+        }
+      </div>
       ${dimensionsHtml ? `<div id="fwDimensionsMount">${dimensionsHtml}</div>` : ""}
       <div id="fwRoundMount">${roundHtml}</div>
       ${
@@ -147,7 +154,6 @@ export function renderForecastView(state) {
       }
       <div id="fwRainMount">${rainHtml}</div>
       <div id="fwImpactMount">${impactHtml}</div>
-      <a class="fw-btn fw-btn-primary" style="display:block;text-align:center;text-decoration:none;margin:16px 0" href="${location.pathname.startsWith("/dev/") ? "/dev/wind/" : "/wind/"}">Wind Caddie · Check wind at your shot →</a>
       ${eveningHtml ? `<div id="fwEveningMount">${eveningHtml}</div>` : ""}
       <div id="fwBetterMount">${betterHtml}</div>
       <div id="fwHourlyMount">${hourlyHtml}</div>
@@ -162,6 +168,7 @@ export function wireForecastView(container, handlers) {
   container?.querySelector("#fwGoCourses")?.addEventListener("click", () => handlers.onNavigate?.("courses"));
   container?.querySelector("#fwRetryForecast")?.addEventListener("click", () => handlers.onRetry?.());
   container?.querySelector("#fwSaveRound")?.addEventListener("click", () => handlers.onSaveRound?.());
+  container?.querySelector("#fwPlanShot")?.addEventListener("click", () => handlers.onPlanShot?.());
 
   wireDayForecastStrip(container.querySelector("#fwDayStripMount"), handlers.onDaySelect);
   wireGolfVerdictHero(container.querySelector("#fwHeroMount"), () => {

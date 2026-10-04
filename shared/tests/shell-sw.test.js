@@ -16,7 +16,7 @@ describe("production shell is the premium app", () => {
   it("marks the new shell and boots /dev/js/app.js", () => {
     assert.match(html, /<html lang="en" data-fw-shell="premium">/);
     assert.match(html, /<title>FairwayWeather/);
-    assert.match(html, /<script type="module" src="\/dev\/js\/app.js\?v=20261003-wind"><\/script>/);
+    assert.match(html, /<script type="module" src="\/dev\/js\/app.js\?v=20261004-caddie"><\/script>/);
     assert.doesNotMatch(html, /src="\.\/app\.js"/);
     assert.doesNotMatch(html, /src="\/app\.js"/);
   });
@@ -34,7 +34,7 @@ describe("production shell is the premium app", () => {
   });
 
   it("keeps the route shells identical to the homepage", () => {
-    for (const rel of ["courses/index.html", "forecast/index.html", "rounds/index.html"]) {
+    for (const rel of ["courses/index.html", "forecast/index.html", "rounds/index.html", "caddie/index.html"]) {
       assert.equal(read(rel), html, rel);
     }
   });

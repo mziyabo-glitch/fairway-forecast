@@ -48,4 +48,8 @@ export const AnalyticsEvents = {
   ROUND_OPENED: "round_opened",
   ROUND_DELETED: "round_deleted",
   HOURLY_EXPANDED: "hourly_expanded",
+  SHOT_CADDIE_OPENED: "shot_caddie_opened",
+  SHOT_CADDIE_DISTANCE_ENTERED: "shot_caddie_distance_entered",
+  SHOT_CADDIE_RECOMMENDATION_GENERATED: "shot_caddie_recommendation_generated",
+  SHOT_CADDIE_REPEAT_USE: "shot_caddie_repeat_use",
 };

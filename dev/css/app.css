@@ -226,7 +226,7 @@ body.fw-production .fw-course-header-mount {
   width: 100%;
   max-width: var(--app-max-width);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   background: var(--surface-elevated, var(--surface));
   border-top: 1px solid var(--border-subtle, var(--border));
   padding-bottom: var(--safe-bottom);
@@ -242,7 +242,9 @@ body.fw-production .fw-course-header-mount {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  min-height: var(--nav-height);
+  min-width: 0;
+  min-height: var(--touch-min);
+  padding: 4px 1px;
   border: none;
   background: transparent;
   color: var(--text-muted);
@@ -265,8 +267,14 @@ body.fw-production .fw-course-header-mount {
 }
 
 .fw-nav-label {
-  font-size: var(--text-caption);
+  max-width: 100%;
+  font-size: 0.6875rem;
   font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Views */

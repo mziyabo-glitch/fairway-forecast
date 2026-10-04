@@ -18,7 +18,11 @@
 /settings/ /index.html 200
 /account /index.html 200
 /account/ /index.html 200
-/wind /wind/index.html 200
-/wind/ /wind/index.html 200
-/dev/wind /dev/wind/index.html 200
-/dev/wind/ /dev/wind/index.html 200
+/caddie /index.html 200
+/caddie/ /index.html 200
+/dev/caddie /dev/index.html 200
+/dev/caddie/ /dev/index.html 200
+/wind /index.html 200
+/wind/ /index.html 200
+/dev/wind /dev/index.html 200
+/dev/wind/ /dev/index.html 200

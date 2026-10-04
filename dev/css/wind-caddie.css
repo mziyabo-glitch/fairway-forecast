@@ -61,7 +61,7 @@
 .fw-shot-planner .fw-bag-jump{margin:14px 0 0}
 @media(max-width:375px){.fw-shot-planner h2{font-size:24px}.fw-shot-target-row input{font-size:47px}}
 
-/* Wind Caddie quick-decision mobile screen, v20261003-fast */
+/* Compass wind screen, v20261003-fast */
 .fw-fast-app{width:100%;max-width:560px;padding:14px 13px 18px;margin:0 auto;overflow-wrap:anywhere}
 .fw-fast-app .card{margin:10px 0;border-radius:17px;padding:14px;box-shadow:0 3px 16px rgba(22,70,46,.04)}
 .fw-fast-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 1px 4px}

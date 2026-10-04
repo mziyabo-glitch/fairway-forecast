@@ -6,7 +6,7 @@ const now = 1760000000;
 function raw({ current, list, stale = false } = {}) {
  return {current,list,_fwMeta:{fetchedAt:now*1000,stale,offline:false}};
 }
-describe("Wind Caddie source resilience",()=>{
+describe("shot wind source resilience",()=>{
  it("prefers valid current Worker flat wind and converts m/s to mph",()=>{
   const w=selectWindReading(raw({current:{wind_speed:6,wind_gust:10,wind_deg:225}}),{nowSec:now});
   assert.equal(w.kind,"current");

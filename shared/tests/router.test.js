@@ -10,6 +10,11 @@ describe("History API helpers", () => {
     assert.equal(tabFromPath("/dev/courses"), "courses");
     assert.equal(tabFromPath("/dev/courses/"), "courses");
     assert.equal(tabFromPath("/dev/forecast"), "forecast");
+    assert.equal(tabFromPath("/dev/caddie"), "caddie");
+    assert.equal(tabFromPath("/dev/caddie/"), "caddie");
+    assert.equal(tabFromPath("/dev/wind"), "caddie");
+    assert.equal(tabFromPath("/caddie"), "caddie");
+    assert.equal(tabFromPath("/wind/"), "caddie");
     assert.equal(tabFromPath("/dev/rounds"), "rounds");
     assert.equal(tabFromPath("/dev/alerts"), "alerts");
     assert.equal(tabFromPath("/dev/society"), "society");
@@ -26,6 +31,7 @@ describe("History API helpers", () => {
     assert.equal(pathForTab("home"), "/dev/");
     assert.equal(pathForTab("courses"), "/dev/courses");
     assert.equal(pathForTab("forecast"), "/dev/forecast");
+    assert.equal(pathForTab("caddie"), "/dev/caddie");
     assert.equal(pathForTab("rounds"), "/dev/rounds");
     assert.equal(pathForTab("society"), "/dev/society");
     assert.equal(pathForTab("alerts"), "/dev/alerts");

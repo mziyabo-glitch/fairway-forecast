@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { windRelativeToShot, cardinal, mpsToMph } from "../../shared/wind-caddie.js";
 const wind=(from,to,speed=16)=>windRelativeToShot({windFrom:from,shotBearing:to,speedMph:speed});
-describe("Wind Caddie",()=>{
+describe("shot wind components",()=>{
  it("wind from target is all headwind",()=>{const r=wind(0,0);assert.equal(r.headMagnitudeMph,16);assert.equal(r.crossMagnitudeMph,0);assert.equal(r.headType,"Headwind");});
  it("wind from behind is tailwind",()=>{const r=wind(180,0);assert.equal(r.headType,"Tailwind");assert.equal(r.headMagnitudeMph,16);});
  it("east wind for north-bound shot crosses from right",()=>{const r=wind(90,0);assert.equal(r.crossType,"From right");assert.equal(r.crossMagnitudeMph,16);assert.equal(r.headMagnitudeMph,0);});

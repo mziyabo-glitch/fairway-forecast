@@ -3,10 +3,11 @@ import {
   wireBottomNav,
   setActiveTab,
   wireSheet,
-} from "./components/AppShell.js?v=20261003-free";
+} from "./components/AppShell.js?v=20261004-caddie";
 import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
 import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js?v=20261003-free";
-import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261003-wind";
+import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261004-caddie";
+import { renderShotCaddieView, renderShotResult, wireShotCaddieView } from "./views/ShotCaddieView.js?v=20261004-caddie";
 import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261003-free";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
@@ -14,9 +15,9 @@ import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
 import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
 import { renderAccountView, wireAccountView } from "./views/AccountView.js?v=20261003-free";
 import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js?v=20261003-free";
-import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261003-free";
+import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261004-caddie";
 import { featureOn, isAdvancedDev } from "./features/gates.js?v=20261003-free";
-import { closeSheet, openSheet } from "./components/AppShell.js?v=20261003-free";
+import { closeSheet, openSheet } from "./components/AppShell.js?v=20261004-caddie";
 import { renderMoreMenu } from "./components/MoreMenu.js";
 import { renderSoftGate, wireSoftGate } from "./components/SoftGate.js";
 import { renderExtendedOutlook } from "./components/ExtendedOutlook.js";
@@ -86,6 +87,16 @@ import {
 import { weatherIdToIcon, scoreToVerdict } from "../../shared/utils.js";
 import { formatRadiusLabel } from "../../shared/geo.js";
 import { track, AnalyticsEvents } from "../../shared/analytics.js";
+import { noteShotCaddieOpened, trackShotCaddieEvent, ShotCaddieEvents } from "../../shared/shot-caddie-analytics.js?v=20261004-caddie";
+import { shotConditionsFromForecast, recommendShot } from "../../shared/shot-recommendation.js?v=20261004-caddie";
+import {
+  loadShotClubs,
+  saveShotClubs,
+  setShotClubCarry,
+  setShotClubUnits,
+  loadShotSetup,
+  saveShotSetup,
+} from "../../shared/shot-clubs.js?v=20261004-caddie";
 
 const APP = window.APP_CONFIG || {};
 const FAV_FETCH_LIMIT = 5;
@@ -149,6 +160,13 @@ class FairwayApp {
     this.pendingRoundTee = null;
     this.teeAdjusted = null;
     this.homeViewed = false;
+    this.shotTarget = "";
+    this.shotPanel = "shot";
+    this.shotBag = null;
+    this.shotSetup = null;
+    this.shotVisitOpen = false;
+    this.shotDistanceTracked = "";
+    this.shotRecSig = "";
     this.editingRoundId = null;
     this.roundLimitNote = "";
     this.roundAlerts = [];
@@ -251,6 +269,7 @@ class FairwayApp {
     this.loadFavouriteSummaries();
     if (this.activeTab === "rounds") this.loadRoundSummaries();
     if (this.activeTab === "forecast") track(AnalyticsEvents.FORECAST_VIEWED);
+    if (this.activeTab === "caddie") this.markShotCaddieVisit();
   }
 
   registerPwa() {
@@ -292,6 +311,7 @@ class FairwayApp {
     if (tab === "forecast" && !this.selectedCourse) {
       tab = "home";
     }
+    if (tab !== "caddie") this.shotVisitOpen = false;
     this.activeTab = tab;
     if (history) {
       const course = tab === "forecast" ? this.shareParam() : this.sharedCourseMissing ? this.sharedCourseParam : "";
@@ -308,6 +328,7 @@ class FairwayApp {
     if (isAdvancedDev() && tab === "alerts") trackDevEvent(DevAnalyticsEvents.ALERT_VIEWED);
     if (isAdvancedDev() && tab === "settings") trackDevEvent(DevAnalyticsEvents.SETTINGS_VIEWED);
     if (isAdvancedDev() && tab === "account") trackDevEvent(DevAnalyticsEvents.ACCOUNT_VIEWED);
+    if (tab === "caddie") this.markShotCaddieVisit();
   }
 
   maybeTrackHome() {
@@ -1346,15 +1367,14 @@ class FairwayApp {
       btn.addEventListener("click", () => {
         closeSheet();
         const target = btn.getAttribute("data-more-tab");
-        if (target === "wind") { location.href = isAdvancedDev() && location.pathname.startsWith("/dev/") ? "/dev/wind/" : "/wind/"; return; }
-        this.navigate(target);
+        this.navigate(target === "wind" ? "caddie" : target);
       });
     });
   }
 
   moreItems() {
     const items = [];
-    items.push({ id: "wind", label: "Wind Caddie", hint: "Point phone at target · headwind and crosswind" });
+    items.push({ id: "caddie", label: "Shot Caddie", hint: "Distance, wind on the shot, and a club" });
     if (featureOn("weatherAlerts")) items.push({ id: "alerts", label: "Alerts", hint: "In-app weather changes" });
     if (featureOn("societyWeather")) items.push({ id: "society", label: "Society", hint: "Score a run of tee times" });
 
@@ -1478,6 +1498,120 @@ class FairwayApp {
     });
   }
 
+  shotAnalytics() {
+    return { also: (event, props) => trackDevEvent(event, props) };
+  }
+
+  markShotCaddieVisit() {
+    if (this.shotVisitOpen) return;
+    this.shotVisitOpen = true;
+    noteShotCaddieOpened(this.shotAnalytics());
+  }
+
+  ensureShotBag() {
+    if (!this.shotBag) this.shotBag = loadShotClubs();
+    if (!this.shotSetup) this.shotSetup = loadShotSetup();
+    return this.shotBag;
+  }
+
+  getShotState() {
+    const bag = this.ensureShotBag();
+    let rainAnalysis = null;
+    if (this.norm && this.selectedTeeTime) {
+      const windowHours = getRoundDurationHours(this.holes);
+      rainAnalysis = analyzeRainDuringRound(
+        this.norm.hourly || [],
+        this.selectedTeeTime,
+        windowHours,
+        this.norm.timezoneOffset || 0
+      );
+    }
+    const conditions = shotConditionsFromForecast({
+      loaded: Boolean(this.norm),
+      units: this.units,
+      teeTimeUnix: this.selectedTeeTime,
+      hourly: this.norm?.hourly || [],
+      current: this.norm?.current || null,
+      rainAnalysis,
+    });
+    return {
+      panel: this.shotPanel || "shot",
+      hasWeather: Boolean(this.norm),
+      loading: Boolean(this.weatherLoading && !this.norm),
+      conditions,
+      target: this.shotTarget || "",
+      units: bag.units === "m" ? "m" : "yd",
+      windOnShot: this.shotSetup.windOnShot,
+      ground: this.shotSetup.ground,
+      clubs: bag.clubs,
+    };
+  }
+
+  shotRecommendation() {
+    const state = this.getShotState();
+    return recommendShot({
+      target: state.target,
+      units: state.units,
+      windOnShot: state.windOnShot,
+      windMph: state.conditions.windKnown ? state.conditions.windMph : null,
+      rain: state.conditions.rainKey,
+      ground: state.ground,
+      clubs: state.clubs,
+    });
+  }
+
+  maybeTrackShotRecommendation(rec) {
+    if (!rec || rec.state !== "ready") return;
+    const sig = [rec.playsLikeYards, rec.club?.id, rec.clubSteps, this.shotSetup?.windOnShot, this.shotSetup?.ground, rec.rainYards].join("|");
+    if (sig === this.shotRecSig) return;
+    this.shotRecSig = sig;
+    trackShotCaddieEvent(ShotCaddieEvents.RECOMMENDATION_GENERATED, { club: rec.club?.name }, this.shotAnalytics());
+  }
+
+  onShotDistance(value) {
+    this.shotTarget = String(value ?? "");
+    const rec = this.shotRecommendation();
+    const slot = document.getElementById("fwShotResult");
+    if (slot) slot.innerHTML = renderShotResult(rec, this.ensureShotBag().units === "m" ? "m" : "yd");
+    const yards = Number(this.shotTarget);
+    if (this.shotTarget !== "" && Number.isFinite(yards) && yards >= 1 && this.shotTarget !== this.shotDistanceTracked) {
+      this.shotDistanceTracked = this.shotTarget;
+      trackShotCaddieEvent(ShotCaddieEvents.DISTANCE_ENTERED, {}, this.shotAnalytics());
+    }
+    this.maybeTrackShotRecommendation(rec);
+  }
+
+  onShotUnits(units) {
+    const bag = this.ensureShotBag();
+    this.shotBag = setShotClubUnits(bag, units);
+    saveShotClubs(this.shotBag);
+    this.shotRecSig = "";
+    this.render();
+  }
+
+  onShotWind(wind) {
+    this.ensureShotBag();
+    this.shotSetup = { ...this.shotSetup, windOnShot: wind };
+    saveShotSetup(this.shotSetup);
+    this.render();
+  }
+
+  onShotGround(ground) {
+    this.ensureShotBag();
+    this.shotSetup = { ...this.shotSetup, ground };
+    saveShotSetup(this.shotSetup);
+    this.render();
+  }
+
+  onShotClubCarry(id, value) {
+    const bag = this.ensureShotBag();
+    const next = setShotClubCarry(bag, id, value);
+    if (!next) return;
+    this.shotBag = next;
+    saveShotClubs(this.shotBag);
+    this.shotRecSig = "";
+  }
+
   render() {
     mountCourseHeader(document.getElementById("fwCourseHeaderMount"), this.selectedCourse, {
       onChange: () => this.navigate("courses"),
@@ -1540,6 +1674,7 @@ class FairwayApp {
           track(AnalyticsEvents.HOURLY_EXPANDED);
         },
         onPremium: (id) => this.openPremium(id),
+        onPlanShot: () => this.navigate("caddie"),
         getScore: () => state.verdict?.score,
         getFactors: () => state.verdict?.factors,
         getDecision: () => state.decision,
@@ -1578,6 +1713,26 @@ class FairwayApp {
         onDismissAlert: (fingerprint) => this.dismissAlert(fingerprint),
       });
       wireSoftGate(main, () => this.navigate("account"));
+    } else if (this.activeTab === "caddie") {
+      const shotState = this.getShotState();
+      main.innerHTML = renderShotCaddieView(shotState);
+      wireShotCaddieView(main, {
+        onForecast: () => this.navigate(this.selectedCourse ? "forecast" : "courses"),
+        onBack: () => {
+          this.shotPanel = "shot";
+          this.render();
+        },
+        onClubs: () => {
+          this.shotPanel = "clubs";
+          this.render();
+        },
+        onDistance: (value) => this.onShotDistance(value),
+        onUnits: (units) => this.onShotUnits(units),
+        onWind: (wind) => this.onShotWind(wind),
+        onGround: (ground) => this.onShotGround(ground),
+        onClubCarry: (id, value) => this.onShotClubCarry(id, value),
+      });
+      if (shotState.panel === "shot" && shotState.hasWeather) this.maybeTrackShotRecommendation(this.shotRecommendation());
     } else if (this.activeTab === "alerts") {
       main.innerHTML = renderAlertsView({
         alerts: this.roundAlerts,

@@ -1,4 +1,4 @@
-/** Wind Caddie club bag: opt-in, on-device, carry distances only.
+/** On-device club bag for carry distances only.
  * All distances are stored in yards, regardless of display units.
  */
 export const BAG_KEY = "fw_wind_club_bag_v1";

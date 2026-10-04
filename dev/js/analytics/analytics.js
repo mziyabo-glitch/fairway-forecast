@@ -16,6 +16,10 @@ export const DevAnalyticsEvents = {
   ROUND_EDITED: "round_edited",
   EVENING_PRACTICE_VIEWED: "evening_practice_viewed",
   PRACTICE_HOLES_SELECTED: "practice_holes_selected",
+  SHOT_CADDIE_OPENED: "shot_caddie_opened",
+  SHOT_CADDIE_DISTANCE_ENTERED: "shot_caddie_distance_entered",
+  SHOT_CADDIE_RECOMMENDATION_GENERATED: "shot_caddie_recommendation_generated",
+  SHOT_CADDIE_REPEAT_USE: "shot_caddie_repeat_use",
 };
 
 let sessionId = null;
