@@ -1553,6 +1553,51 @@
   margin: 0 0 6px;
 }
 
+.fw-shot-aim-line {
+  margin: 2px 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--brand-ink);
+}
+
+.fw-shot-point-btn {
+  align-self: flex-start;
+  min-height: 40px;
+  margin: 4px 0 2px;
+  padding: 0 16px;
+  border: 1px solid var(--border-subtle, #c8dccf);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f8fbf9 0%, #eef5f0 100%);
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.85) inset;
+}
+
+.fw-shot-point-btn[aria-pressed="true"] {
+  border-color: var(--brand-mid, #2d6b4f);
+  background: var(--brand-soft, #e4f0e8);
+  color: var(--brand-ink);
+}
+
+.fw-shot-yardage-hint,
+.fw-shot-distance-label {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.fw-shot-distance-label {
+  margin-top: 6px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .fw-shot-cond {
   display: flex;
   justify-content: space-between;

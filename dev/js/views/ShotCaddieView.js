@@ -48,6 +48,19 @@ export function renderShotResult(rec, units = "yd") {
     <p class="fw-shot-change">${esc(arrow + rec.clubLabel)}</p>`;
 }
 
+export function formatAimLine(compass = {}) {
+  const { locked = false, shotBearing = null, heading = null, listening = false, available = true } = compass;
+  if (locked && shotBearing != null) {
+    return `Aiming ${shotBearing}° ${cardinal(shotBearing)}`;
+  }
+  if (listening && heading != null) {
+    const h = Math.round(heading);
+    return `Heading ${h}° ${cardinal(h)}`;
+  }
+  if (available === false) return "Compass unavailable";
+  return "Point your phone at the target, then tap below.";
+}
+
 export function formatWindLine(conditions, compass = {}) {
   if (!conditions.windKnown) return "Unavailable";
   const {
@@ -115,16 +128,21 @@ export function renderShotCaddieView(state) {
       </div>`;
   }
 
+  const aimLine = formatAimLine(compass);
   const windText = formatWindLine(conditions, compass);
   const compassStatus = compass.status ? esc(compass.status) : "";
-  const compassControls =
-    conditions.windKnown && compass.available !== false
-      ? `<div class="fw-shot-compass-row">
-          <button type="button" class="fw-shot-compass-btn" id="fwShotCompassStart">${compass.listening ? "Compass on" : "Use compass"}</button>
-          <button type="button" class="fw-shot-compass-btn" id="fwShotCompassLock" ${compass.heading == null ? "disabled" : ""}>${compass.locked ? "Unlock" : "Lock aim"}</button>
-        </div>
-        ${compassStatus ? `<p class="fw-shot-compass-status" id="fwShotCompassStatus">${compassStatus}</p>` : `<p class="fw-shot-compass-status" id="fwShotCompassStatus"></p>`}`
-      : "";
+  const pointLabel = compass.locked ? "Re-aim" : "Point at target";
+  const showPointControl = conditions.windKnown;
+  const compassControls = showPointControl
+    ? `<p class="fw-shot-aim-line" id="fwShotAimLine">${esc(aimLine)}</p>
+        ${
+          compass.available !== false
+            ? `<button type="button" class="fw-shot-point-btn" id="fwShotPointAtTarget" aria-pressed="${compass.locked ? "true" : "false"}">${esc(pointLabel)}</button>`
+            : `<p class="fw-shot-compass-status">Compass unavailable — pick Head, Cross, or Tail below.</p>`
+        }
+        <p class="fw-shot-compass-status" id="fwShotCompassStatus">${compassStatus}</p>
+        <p class="fw-shot-yardage-hint">Enter the yardage from your rangefinder or marker.</p>`
+    : "";
   const rainText = conditions.rainLabel || "—";
   const rec = recommendShot({
     target,
@@ -139,7 +157,8 @@ export function renderShotCaddieView(state) {
   return `
     <div class="fw-view fw-view-shot">
       <h1 class="fw-shot-title">Shot Caddie</h1>
-      <p class="fw-shot-prompt">What are you hitting?</p>
+      ${compassControls}
+      <p class="fw-shot-distance-label">Target distance</p>
       <div class="fw-shot-distance">
         <label class="fw-sr-only" for="fwShotDistance">Target distance</label>
         <input id="fwShotDistance" type="number" inputmode="numeric" min="1" max="450" step="1" placeholder="165" value="${esc(target)}" autocomplete="off" />
@@ -150,9 +169,8 @@ export function renderShotCaddieView(state) {
         <button type="button" class="fw-shot-unit-btn ${units === "m" ? "is-active" : ""}" data-shot-units="m">m</button>
       </div>
       <p class="fw-shot-cond"><span>Wind</span> <strong id="fwShotWindLine">${esc(windText)}</strong></p>
-      ${compassControls}
       ${conditions.windKnown ? segments("wind", "Wind on the shot", WIND_OPTIONS, windOnShot) : `<p class="fw-shot-note">No wind speed in this forecast.</p>`}
-      ${compass.manualWind && compass.compassActive ? `<p class="fw-shot-note">Wind segment set manually — lock aim or tap Use compass to follow the phone again.</p>` : ""}
+      ${compass.manualWind && compass.compassActive ? `<p class="fw-shot-note">Wind on shot set manually — tap Re-aim to follow the compass again.</p>` : ""}
       <p class="fw-shot-cond"><span>Rain</span> <strong>${esc(rainText)}</strong></p>
       ${conditions.rainLabel ? `<p class="fw-shot-note">Rain is for the whole course and tee time, not hole-by-hole.</p>` : ""}
       <p class="fw-shot-cond"><span>Ground</span></p>
@@ -179,8 +197,7 @@ export function wireShotCaddieView(container, handlers = {}) {
   container?.querySelectorAll("[data-shot-ground]").forEach((btn) => {
     btn.addEventListener("click", () => handlers.onGround?.(btn.getAttribute("data-shot-ground")));
   });
-  container?.querySelector("#fwShotCompassStart")?.addEventListener("click", () => handlers.onCompassStart?.());
-  container?.querySelector("#fwShotCompassLock")?.addEventListener("click", () => handlers.onCompassLock?.());
+  container?.querySelector("#fwShotPointAtTarget")?.addEventListener("click", () => handlers.onPointAtTarget?.());
   container?.querySelectorAll("[data-club-id]").forEach((input) => {
     input.addEventListener("change", () => handlers.onClubCarry?.(input.getAttribute("data-club-id"), input.value));
   });

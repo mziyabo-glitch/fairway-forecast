@@ -50,7 +50,7 @@ export function createShotCompass({ onHeading, onStatus } = {}) {
         listening = true;
       }
       locked = false;
-      emitStatus("Point the top of your phone at the target. Wind updates as you turn.");
+      emitStatus("Turn toward the target — wind updates as you aim.");
       return true;
     } catch {
       permission = "error";
@@ -73,15 +73,32 @@ export function createShotCompass({ onHeading, onStatus } = {}) {
     }
     lockedBearing = Math.round(heading);
     locked = true;
-    emitStatus(`Direction locked at ${lockedBearing}°. Tap unlock to follow the compass again.`);
+    emitStatus("Aim locked. Enter yardage from your rangefinder or marker.");
     onHeading?.(lockedBearing, { locked: true });
     return true;
   }
 
   function unlock() {
     locked = false;
-    emitStatus("Following compass. Point at the target.");
+    emitStatus("Turn toward the target — wind updates as you aim.");
     if (heading != null) onHeading?.(heading, { locked: false });
+  }
+
+  /** User gesture: permission (iOS) + listen + lock current heading. */
+  async function pointAtTarget() {
+    if (locked) {
+      unlock();
+      return "unlocked";
+    }
+    const ok = await start();
+    if (!ok && permission !== "granted" && permission !== "unknown") {
+      return "denied";
+    }
+    if (heading == null) {
+      emitStatus("No compass reading yet. Turn slowly, then tap Point at target again.");
+      return "no_heading";
+    }
+    return lock() ? "locked" : "no_heading";
   }
 
   function shotBearing() {
@@ -108,5 +125,5 @@ export function createShotCompass({ onHeading, onStatus } = {}) {
     if (!locked) onHeading?.(Math.round(heading), { locked: false });
   }
 
-  return { start, stop, lock, unlock, getState, setHeadingForTest, shotBearing };
+  return { start, stop, lock, unlock, pointAtTarget, getState, setHeadingForTest, shotBearing };
 }

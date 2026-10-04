@@ -12,8 +12,9 @@ import {
   renderShotResult,
   wireShotCaddieView,
   formatWindLine,
-} from "./views/ShotCaddieView.js?v=20261004-compass";
-import { createShotCompass } from "./shot-compass.js?v=20261004-compass";
+  formatAimLine,
+} from "./views/ShotCaddieView.js?v=20261004-aim";
+import { createShotCompass } from "./shot-compass.js?v=20261004-aim";
 import {
   classifyWindOnShot,
   windArrowRelativeToShot,
@@ -1653,13 +1654,14 @@ class FairwayApp {
       btn.setAttribute("aria-pressed", active ? "true" : "false");
     });
 
-    const lockBtn = document.getElementById("fwShotCompassLock");
-    if (lockBtn) {
-      lockBtn.textContent = compass.locked ? "Unlock" : "Lock aim";
-      lockBtn.disabled = compass.heading == null && !compass.locked;
+    const aimEl = document.getElementById("fwShotAimLine");
+    if (aimEl) aimEl.textContent = formatAimLine(compass);
+
+    const pointBtn = document.getElementById("fwShotPointAtTarget");
+    if (pointBtn) {
+      pointBtn.textContent = compass.locked ? "Re-aim" : "Point at target";
+      pointBtn.setAttribute("aria-pressed", compass.locked ? "true" : "false");
     }
-    const startBtn = document.getElementById("fwShotCompassStart");
-    if (startBtn) startBtn.textContent = compass.listening ? "Compass on" : "Use compass";
 
     const rec = recommendShot({
       target: this.shotTarget || "",
@@ -1675,30 +1677,37 @@ class FairwayApp {
     this.maybeTrackShotRecommendation(rec);
   }
 
-  async onShotCompassStart() {
+  async onShotPointAtTarget() {
     this.ensureShotCompass();
-    this.shotWindManual = false;
-    const ok = await this.shotCompass.start();
-    if (ok) {
+    const wasLocked = this.shotCompass.getState().locked;
+    const result = await this.shotCompass.pointAtTarget();
+    if (result === "unlocked") {
+      this.shotWindManual = false;
+    } else if (result === "locked") {
+      this.shotWindManual = false;
       const conditions = this.shotConditionsOnly();
-      const bearing = this.shotCompass.shotBearing();
-      if (bearing != null) this.applyCompassWindSegment(conditions, bearing);
+      this.applyCompassWindSegment(conditions, this.shotCompass.shotBearing());
+    } else if (!wasLocked && result === "no_heading") {
+      this.updateShotCompassDom();
+      return;
     }
     this.render();
   }
 
-  onShotCompassLock() {
+  maybeShotCompassListen() {
+    if (typeof window === "undefined" || !("DeviceOrientationEvent" in window)) return;
+    if (typeof DeviceOrientationEvent.requestPermission === "function") return;
     this.ensureShotCompass();
-    const locked = this.shotCompass.getState().locked;
-    if (locked) {
-      this.shotCompass.unlock();
-      this.shotWindManual = false;
-    } else if (this.shotCompass.lock()) {
-      this.shotWindManual = false;
+    if (this.shotCompass.getState().listening) return;
+    void this.shotCompass.start().then((ok) => {
+      if (!ok || this.activeTab !== "caddie") return;
       const conditions = this.shotConditionsOnly();
-      this.applyCompassWindSegment(conditions, this.shotCompass.shotBearing());
-    }
-    this.render();
+      const bearing = this.shotCompass.shotBearing();
+      if (bearing != null && !this.shotWindManual && !this.shotCompass.getState().locked) {
+        this.applyCompassWindSegment(conditions, bearing);
+      }
+      this.updateShotCompassDom();
+    });
   }
 
   maybeShotGeolocation() {
@@ -1913,24 +1922,11 @@ class FairwayApp {
         onWind: (wind) => this.onShotWind(wind),
         onGround: (ground) => this.onShotGround(ground),
         onClubCarry: (id, value) => this.onShotClubCarry(id, value),
-        onCompassStart: () => this.onShotCompassStart(),
-        onCompassLock: () => this.onShotCompassLock(),
+        onPointAtTarget: () => void this.onShotPointAtTarget(),
       });
       if (shotState.panel === "shot" && shotState.hasWeather) {
         this.ensureShotCompass();
-        if (!this.shotCompassStarted) {
-          this.shotCompassStarted = true;
-          void this.shotCompass.start().then((ok) => {
-            if (ok && this.activeTab === "caddie") {
-              const conditions = this.shotConditionsOnly();
-              const bearing = this.shotCompass.shotBearing();
-              if (bearing != null && !this.shotWindManual) {
-                this.applyCompassWindSegment(conditions, bearing);
-              }
-              this.updateShotCompassDom();
-            }
-          });
-        }
+        this.maybeShotCompassListen();
         this.maybeShotGeolocation();
         const testHeading = new URLSearchParams(location.search).get("shotHeading");
         if (testHeading != null && Number.isFinite(Number(testHeading))) {
