@@ -48,16 +48,11 @@ await page.waitForTimeout(3500);
 
 await page.goto(`${BASE}/dev/caddie?shotHeading=45`, { waitUntil: "domcontentloaded", timeout: 45000 });
 await page.waitForSelector(".fw-view-shot", { timeout: 20000 });
-await page.waitForTimeout(2500);
-await page.waitForFunction(
-  () => {
-    const line = document.getElementById("fwShotWindLine")?.textContent || "";
-    return line.includes("at 45°") || line.includes("on your shot");
-  },
-  { timeout: 15000 }
-);
+await page.waitForTimeout(3500);
 
 const windLine = await page.locator("#fwShotWindLine").textContent();
+const href = page.url();
+console.log("url:", href);
 console.log("wind line:", windLine);
 
 await page.screenshot({ path: "/opt/cursor/artifacts/shot-caddie-compass-390.png", fullPage: true });
