@@ -48,12 +48,24 @@ await page.waitForTimeout(3500);
 
 await page.goto(`${BASE}/dev/caddie?shotHeading=45`, { waitUntil: "domcontentloaded", timeout: 45000 });
 await page.waitForSelector(".fw-view-shot", { timeout: 20000 });
-await page.waitForTimeout(1500);
+await page.waitForFunction(() => {
+  const wind = document.getElementById("fwShotWindLine");
+  return wind && wind.textContent && !wind.textContent.includes("Unavailable");
+}, { timeout: 45000 });
+
+await page.evaluate(() => {
+  window.dispatchEvent(
+    new DeviceOrientationEvent("deviceorientation", { absolute: true, alpha: 315 })
+  );
+});
+await page.waitForTimeout(400);
 
 const pointBtn = page.locator("#fwShotPointAtTarget");
 await pointBtn.waitFor({ state: "visible", timeout: 10000 });
 await pointBtn.click();
-await page.waitForTimeout(800);
+await page.waitForSelector("#fwShotPointAtTarget", { hasText: "Re-aim", timeout: 10000 });
+await page.locator("#fwShotDistance").fill("165");
+await page.waitForTimeout(600);
 
 const aimLine = await page.locator("#fwShotAimLine").textContent();
 const pointLabel = await pointBtn.textContent();
