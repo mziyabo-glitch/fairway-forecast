@@ -1574,7 +1574,11 @@ class FairwayApp {
 
   buildShotCompassState(conditions) {
     const state = this.shotCompass?.getState() || {};
-    const shotBearing = state.shotBearing ?? null;
+    let shotBearing = state.shotBearing ?? null;
+    if (shotBearing == null && typeof location !== "undefined") {
+      const test = Number(new URLSearchParams(location.search).get("shotHeading"));
+      if (Number.isFinite(test)) shotBearing = Math.round(wrapBearing(test));
+    }
     let relative = null;
     let relativeArrow = null;
     let relativeLabel = null;
