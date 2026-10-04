@@ -1595,7 +1595,7 @@ class FairwayApp {
       shotBearing,
       relativeArrow,
       relativeLabel,
-      compassActive: listening && shotBearing != null,
+      compassActive: shotBearing != null && conditions.windKnown,
       manualWind: this.shotWindManual,
       status: this.shotCompassStatus,
     };
