@@ -28,11 +28,13 @@ describe("shot compass aim lock", () => {
   it("pointAtTarget locks after start when heading is known", async () => {
     const prevWindow = globalThis.window;
     const prevOrientation = globalThis.DeviceOrientationEvent;
+    const mockOrientation = {};
+    globalThis.DeviceOrientationEvent = mockOrientation;
     globalThis.window = {
       addEventListener() {},
       removeEventListener() {},
+      DeviceOrientationEvent: mockOrientation,
     };
-    globalThis.DeviceOrientationEvent = {};
     try {
       const compass = createShotCompass();
       compass.setHeadingForTest(200);
