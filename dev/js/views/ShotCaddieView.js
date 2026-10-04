@@ -1,6 +1,7 @@
 import { esc } from "../../../shared/utils.js";
 import { displayCarry } from "../../../shared/shot-clubs.js";
 import { recommendShot } from "../../../shared/shot-recommendation.js";
+import { cardinal } from "../../../shared/wind-caddie.js";
 
 const WIND_OPTIONS = [
   ["head", "Headwind"],
@@ -47,6 +48,25 @@ export function renderShotResult(rec, units = "yd") {
     <p class="fw-shot-change">${esc(arrow + rec.clubLabel)}</p>`;
 }
 
+export function formatWindLine(conditions, compass = {}) {
+  if (!conditions.windKnown) return "Unavailable";
+  const {
+    relativeArrow = null,
+    relativeLabel = null,
+    compassActive = false,
+    shotBearing = null,
+  } = compass;
+  const base = `${conditions.windCardinal ? `${conditions.windCardinal} ` : ""}${conditions.windMph} mph forecast`;
+  if (compassActive && relativeArrow) {
+    const aim =
+      shotBearing != null ? ` · ${relativeArrow} at ${shotBearing}° ${cardinal(shotBearing)}` : ` · ${relativeArrow} on your shot`;
+    const detail = relativeLabel ? ` · ${relativeLabel}` : "";
+    return `${base}${aim}${detail}`;
+  }
+  const abs = conditions.windArrow ? `${conditions.windArrow} ${base}` : base;
+  return abs;
+}
+
 export function renderShotCaddieView(state) {
   const {
     panel = "shot",
@@ -58,6 +78,7 @@ export function renderShotCaddieView(state) {
     windOnShot = "cross",
     ground = "normal",
     clubs = [],
+    compass = {},
   } = state || {};
 
   if (panel === "clubs") {
@@ -94,9 +115,16 @@ export function renderShotCaddieView(state) {
       </div>`;
   }
 
-  const windText = conditions.windKnown
-    ? `${conditions.windArrow ? `${conditions.windArrow} ` : ""}${conditions.windCardinal ? `${conditions.windCardinal} ` : ""}${conditions.windMph} mph`
-    : "Unavailable";
+  const windText = formatWindLine(conditions, compass);
+  const compassStatus = compass.status ? esc(compass.status) : "";
+  const compassControls =
+    conditions.windKnown && compass.available !== false
+      ? `<div class="fw-shot-compass-row">
+          <button type="button" class="fw-shot-compass-btn" id="fwShotCompassStart">${compass.listening ? "Compass on" : "Use compass"}</button>
+          <button type="button" class="fw-shot-compass-btn" id="fwShotCompassLock" ${compass.heading == null ? "disabled" : ""}>${compass.locked ? "Unlock" : "Lock aim"}</button>
+        </div>
+        ${compassStatus ? `<p class="fw-shot-compass-status" id="fwShotCompassStatus">${compassStatus}</p>` : `<p class="fw-shot-compass-status" id="fwShotCompassStatus"></p>`}`
+      : "";
   const rainText = conditions.rainLabel || "—";
   const rec = recommendShot({
     target,
@@ -121,9 +149,12 @@ export function renderShotCaddieView(state) {
         <button type="button" class="fw-shot-unit-btn ${units !== "m" ? "is-active" : ""}" data-shot-units="yd">yds</button>
         <button type="button" class="fw-shot-unit-btn ${units === "m" ? "is-active" : ""}" data-shot-units="m">m</button>
       </div>
-      <p class="fw-shot-cond"><span>Wind</span> <strong>${esc(windText)}</strong></p>
+      <p class="fw-shot-cond"><span>Wind</span> <strong id="fwShotWindLine">${esc(windText)}</strong></p>
+      ${compassControls}
       ${conditions.windKnown ? segments("wind", "Wind on the shot", WIND_OPTIONS, windOnShot) : `<p class="fw-shot-note">No wind speed in this forecast.</p>`}
+      ${compass.manualWind && compass.compassActive ? `<p class="fw-shot-note">Wind segment set manually — lock aim or tap Use compass to follow the phone again.</p>` : ""}
       <p class="fw-shot-cond"><span>Rain</span> <strong>${esc(rainText)}</strong></p>
+      ${conditions.rainLabel ? `<p class="fw-shot-note">Rain is for the whole course and tee time, not hole-by-hole.</p>` : ""}
       <p class="fw-shot-cond"><span>Ground</span></p>
       ${segments("ground", "Ground", GROUND_OPTIONS, ground)}
       <div id="fwShotResult" class="fw-shot-result">${renderShotResult(rec, units)}</div>
@@ -148,6 +179,8 @@ export function wireShotCaddieView(container, handlers = {}) {
   container?.querySelectorAll("[data-shot-ground]").forEach((btn) => {
     btn.addEventListener("click", () => handlers.onGround?.(btn.getAttribute("data-shot-ground")));
   });
+  container?.querySelector("#fwShotCompassStart")?.addEventListener("click", () => handlers.onCompassStart?.());
+  container?.querySelector("#fwShotCompassLock")?.addEventListener("click", () => handlers.onCompassLock?.());
   container?.querySelectorAll("[data-club-id]").forEach((input) => {
     input.addEventListener("change", () => handlers.onClubCarry?.(input.getAttribute("data-club-id"), input.value));
   });

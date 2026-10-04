@@ -35,3 +35,34 @@ export function cardinal(deg) {
   if (!Number.isFinite(deg)) return "—";
   return ["N","NE","E","SE","S","SW","W","NW"][Math.round(wrapBearing(deg) / 45) % 8];
 }
+
+/** Wind origin relative to phone top (shot direction): 0° = into face. */
+const SHOT_RELATIVE_ARROWS = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
+
+export function windArrowRelativeToShot(windFrom, shotBearing) {
+  if (![windFrom, shotBearing].every(Number.isFinite)) return null;
+  const rel = signedAngle(windFrom - shotBearing);
+  const idx = ((Math.round(rel / 45) % 8) + 8) % 8;
+  return SHOT_RELATIVE_ARROWS[idx];
+}
+
+/** Map vector components to Shot Caddie head / cross / tail segments. */
+export function classifyWindOnShot(relative) {
+  if (!relative || !Number.isFinite(relative.headMph)) return null;
+  const absHead = relative.headMagnitudeMph;
+  const absCross = relative.crossMagnitudeMph;
+  if (absHead < 1 && absCross < 1) return "cross";
+  if (absCross > absHead * 1.15) return "cross";
+  if (relative.headMph >= 1) return "head";
+  if (relative.headMph <= -1) return "tail";
+  return "cross";
+}
+
+export function headingFromOrientationEvent(event) {
+  if (!event || typeof event !== "object") return null;
+  let value = null;
+  if (Number.isFinite(event.webkitCompassHeading)) value = event.webkitCompassHeading;
+  else if (event.absolute === true && Number.isFinite(event.alpha)) value = 360 - event.alpha;
+  if (!Number.isFinite(value)) return null;
+  return wrapBearing(value);
+}

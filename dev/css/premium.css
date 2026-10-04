@@ -1525,6 +1525,34 @@
   color: var(--brand-ink);
 }
 
+.fw-shot-compass-row {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0 2px;
+  flex-wrap: wrap;
+}
+
+.fw-shot-compass-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, #d9e7dc);
+  background: #f6faf7;
+  color: var(--text-secondary, #496c55);
+}
+
+.fw-shot-compass-btn:disabled {
+  opacity: 0.45;
+}
+
+.fw-shot-compass-status {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-secondary, #61796d);
+  margin: 0 0 6px;
+}
+
 .fw-shot-cond {
   display: flex;
   justify-content: space-between;

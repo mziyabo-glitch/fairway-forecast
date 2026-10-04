@@ -7,7 +7,18 @@ import {
 import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
 import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js?v=20261003-free";
 import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261004-caddie";
-import { renderShotCaddieView, renderShotResult, wireShotCaddieView } from "./views/ShotCaddieView.js?v=20261004-caddie";
+import {
+  renderShotCaddieView,
+  renderShotResult,
+  wireShotCaddieView,
+  formatWindLine,
+} from "./views/ShotCaddieView.js?v=20261004-compass";
+import { createShotCompass } from "./shot-compass.js?v=20261004-compass";
+import {
+  classifyWindOnShot,
+  windArrowRelativeToShot,
+  windRelativeToShot,
+} from "../../shared/wind-caddie.js";
 import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261003-free";
 import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
@@ -167,6 +178,11 @@ class FairwayApp {
     this.shotVisitOpen = false;
     this.shotDistanceTracked = "";
     this.shotRecSig = "";
+    this.shotCompass = null;
+    this.shotCompassStatus = "";
+    this.shotCompassStarted = false;
+    this.shotWindManual = false;
+    this.shotGpsRequested = false;
     this.editingRoundId = null;
     this.roundLimitNote = "";
     this.roundAlerts = [];
@@ -311,7 +327,11 @@ class FairwayApp {
     if (tab === "forecast" && !this.selectedCourse) {
       tab = "home";
     }
-    if (tab !== "caddie") this.shotVisitOpen = false;
+    if (tab !== "caddie") {
+      this.shotVisitOpen = false;
+      this.stopShotCompass();
+      this.shotCompassStarted = false;
+    }
     this.activeTab = tab;
     if (history) {
       const course = tab === "forecast" ? this.shareParam() : this.sharedCourseMissing ? this.sharedCourseParam : "";
@@ -1514,8 +1534,23 @@ class FairwayApp {
     return this.shotBag;
   }
 
-  getShotState() {
-    const bag = this.ensureShotBag();
+  ensureShotCompass() {
+    if (this.shotCompass) return this.shotCompass;
+    this.shotCompass = createShotCompass({
+      onHeading: (bearing) => this.onShotCompassHeading(bearing),
+      onStatus: (text) => {
+        this.shotCompassStatus = text;
+        this.updateShotCompassDom();
+      },
+    });
+    return this.shotCompass;
+  }
+
+  stopShotCompass() {
+    this.shotCompass?.stop();
+  }
+
+  shotConditionsOnly() {
     let rainAnalysis = null;
     if (this.norm && this.selectedTeeTime) {
       const windowHours = getRoundDurationHours(this.holes);
@@ -1526,7 +1561,7 @@ class FairwayApp {
         this.norm.timezoneOffset || 0
       );
     }
-    const conditions = shotConditionsFromForecast({
+    return shotConditionsFromForecast({
       loaded: Boolean(this.norm),
       units: this.units,
       teeTimeUnix: this.selectedTeeTime,
@@ -1534,6 +1569,146 @@ class FairwayApp {
       current: this.norm?.current || null,
       rainAnalysis,
     });
+  }
+
+  buildShotCompassState(conditions) {
+    const state = this.shotCompass?.getState() || {};
+    const shotBearing = state.shotBearing ?? null;
+    let relative = null;
+    let relativeArrow = null;
+    let relativeLabel = null;
+    if (conditions.windKnown && Number.isFinite(conditions.windDeg) && shotBearing != null) {
+      relative = windRelativeToShot({
+        windFrom: conditions.windDeg,
+        shotBearing,
+        speedMph: conditions.windMph,
+      });
+      relativeArrow = windArrowRelativeToShot(conditions.windDeg, shotBearing);
+      relativeLabel = relative?.label || null;
+    }
+    const listening = Boolean(state.listening);
+    return {
+      available: typeof window !== "undefined" && "DeviceOrientationEvent" in window,
+      listening,
+      heading: state.heading ?? null,
+      locked: Boolean(state.locked),
+      shotBearing,
+      relativeArrow,
+      relativeLabel,
+      compassActive: listening && shotBearing != null,
+      manualWind: this.shotWindManual,
+      status: this.shotCompassStatus,
+    };
+  }
+
+  applyCompassWindSegment(conditions, shotBearing) {
+    if (!conditions.windKnown || !Number.isFinite(conditions.windDeg) || shotBearing == null) return;
+    const relative = windRelativeToShot({
+      windFrom: conditions.windDeg,
+      shotBearing,
+      speedMph: conditions.windMph,
+    });
+    const segment = classifyWindOnShot(relative);
+    if (!segment) return;
+    this.ensureShotBag();
+    if (this.shotSetup.windOnShot === segment) return;
+    this.shotSetup = { ...this.shotSetup, windOnShot: segment };
+    saveShotSetup(this.shotSetup);
+    this.shotRecSig = "";
+  }
+
+  onShotCompassHeading() {
+    if (this.activeTab !== "caddie") return;
+    const conditions = this.shotConditionsOnly();
+    const shotBearing = this.shotCompass?.shotBearing();
+    if (!this.shotWindManual && shotBearing != null) {
+      this.applyCompassWindSegment(conditions, shotBearing);
+    }
+    this.updateShotCompassDom();
+  }
+
+  updateShotCompassDom() {
+    if (this.activeTab !== "caddie" || (this.shotPanel || "shot") !== "shot") return;
+    const conditions = this.shotConditionsOnly();
+    const compass = this.buildShotCompassState(conditions);
+    const bag = this.ensureShotBag();
+    const units = bag.units === "m" ? "m" : "yd";
+    const windOnShot = this.shotSetup.windOnShot;
+
+    const line = document.getElementById("fwShotWindLine");
+    if (line) line.textContent = formatWindLine(conditions, compass);
+
+    const status = document.getElementById("fwShotCompassStatus");
+    if (status) status.textContent = compass.status || "";
+
+    document.querySelectorAll("[data-shot-wind]").forEach((btn) => {
+      const value = btn.getAttribute("data-shot-wind");
+      const active = value === windOnShot;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    const lockBtn = document.getElementById("fwShotCompassLock");
+    if (lockBtn) {
+      lockBtn.textContent = compass.locked ? "Unlock" : "Lock aim";
+      lockBtn.disabled = compass.heading == null && !compass.locked;
+    }
+    const startBtn = document.getElementById("fwShotCompassStart");
+    if (startBtn) startBtn.textContent = compass.listening ? "Compass on" : "Use compass";
+
+    const rec = recommendShot({
+      target: this.shotTarget || "",
+      units,
+      windOnShot,
+      windMph: conditions.windKnown ? conditions.windMph : null,
+      rain: conditions.rainKey,
+      ground: this.shotSetup.ground,
+      clubs: bag.clubs,
+    });
+    const slot = document.getElementById("fwShotResult");
+    if (slot) slot.innerHTML = renderShotResult(rec, units);
+    this.maybeTrackShotRecommendation(rec);
+  }
+
+  async onShotCompassStart() {
+    this.ensureShotCompass();
+    this.shotWindManual = false;
+    const ok = await this.shotCompass.start();
+    if (ok) {
+      const conditions = this.shotConditionsOnly();
+      const bearing = this.shotCompass.shotBearing();
+      if (bearing != null) this.applyCompassWindSegment(conditions, bearing);
+    }
+    this.render();
+  }
+
+  onShotCompassLock() {
+    this.ensureShotCompass();
+    const locked = this.shotCompass.getState().locked;
+    if (locked) {
+      this.shotCompass.unlock();
+      this.shotWindManual = false;
+    } else if (this.shotCompass.lock()) {
+      this.shotWindManual = false;
+      const conditions = this.shotConditionsOnly();
+      this.applyCompassWindSegment(conditions, this.shotCompass.shotBearing());
+    }
+    this.render();
+  }
+
+  maybeShotGeolocation() {
+    if (this.shotGpsRequested || typeof navigator === "undefined" || !navigator.geolocation) return;
+    this.shotGpsRequested = true;
+    navigator.geolocation.getCurrentPosition(
+      () => {},
+      () => {},
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }
+
+  getShotState() {
+    const bag = this.ensureShotBag();
+    const conditions = this.shotConditionsOnly();
     return {
       panel: this.shotPanel || "shot",
       hasWeather: Boolean(this.norm),
@@ -1544,6 +1719,7 @@ class FairwayApp {
       windOnShot: this.shotSetup.windOnShot,
       ground: this.shotSetup.ground,
       clubs: bag.clubs,
+      compass: this.buildShotCompassState(conditions),
     };
   }
 
@@ -1591,6 +1767,7 @@ class FairwayApp {
 
   onShotWind(wind) {
     this.ensureShotBag();
+    this.shotWindManual = true;
     this.shotSetup = { ...this.shotSetup, windOnShot: wind };
     saveShotSetup(this.shotSetup);
     this.render();
@@ -1731,8 +1908,35 @@ class FairwayApp {
         onWind: (wind) => this.onShotWind(wind),
         onGround: (ground) => this.onShotGround(ground),
         onClubCarry: (id, value) => this.onShotClubCarry(id, value),
+        onCompassStart: () => this.onShotCompassStart(),
+        onCompassLock: () => this.onShotCompassLock(),
       });
-      if (shotState.panel === "shot" && shotState.hasWeather) this.maybeTrackShotRecommendation(this.shotRecommendation());
+      if (shotState.panel === "shot" && shotState.hasWeather) {
+        this.ensureShotCompass();
+        if (!this.shotCompassStarted) {
+          this.shotCompassStarted = true;
+          void this.shotCompass.start().then((ok) => {
+            if (ok && this.activeTab === "caddie") {
+              const conditions = this.shotConditionsOnly();
+              const bearing = this.shotCompass.shotBearing();
+              if (bearing != null && !this.shotWindManual) {
+                this.applyCompassWindSegment(conditions, bearing);
+              }
+              this.updateShotCompassDom();
+            }
+          });
+        }
+        this.maybeShotGeolocation();
+        const testHeading = new URLSearchParams(location.search).get("shotHeading");
+        if (testHeading != null && Number.isFinite(Number(testHeading))) {
+          this.shotCompass.setHeadingForTest(Number(testHeading));
+          if (!this.shotWindManual) {
+            this.applyCompassWindSegment(this.shotConditionsOnly(), this.shotCompass.shotBearing());
+          }
+          this.updateShotCompassDom();
+        }
+        this.maybeTrackShotRecommendation(this.shotRecommendation());
+      }
     } else if (this.activeTab === "alerts") {
       main.innerHTML = renderAlertsView({
         alerts: this.roundAlerts,
