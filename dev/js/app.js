@@ -3,10 +3,10 @@ import {
   wireBottomNav,
   setActiveTab,
   wireSheet,
-} from "./components/AppShell.js?v=20261004-caddie";
+} from "./components/AppShell.js?v=20261005-round-flow";
 import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
-import { renderPremiumLocks, renderPremiumSheet } from "./components/PremiumLock.js?v=20261003-free";
-import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261004-caddie";
+import { renderPremiumLocks, renderPremiumSheet, renderCaddiesGate } from "./components/PremiumLock.js?v=20261005-owner-google";
+import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261005-round-flow";
 import {
   renderShotCaddieView,
   renderShotResult,
@@ -22,16 +22,16 @@ import {
   windRelativeToShot,
   wrapBearing,
 } from "../../shared/wind-caddie.js";
-import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261003-free";
-import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261002-share";
+import { renderHomeView, wireHomeView } from "./views/HomeView.js?v=20261005-round-flow";
+import { renderCoursesView, wireCoursesView } from "./views/CoursesView.js?v=20261005-round-flow";
 import { renderRoundsView, wireRoundsView } from "./views/RoundsView.js";
 import { renderAlertsView, wireAlerts } from "./views/AlertsView.js";
 import { renderSocietyView, wireSocietyView } from "./views/SocietyView.js";
-import { renderAccountView, wireAccountView } from "./views/AccountView.js?v=20261003-free";
+import { renderAccountView, wireAccountView } from "./views/AccountView.js?v=20261005-round-flow";
 import { renderSettingsView, wireSettingsView } from "./views/SettingsView.js?v=20261003-free";
 import { tabFromPath, syncHistory, wireHistory } from "./router.js?v=20261004-caddie";
 import { featureOn, isAdvancedDev } from "./features/gates.js?v=20261003-free";
-import { closeSheet, openSheet } from "./components/AppShell.js?v=20261004-caddie";
+import { closeSheet, openSheet } from "./components/AppShell.js?v=20261005-round-flow";
 import { renderMoreMenu } from "./components/MoreMenu.js";
 import { renderSoftGate, wireSoftGate } from "./components/SoftGate.js";
 import { renderExtendedOutlook } from "./components/ExtendedOutlook.js";
@@ -46,7 +46,7 @@ import {
   FREE_SAVED_ROUND_LIMIT,
   getEntitlementTier,
   setEntitlementTier,
-} from "./entitlements/entitlements.js?v=20261003-free";
+} from "./entitlements/entitlements.js?v=20261005-owner-google";
 import { devFeatures } from "./config/devFeatures.js?v=20261003-free";
 import { selectSponsoredPlacement } from "./monetisation/placement.js";
 import { renderAdsenseSlot, renderSponsoredGolfCard } from "./monetisation/SponsoredGolfCard.js";
@@ -97,7 +97,7 @@ import {
   getWindowData,
   summarizeCoursePlayability,
   isMaterialTeeShift,
-} from "../../shared/forecast-engine.js";
+} from "../../shared/forecast-engine.js?v=20261005-round-flow";
 import { weatherIdToIcon, scoreToVerdict } from "../../shared/utils.js";
 import { formatRadiusLabel } from "../../shared/geo.js";
 import { track, AnalyticsEvents } from "../../shared/analytics.js";
@@ -112,6 +112,7 @@ import {
   saveShotSetup,
 } from "../../shared/shot-clubs.js?v=20261004-caddie";
 
+import { restoreOwnerSession, onOwnerSessionChange, wireOwnerLogin, renderOwnerControls, wireOwnerControls } from "./auth/owner-session.js?v=20261005-owner-google";
 const APP = window.APP_CONFIG || {};
 const FAV_FETCH_LIMIT = 5;
 
@@ -146,6 +147,7 @@ class FairwayApp {
     this.norm = null;
     this.weatherMeta = null;
     this.weatherLoading = false;
+    this.weatherRequestId = 0;
     this.error = null;
 
     this.holes = this.persistence.getHolesPreference();
@@ -240,6 +242,9 @@ class FairwayApp {
     document.getElementById("fwMoreBtn")?.addEventListener("click", () => this.openMore());
     wireBottomNav((tab) => this.navigate(tab));
     wireHistory((tab) => this.navigate(tab, { history: false }));
+    onOwnerSessionChange(() => this.render());
+    void restoreOwnerSession();
+    window.addEventListener("focus", () => { void restoreOwnerSession(); });
 
     try {
       await this.courseService.loadCatalog();
@@ -418,6 +423,7 @@ class FairwayApp {
     if (!resolved) return;
     const course = this.withDataset(resolved);
 
+    this.clearRoundWeather();
     this.sharedCourseMissing = false;
     this.selectedCourse = course;
     this.persistence.saveLastCourse(course);
@@ -446,31 +452,47 @@ class FairwayApp {
     if (nowFav) this.loadFavouriteSummaries();
   }
 
+  clearRoundWeather() {
+    this.weatherRequestId++;
+    this.norm = null;
+    this.weatherMeta = null;
+    this.dayScores = {};
+    this.daylightSeries = [];
+    this.groundSignals = null;
+    this.error = null;
+    this.weatherLoading = true;
+  }
+
   async loadWeather({ silent = false } = {}) {
     if (!this.selectedCourse) return;
 
-    this.weatherLoading = true;
+    const course = this.selectedCourse;
+    this.clearRoundWeather();
+    const requestId = this.weatherRequestId;
     if (!silent) this.error = null;
     this.render();
 
     try {
       const raw = await fetchWeather(
         this.apiBase,
-        this.selectedCourse.lat,
-        this.selectedCourse.lon,
+        course.lat,
+        course.lon,
         this.units
       );
+      if (requestId !== this.weatherRequestId) return;
       this.weatherMeta = getWeatherMeta(raw);
       this.norm = normalizeWeather(raw);
       this.initForecastState();
       if (isAdvancedDev() && featureOn("eveningPractice")) {
-        await this.ensureDaylight();
+        await this.ensureDaylight(requestId);
       }
+      if (requestId !== this.weatherRequestId) return;
       if (isAdvancedDev() && featureOn("groundConditionRisk")) {
-        await this.ensureGround();
+        await this.ensureGround(requestId);
       } else {
         this.groundSignals = null;
       }
+      if (requestId !== this.weatherRequestId) return;
       if (this.openedRoundId) {
         const forecast = this.getForecastState();
         this.persistence.updateRoundForecast(
@@ -479,14 +501,17 @@ class FairwayApp {
         );
       }
     } catch (err) {
+      if (requestId !== this.weatherRequestId) return;
       this.error = err.message || "Could not load weather forecast.";
       this.norm = null;
       this.weatherMeta = null;
       this.groundSignals = null;
     } finally {
-      this.weatherLoading = false;
-      this.render();
-      if (typeof lucide !== "undefined") lucide.createIcons();
+      if (requestId === this.weatherRequestId) {
+        this.weatherLoading = false;
+        this.render();
+        if (typeof lucide !== "undefined") lucide.createIcons();
+      }
     }
   }
 
@@ -595,10 +620,12 @@ class FairwayApp {
         tzOffset
       );
 
-      rainAnalysis = analyzeRainDuringRound(hourly, this.selectedTeeTime, windowHours, tzOffset);
-      impactCards = getImpactCards(verdict, this.units);
+      if (verdict.label === "No Data") verdict = null;
 
-      if (selectedDate) {
+      rainAnalysis = analyzeRainDuringRound(hourly, this.selectedTeeTime, windowHours, tzOffset);
+      impactCards = verdict ? getImpactCards(verdict, this.units) : null;
+
+      if (selectedDate && verdict) {
         betterTee = findBetterTeeTime(
           this.norm,
           selectedDate,
@@ -666,6 +693,7 @@ class FairwayApp {
     return {
       course: this.selectedCourse,
       weatherLoading: this.weatherLoading,
+      error: this.error,
       verdict: forecast.verdict,
       selectedTeeTime: this.selectedTeeTime,
       tzOffset: forecast.tzOffset,
@@ -985,6 +1013,7 @@ class FairwayApp {
   async openRound(id) {
     const round = this.persistence.getRound(id);
     if (!round?.course) return;
+    this.clearRoundWeather();
     this.selectedCourse = normalizeCourse(round.course);
     this.holes = round.holes === 9 ? 9 : 18;
     this.selectedDateKey = round.date;
@@ -1012,6 +1041,7 @@ class FairwayApp {
   async playAgain(id) {
     const round = this.persistence.getRound(id);
     if (!round?.course) return;
+    this.clearRoundWeather();
     this.selectedCourse = normalizeCourse(round.course);
     this.holes = round.holes === 9 ? 9 : 18;
     this.selectedDateKey = null;
@@ -1143,20 +1173,21 @@ class FairwayApp {
     return map;
   }
 
-  async ensureGround() {
+  async ensureGround(requestId = this.weatherRequestId) {
     if (!isAdvancedDev() || !featureOn("groundConditionRisk") || !this.norm || !this.selectedCourse) {
       this.groundSignals = null;
       return;
     }
     try {
-      this.groundSignals = await loadDevGroundSignals(this.norm, {
+      const signals = await loadDevGroundSignals(this.norm, {
         lat: this.selectedCourse.lat,
         lon: this.selectedCourse.lon,
         units: this.units,
         allowFetch: true,
       });
+      if (requestId === this.weatherRequestId) this.groundSignals = signals;
     } catch {
-      this.groundSignals = { pastRain: null, freezing: null, drying: null, source: "unavailable" };
+      if (requestId === this.weatherRequestId) this.groundSignals = { pastRain: null, freezing: null, drying: null, source: "unavailable" };
     }
   }
 
@@ -1173,7 +1204,7 @@ class FairwayApp {
     }
   }
 
-  async ensureDaylight() {
+  async ensureDaylight(requestId = this.weatherRequestId) {
     if (
       !isAdvancedDev() ||
       !featureOn("eveningPractice") ||
@@ -1184,10 +1215,11 @@ class FairwayApp {
       this.daylightSeries = [];
       return;
     }
-    this.daylightSeries = await loadDevDaylightSeries(this.norm, {
+    const series = await loadDevDaylightSeries(this.norm, {
       lat: this.selectedCourse.lat,
       lon: this.selectedCourse.lon,
     });
+    if (requestId === this.weatherRequestId) this.daylightSeries = series;
   }
 
   eveningPracticeHtml() {
@@ -1397,7 +1429,7 @@ class FairwayApp {
 
   moreItems() {
     const items = [];
-    items.push({ id: "caddie", label: "Shot Caddie", hint: "Distance, wind on the shot, and a club" });
+    items.push({ id: "caddie", label: "Caddies", hint: "Premium · Coming soon" });
     if (featureOn("weatherAlerts")) items.push({ id: "alerts", label: "Alerts", hint: "In-app weather changes" });
     if (featureOn("societyWeather")) items.push({ id: "society", label: "Society", hint: "Score a run of tee times" });
 
@@ -1913,6 +1945,15 @@ class FairwayApp {
       });
       wireSoftGate(main, () => this.navigate("account"));
     } else if (this.activeTab === "caddie") {
+      if (!canAccess("caddies")) {
+        this.stopShotCompass();
+        main.innerHTML = `<div class="fw-view">${renderCaddiesGate()}</div>`;
+        wireOwnerLogin(main);
+        main.querySelector("[data-caddies-forecast]")?.addEventListener("click", () => this.navigate(this.selectedCourse ? "forecast" : "courses"));
+        setActiveTab(this.activeTab);
+        if (typeof lucide !== "undefined") lucide.createIcons();
+        return;
+      }
       const shotState = this.getShotState();
       main.innerHTML = renderShotCaddieView(shotState);
       wireShotCaddieView(main, {
@@ -2007,6 +2048,10 @@ class FairwayApp {
       });
     }
 
+    if (canAccess("caddies")) {
+      main.insertAdjacentHTML("afterbegin", renderOwnerControls());
+      wireOwnerControls(main);
+    }
     const note = this.offlineNote();
     if (note) main.insertAdjacentHTML("afterbegin", note);
     setActiveTab(this.activeTab);

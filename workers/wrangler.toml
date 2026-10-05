@@ -1,0 +1,10 @@
+name = "fairway-owner-auth"
+main = "owner-auth.js"
+compatibility_date = "2026-10-05"
+workers_dev = false
+routes = [{ pattern = "auth.fairwayweather.com", custom_domain = true }]
+
+[vars]
+ALLOWED_ORIGINS = "https://www.fairwayweather.com,https://fairwayweather.com"
+# Set GOOGLE_CLIENT_ID, OWNER_EMAIL and SESSION_SECRET using wrangler secret put.
+# For a Google account outside Gmail/Workspace, also set OWNER_GOOGLE_SUB.

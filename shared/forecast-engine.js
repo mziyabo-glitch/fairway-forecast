@@ -435,12 +435,12 @@ export function computeGolfVerdict(
   countryCode = "gb",
   tzOffset = 0
 ) {
-  if (!windowData?.length) {
+  if (!windowData?.length || windowData.some(hour => !Number.isFinite(hour.temp) || !Number.isFinite(hour.wind_speed))) {
     return {
-      score: 0,
-      status: scoreToStatus(0),
-      verdict: "AVOID",
-      message: "No forecast data available for this time window.",
+      score: null,
+      status: null,
+      verdict: null,
+      message: "Not enough forecast data available for this time window.",
       factors: [],
       metrics: {},
       reasons: [],
@@ -637,10 +637,10 @@ export function calculateDayScore(norm, date, units = "metric", windowHours = 4,
     );
     if (!dayHourly.length) {
       return {
-        score: 0,
-        bestScore: 0,
-        representativeScore: 0,
-        status: scoreToStatus(0),
+        score: null,
+        bestScore: null,
+        representativeScore: null,
+        status: null,
         weatherIcon: "☁️",
         bestTeeTime: null,
         bestTeeTimeUnix: null,
@@ -663,10 +663,13 @@ export function calculateDayScore(norm, date, units = "metric", windowHours = 4,
   let bestTeeTime = null;
   let bestWindow = null;
   let totalScore = 0;
+  let scoredTimes = 0;
 
   for (const t of times) {
     const windowData = getWindowData(norm.hourly, t.value, windowHours);
     const v = computeGolfVerdict(windowData, norm.hourly, t.value, windowHours, units, countryCode);
+    if (!Number.isFinite(v.score)) continue;
+    scoredTimes++;
     totalScore += v.score;
     if (v.score > bestScore) {
       bestScore = v.score;
@@ -675,7 +678,8 @@ export function calculateDayScore(norm, date, units = "metric", windowHours = 4,
     }
   }
 
-  const representativeScore = Math.round(totalScore / times.length);
+  if (!scoredTimes) return { score: null, bestScore: null, representativeScore: null, status: null, weatherIcon: "☁️", bestTeeTime: null, bestTeeTimeUnix: null };
+  const representativeScore = Math.round(totalScore / scoredTimes);
   return {
     score: bestScore,
     bestScore,
@@ -859,6 +863,7 @@ export function findBetterTeeTime(
     units,
     countryCode
   );
+  if (!Number.isFinite(currentV.score)) return null;
 
   let best = null;
   let bestScore = currentV.score;
@@ -867,7 +872,7 @@ export function findBetterTeeTime(
     if (t.value === currentTeeTime) continue;
     const windowData = getWindowData(norm.hourly, t.value, windowHours);
     const v = computeGolfVerdict(windowData, norm.hourly, t.value, windowHours, units, countryCode);
-    if (v.hardStop || v.verdict === "AVOID") continue;
+    if (!Number.isFinite(v.score) || v.hardStop || v.verdict === "AVOID") continue;
     if (v.score > bestScore) {
       bestScore = v.score;
       best = {
@@ -939,7 +944,7 @@ export function getBestDayThisWeek(dayScores, days) {
   let best = null;
   for (const d of days) {
     const ds = dayScores[d.dateKey];
-    if (!ds || !d.hasValidTimes) continue;
+    if (!ds || !d.hasValidTimes || !Number.isFinite(ds.bestScore)) continue;
     if (!best || ds.bestScore > best.score) {
       best = {
         dateKey: d.dateKey,
@@ -975,6 +980,7 @@ export function summarizeCoursePlayability(norm, units = "metric", countryCode =
   if (!day) return null;
 
   const ds = calculateDayScore(norm, day.date, units, windowHours, countryCode);
+  if (!Number.isFinite(ds.score)) return null;
   const current = norm?.current;
   const icon = ds.weatherIcon || weatherIdToIcon(current?.weather?.[0]?.id);
   const temp = Number.isFinite(current?.temp)

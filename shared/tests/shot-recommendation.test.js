@@ -140,15 +140,16 @@ describe("Shot Caddie aim UI", () => {
 });
 
 describe("Shot Caddie is in the primary shell", () => {
-  it("adds a Caddie nav item and Plan this shot under the verdict", () => {
+  it("marks Caddies as premium in navigation and below the verdict", () => {
     const shell = read("dev/js/components/AppShell.js");
     const forecast = read("dev/js/views/ForecastView.js");
     const router = read("dev/js/router.js");
-    assert.match(shell, /label: "Caddie"/);
-    assert.match(shell, /icon: "target"/);
-    assert.match(forecast, /Plan this shot/);
+    assert.match(shell, /label: "Caddies"/);
+    assert.match(shell, /icon: "lock-keyhole"/);
+    assert.match(forecast, /Explore Caddies · Premium/);
     assert.match(forecast, /id="fwPlanShot"/);
     assert.match(router, /"caddie"/);
     assert.doesNotMatch(forecast, /Wind Caddie/);
   });
 });
+

@@ -1,7 +1,7 @@
 import { esc, fmtTimeCourse, scoreToVerdict } from "../../../shared/utils.js";
 import { renderFavouriteStar, wireFavouriteStars } from "../components/FavouriteStar.js";
 import { renderShareButton, wireShareButtons } from "../components/ShareCourseButton.js";
-import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js?v=20261003-free";
+import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js?v=20261005-owner-google";
 import { renderFirstRunIntro, renderLoadingMark } from "../components/BrandMark.js";
 
 function greeting() {
@@ -51,6 +51,7 @@ export function renderHomeView(state = {}) {
   const {
     course,
     weatherLoading,
+    error,
     verdict,
     selectedTeeTime,
     tzOffset = 0,
@@ -111,9 +112,10 @@ export function renderHomeView(state = {}) {
               <p class="fw-home-message">${esc(verdict.message)}</p>
             </div>
           </div>`
-              : `<p class="fw-muted">Select Forecast to load conditions.</p>`
+              : `<p class="fw-muted" role="status">${error ? "Forecast unavailable. Open the forecast to try again." : "No round verdict available. Choose a date and tee time in Forecast."}</p>`
         }
         <button type="button" class="fw-btn fw-btn-primary fw-home-cta" data-action="forecast">View forecast</button>
+        <button type="button" class="fw-btn fw-btn-ghost" data-action="change-course">Change course</button>
       </section>
 
       ${
@@ -159,6 +161,7 @@ export function wireHomeView(container, handlers) {
   container?.querySelector("[data-action='forecast']")?.addEventListener("click", () => {
     handlers.onGoForecast?.();
   });
+  container?.querySelector("[data-action='change-course']")?.addEventListener("click", () => handlers.onNavigate?.("courses"));
 
   container?.querySelector("[data-action='nearby']")?.addEventListener("click", () => {
     handlers.onNearby?.();

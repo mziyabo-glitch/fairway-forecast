@@ -3,8 +3,8 @@ import {
   renderGolfVerdictHero,
   renderVerdictHeroSkeleton,
   wireGolfVerdictHero,
-} from "../components/GolfVerdictHero.js?v=20260930-2";
-import { renderRoundSelector, wireRoundSelector } from "../components/RoundSelector.js";
+} from "../components/GolfVerdictHero.js?v=20261005-round-flow";
+import { renderRoundSelector, wireRoundSelector } from "../components/RoundSelector.js?v=20261005-round-flow";
 import { renderRainTimeline, renderRainTimelineSkeleton } from "../components/RainTimeline.js";
 import { renderWeatherImpactCards } from "../components/WeatherImpactCard.js";
 import {
@@ -13,9 +13,9 @@ import {
   wireBestTeeTimeCard,
 } from "../components/ScoreExplanation.js";
 import { renderHourlyForecast, wireHourlyForecast } from "../components/HourlyForecast.js";
-import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js?v=20261003-free";
-import { openSheet } from "../components/AppShell.js";
-import { esc } from "../../../shared/utils.js";
+import { renderPremiumLocks, wirePremiumLocks } from "../components/PremiumLock.js?v=20261005-owner-google";
+import { openSheet } from "../components/AppShell.js?v=20261005-round-flow";
+import { esc, fmtTimeCourse } from "../../../shared/utils.js";
 import { wireEveningPractice } from "../components/EveningPractice.js";
 
 export function renderForecastView(state) {
@@ -68,25 +68,35 @@ export function renderForecastView(state) {
       </div>`;
   }
 
-  if (error && !verdict) {
+  if (!weatherLoading && (error || !days?.length) && !verdict) {
     return `
       <div class="fw-view fw-view-forecast">
         <div class="fw-error-state" role="alert">
           <i data-lucide="cloud-off"></i>
           <h2>Forecast unavailable</h2>
-          <p>${esc(error)}</p>
+          <p>${esc(error || "No forecast data is available for this course right now.")}</p>
           <button type="button" class="fw-btn fw-btn-primary" id="fwRetryForecast">Try again</button>
         </div>
       </div>`;
   }
 
-  const showSkeleton = weatherLoading && !verdict;
+  const showSkeleton = Boolean(weatherLoading);
   const dayStripHtml = showSkeleton
     ? renderDayForecastStrip([], selectedDateKey, dayScores)
     : renderDayForecastStrip(days, selectedDateKey, dayScores);
 
+  const selectedDay = days?.find(day => day.dateKey === selectedDateKey);
+  const roundSummary = selectedTeeTime
+    ? `${selectedDay?.dateLabel || selectedDateKey} · ${fmtTimeCourse(selectedTeeTime, tzOffset)}–${fmtTimeCourse(selectedTeeTime + windowHours * 3600, tzOffset)} · ${holes} holes · Course local time`
+    : "";
   const heroHtml = showSkeleton
     ? renderVerdictHeroSkeleton()
+    : !verdict
+    ? `<section class="fw-round-unavailable" role="status">
+        <h2 class="fw-section-title">No round verdict available</h2>
+        <p>There is not enough forecast data for this round. Try another day, tee time or round length.</p>
+        <button type="button" class="fw-btn fw-btn-secondary" id="fwRetryForecast">Refresh forecast</button>
+      </section>`
     : renderGolfVerdictHero({
         score: verdict?.score ?? scoreResult?.score,
         status: verdict?.status ?? scoreResult?.status,
@@ -97,6 +107,7 @@ export function renderForecastView(state) {
         weatherIcon,
         scoreCaption,
         safetyActive,
+        roundSummary,
       });
 
   const roundHtml = renderRoundSelector({
@@ -106,13 +117,14 @@ export function renderForecastView(state) {
     windowHours,
     tzOffset,
     teeTimeUnix: selectedTeeTime,
+    loading: showSkeleton,
   });
 
-  const rainHtml = showSkeleton ? renderRainTimelineSkeleton() : renderRainTimeline(rainAnalysis);
+  const rainHtml = showSkeleton ? renderRainTimelineSkeleton() : verdict ? renderRainTimeline(rainAnalysis) : "";
   const impactHtml = showSkeleton
     ? renderWeatherImpactCards(null)
-    : renderWeatherImpactCards(impactCards, verdict?.metrics);
-  const betterHtml = !showSkeleton && betterTee ? renderBestTeeTimeCard(betterTee) : "";
+    : verdict ? renderWeatherImpactCards(impactCards, verdict?.metrics) : "";
+  const betterHtml = !showSkeleton && verdict && betterTee ? renderBestTeeTimeCard(betterTee) : "";
   const hourlyHtml = showSkeleton
     ? ""
     : renderHourlyForecast({ hourly, tzOffset, units, expanded: hourlyExpanded });
@@ -131,21 +143,27 @@ export function renderForecastView(state) {
             </p>`
           : ""
       }
-      <div id="fwDayStripMount">${dayStripHtml}</div>
+      <section class="fw-round-setup" aria-label="Plan your round">
+        <h2 class="fw-section-title">Plan your round</h2>
+        <p class="fw-planning-intro">Set your date, tee time and round length.</p>
+        <h3 class="fw-round-date-label">Date</h3>
+        <div id="fwDayStripMount">${dayStripHtml}</div>
+        <div id="fwRoundMount">${roundHtml}</div>
+      </section>
       <div class="fw-verdict-stack">
         <div id="fwHeroMount">${heroHtml}</div>
         ${
           showSkeleton || !verdict
             ? ""
-            : `<button type="button" class="fw-btn fw-btn-primary fw-shot-plan" id="fwPlanShot">Plan this shot</button>`
+            : `<button type="button" class="fw-btn fw-btn-secondary fw-shot-plan" id="fwPlanShot">Explore Caddies · Premium</button>`
         }
       </div>
       ${dimensionsHtml ? `<div id="fwDimensionsMount">${dimensionsHtml}</div>` : ""}
-      <div id="fwRoundMount">${roundHtml}</div>
+      <div id="fwBetterMount">${betterHtml}</div>
       ${
         showSaveRound
           ? `<div class="fw-forecast-save-row">
-        <button type="button" class="fw-btn fw-btn-ghost" id="fwSaveRound" aria-live="polite">
+        <button type="button" class="fw-btn fw-btn-ghost" id="fwSaveRound" aria-live="polite" ${showSkeleton || !verdict ? "disabled" : ""}>
           ${roundSaved ? "✓ Round saved" : "Save this round"}
         </button>
         ${roundLimitNote ? `<p class="fw-muted">${esc(roundLimitNote)}</p>` : ""}
@@ -155,7 +173,6 @@ export function renderForecastView(state) {
       <div id="fwRainMount">${rainHtml}</div>
       <div id="fwImpactMount">${impactHtml}</div>
       ${eveningHtml ? `<div id="fwEveningMount">${eveningHtml}</div>` : ""}
-      <div id="fwBetterMount">${betterHtml}</div>
       <div id="fwHourlyMount">${hourlyHtml}</div>
       ${premiumHtml ? `<div id="fwPremiumMount">${premiumHtml}</div>` : ""}
       ${extendedOutlookHtml ? `<div id="fwExtendedOutlookMount">${extendedOutlookHtml}</div>` : ""}

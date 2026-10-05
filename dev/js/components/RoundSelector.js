@@ -32,18 +32,19 @@ function buildTeeCarousel(teeTimes, selectedTeeTime) {
       </div>
       <button type="button" class="fw-tee-nav" data-tee-nav="next" aria-label="Later tee time" ${canNext ? "" : "disabled"}>›</button>
     </div>
-    <select id="fwTeeTimeSelect" class="fw-select fw-select--sr" aria-label="All tee times">
+    <label class="fw-tee-all-label" for="fwTeeTimeSelect">All tee times</label>
+    <select id="fwTeeTimeSelect" class="fw-select" aria-label="All tee times">
       ${teeTimes.map((t) => `<option value="${t.value}" ${t.value === selectedTeeTime ? "selected" : ""}>${esc(t.label)}</option>`).join("")}
     </select>`;
 }
 
-export function renderRoundSelector({ teeTimes, selectedTeeTime, holes }) {
+export function renderRoundSelector({ teeTimes, selectedTeeTime, holes, loading = false }) {
   return `
     <section class="fw-round-selector" aria-label="Tee time and round length">
-      <div class="fw-round-tee-block">${buildTeeCarousel(teeTimes, selectedTeeTime)}</div>
+      <div class="fw-round-tee-block"><h3 class="fw-section-title fw-section-title--subtle">Tee time</h3>${loading ? '<p class="fw-muted" role="status">Loading tee times…</p>' : buildTeeCarousel(teeTimes, selectedTeeTime)}</div>
       <div class="fw-hole-toggle" role="group" aria-label="Round length">
-        <button type="button" class="fw-hole-btn ${holes === 9 ? "is-active" : ""}" data-holes="9">9 holes</button>
-        <button type="button" class="fw-hole-btn ${holes === 18 ? "is-active" : ""}" data-holes="18">18 holes</button>
+        <button type="button" class="fw-hole-btn ${holes === 9 ? "is-active" : ""}" data-holes="9" aria-pressed="${holes === 9}">9 holes · ~2h</button>
+        <button type="button" class="fw-hole-btn ${holes === 18 ? "is-active" : ""}" data-holes="18" aria-pressed="${holes === 18}">18 holes · ~4h</button>
       </div>
     </section>`;
 }
