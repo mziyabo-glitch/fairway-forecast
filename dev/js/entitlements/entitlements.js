@@ -4,6 +4,7 @@
  * No billing verification exists yet. Never trust a locally stored paid tier.
  */
 import { createJsonStore } from "../storage/jsonStore.js";
+import { hasOwnerAccess } from "../auth/owner-session.js?v=20261005-owner-google";
 
 export const ENTITLEMENT_TIERS = ["free"];
 export const FREE_SAVED_ROUND_LIMIT = Number.POSITIVE_INFINITY;
@@ -21,6 +22,7 @@ export const FEATURE_ACCESS = Object.freeze({
 const legacyTierStore = createJsonStore("fw_dev_entitlement_tier");
 
 export function canAccess(featureKey) {
+  if (featureKey === "caddies") return hasOwnerAccess();
   return Object.hasOwn(FEATURE_ACCESS, featureKey) && FEATURE_ACCESS[featureKey] === true;
 }
 

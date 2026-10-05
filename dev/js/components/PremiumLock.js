@@ -1,4 +1,5 @@
 /** Only Caddies is premium. Checkout is not connected yet. */
+import { renderOwnerLogin } from "../auth/owner-session.js?v=20261005-owner-google";
 export const PREMIUM_FEATURES = ["caddies"];
 
 export function renderPremiumLocks() {
@@ -21,6 +22,7 @@ export function renderCaddiesGate({ forecastPath = "" } = {}) {
       <li>Forecast wind relative to your target direction</li></ul>
     <p>Premium subscriptions are not available to purchase yet.</p>
     <p class="fw-muted">All weather forecasts and round-planning tools are free.</p>
+    ${renderOwnerLogin()}
     ${forecastPath
       ? `<a class="fw-btn fw-btn-primary" href="${forecastPath}">Back to free forecast</a>`
       : `<button type="button" class="fw-btn fw-btn-primary" data-caddies-forecast>Back to free forecast</button>`}

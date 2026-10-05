@@ -1902,9 +1902,13 @@
 .fw-caddies-gate .fw-page-title { margin-top: 16px; }
 .fw-premium-badge { display: inline-block; padding: 6px 10px; border-radius: 100px; color: var(--brand-deep); background: var(--accent-premium-soft); font-size: 12px; font-weight: 600; }
 .fw-fast-app[hidden] { display: none; }
+.fw-owner-login { margin: 20px 0; padding-top: 16px; border-top: 1px solid var(--border-soft); }
+.fw-owner-login summary { cursor: pointer; color: var(--text-secondary); font-size: 14px; }
+.fw-owner-login [data-owner-status] { font-size: 14px; }
+.fw-owner-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 10px 14px; border-radius: 12px; background: var(--brand-surface); font-size: 13px; }
+.fw-owner-controls [data-owner-signout-status]:empty { display: none; }
 
 @media (max-width: 380px) {
   .fw-round-setup { padding: 16px 12px; }
   .fw-round-setup .fw-hole-btn { padding-inline: 10px; font-size: 12px; }
 }
-

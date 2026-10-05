@@ -2,15 +2,35 @@ import { loadWindEstimate } from "../../shared/wind-source.js?v=20261003-shot";
 import { windRelativeToShot, cardinal, wrapBearing, signedAngle } from "../../shared/wind-caddie.js";
 import { PersistenceService } from "../../shared/persistence.js";
 import { initClubBag, syncClubBag } from "./components/ClubBag.js?v=20261003-fast";
-import { canAccess } from "./entitlements/entitlements.js?v=20261005-round-flow";
-import { renderCaddiesGate } from "./components/PremiumLock.js?v=20261005-round-flow";
+import { canAccess } from "./entitlements/entitlements.js?v=20261005-owner-google";
+import { renderCaddiesGate } from "./components/PremiumLock.js?v=20261005-owner-google";
+import { restoreOwnerSession, onOwnerSessionChange, wireOwnerLogin, renderOwnerControls, wireOwnerControls } from "./auth/owner-session.js?v=20261005-owner-google";
 
 const main = document.querySelector(".fw-fast-app");
-if (!canAccess("caddies")) {
-  main.innerHTML = renderCaddiesGate({ forecastPath: location.pathname.startsWith("/dev/") ? "/dev/forecast" : "/forecast" });
+const toolMarkup = main.innerHTML;
+let stopTools;
+let showingTools = false;
+function renderOwnerView() {
+  const allowed = canAccess("caddies");
+  if (allowed && showingTools) return;
+  stopTools?.();
+  stopTools = null;
+  showingTools = allowed;
+  main.innerHTML = allowed ? toolMarkup : renderCaddiesGate({ forecastPath: location.pathname.startsWith("/dev/") ? "/dev/forecast" : "/forecast" });
   main.hidden = false;
-} else {
-main.hidden = false;
+  if (allowed) {
+    main.insertAdjacentHTML("afterbegin", renderOwnerControls());
+    wireOwnerControls(main);
+    stopTools = startWindCaddie();
+  } else wireOwnerLogin(main);
+}
+onOwnerSessionChange(renderOwnerView);
+renderOwnerView();
+void restoreOwnerSession();
+window.addEventListener("focus", () => { void restoreOwnerSession(); });
+
+function startWindCaddie() {
+let disposed = false;
 const $ = id => document.getElementById(id);
 const isDev = location.pathname.startsWith("/dev/");
 $("back").href = isDev ? "/dev/forecast" : "/forecast";
@@ -27,7 +47,7 @@ let lastOrientationAt=0;
 $("source").textContent = coords ? "Saved course: " + coords.name : "Tap Use my location or choose a saved course in Forecast.";
 $("manual").value = "0";
 $("bearing").value = "0";
-const status = txt => { $("status").textContent = txt; };
+const status = txt => { if (!disposed) $("status").textContent = txt; };
 const initialPrompt = savedCourse ? "Loading wind for your saved course…" : "Tap Use my location to load a nearby wind estimate.";
 status(initialPrompt);
 $("compassInfo").textContent = initialPrompt;
@@ -50,6 +70,7 @@ function draw(result) {
  <text x="160" y="182" font-size="11" text-anchor="middle" fill="#61796d">YOU</text>`;
 }
 function render() {
+ if (disposed) return;
  const result=locked?windRelativeToShot({windFrom:wind?.deg,shotBearing:shot,speedMph:wind?.speed,gustMph:wind?.gust}):null;
  draw(result);
  $("shotLabel").textContent=shot+"° "+cardinal(shot);
@@ -94,6 +115,7 @@ $("lock").addEventListener("click",()=>{if(heading!=null){shot=Math.round(headin
 $("bearing").addEventListener("input",e=>{locked=true;shot=Number(e.target.value);$("manual").value=String(shot);render();});
 $("manual").addEventListener("change",e=>{const n=Number(e.target.value);if(!Number.isFinite(n)||n<0||n>=360){status("Enter a bearing from 0 to 359 degrees.");return;}locked=true;shot=Math.round(n);$("bearing").value=String(shot);render();});
 async function load(lat,lon,label) {
+ if (disposed) return;
  const request = ++latestRequest;
  coords = {lat,lon,name:label};
  loading = true; wind = null;
@@ -134,4 +156,10 @@ if(savedCourse){$("course").disabled=false;}else{$("course").disabled=true;}
 render();
 initClubBag();
 if(savedCourse) load(savedCourse.lat,savedCourse.lon,savedCourse.name || "Saved course");
+return () => {
+  disposed = true;
+  latestRequest++;
+  window.removeEventListener("deviceorientationabsolute", orientation);
+  window.removeEventListener("deviceorientation", orientation);
+};
 }

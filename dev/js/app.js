@@ -5,7 +5,7 @@ import {
   wireSheet,
 } from "./components/AppShell.js?v=20261005-round-flow";
 import { mountCourseHeader } from "./components/CourseHeader.js?v=20261002-share";
-import { renderPremiumLocks, renderPremiumSheet, renderCaddiesGate } from "./components/PremiumLock.js?v=20261005-round-flow";
+import { renderPremiumLocks, renderPremiumSheet, renderCaddiesGate } from "./components/PremiumLock.js?v=20261005-owner-google";
 import { renderForecastView, wireForecastView } from "./views/ForecastView.js?v=20261005-round-flow";
 import {
   renderShotCaddieView,
@@ -46,7 +46,7 @@ import {
   FREE_SAVED_ROUND_LIMIT,
   getEntitlementTier,
   setEntitlementTier,
-} from "./entitlements/entitlements.js?v=20261005-round-flow";
+} from "./entitlements/entitlements.js?v=20261005-owner-google";
 import { devFeatures } from "./config/devFeatures.js?v=20261003-free";
 import { selectSponsoredPlacement } from "./monetisation/placement.js";
 import { renderAdsenseSlot, renderSponsoredGolfCard } from "./monetisation/SponsoredGolfCard.js";
@@ -112,6 +112,7 @@ import {
   saveShotSetup,
 } from "../../shared/shot-clubs.js?v=20261004-caddie";
 
+import { restoreOwnerSession, onOwnerSessionChange, wireOwnerLogin, renderOwnerControls, wireOwnerControls } from "./auth/owner-session.js?v=20261005-owner-google";
 const APP = window.APP_CONFIG || {};
 const FAV_FETCH_LIMIT = 5;
 
@@ -241,6 +242,9 @@ class FairwayApp {
     document.getElementById("fwMoreBtn")?.addEventListener("click", () => this.openMore());
     wireBottomNav((tab) => this.navigate(tab));
     wireHistory((tab) => this.navigate(tab, { history: false }));
+    onOwnerSessionChange(() => this.render());
+    void restoreOwnerSession();
+    window.addEventListener("focus", () => { void restoreOwnerSession(); });
 
     try {
       await this.courseService.loadCatalog();
@@ -1944,6 +1948,7 @@ class FairwayApp {
       if (!canAccess("caddies")) {
         this.stopShotCompass();
         main.innerHTML = `<div class="fw-view">${renderCaddiesGate()}</div>`;
+        wireOwnerLogin(main);
         main.querySelector("[data-caddies-forecast]")?.addEventListener("click", () => this.navigate(this.selectedCourse ? "forecast" : "courses"));
         setActiveTab(this.activeTab);
         if (typeof lucide !== "undefined") lucide.createIcons();
@@ -2043,6 +2048,10 @@ class FairwayApp {
       });
     }
 
+    if (canAccess("caddies")) {
+      main.insertAdjacentHTML("afterbegin", renderOwnerControls());
+      wireOwnerControls(main);
+    }
     const note = this.offlineNote();
     if (note) main.insertAdjacentHTML("afterbegin", note);
     setActiveTab(this.activeTab);

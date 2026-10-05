@@ -16,9 +16,9 @@ describe("production shell is the premium app", () => {
   it("marks the new shell and boots /dev/js/app.js", () => {
     assert.match(html, /<html lang="en" data-fw-shell="premium">/);
     assert.match(html, /<title>FairwayWeather/);
-    assert.match(html, /<meta name="fw-asset-version" content="20261005-round-flow" \/>/);
+    assert.match(html, /<meta name="fw-asset-version" content="20261005-owner-google" \/>/);
     assert.match(html, /<script src="\/dev\/js\/asset-reload\.js"><\/script>/);
-    assert.match(html, /<script type="module" src="\/dev\/js\/app.js\?v=20261005-round-flow"><\/script>/);
+    assert.match(html, /<script type="module" src="\/dev\/js\/app.js\?v=20261005-owner-google"><\/script>/);
     assert.doesNotMatch(html, /src="\.\/app\.js"/);
     assert.doesNotMatch(html, /src="\/app\.js"/);
   });
