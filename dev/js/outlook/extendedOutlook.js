@@ -1,4 +1,4 @@
-import { calculateDayScore } from "../../../shared/forecast-engine.js";
+import { calculateDayScore } from "../../../shared/forecast-engine.js?v=20261005-round-flow";
 import { scoreToVerdict } from "../../../shared/utils.js";
 import {
   courseDateKey,
@@ -85,3 +85,4 @@ export function buildExtendedOutlook(
       : `Hourly and daily data cover ${availableDays} day${availableDays === 1 ? "" : "s"}. No further days are scored.`,
   };
 }
+

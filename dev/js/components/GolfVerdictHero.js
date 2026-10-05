@@ -43,6 +43,7 @@ export function renderGolfVerdictHero({
   weatherIcon = "🌤️",
   scoreCaption = "",
   safetyActive = false,
+  roundSummary = "",
 }) {
   const statusKey = safetyActive ? "avoid" : status?.key ?? verdict?.status?.key ?? "risky";
   const displayScore = Number.isFinite(score) ? score : verdict?.score ?? "—";
@@ -53,6 +54,8 @@ export function renderGolfVerdictHero({
 
   return `
     <section class="fw-verdict-hero fw-fade-in${safetyActive ? " fw-verdict-hero--safety" : ""}" aria-label="${safetyActive ? "Play verdict, safety risk" : "Play verdict"}" id="fwVerdictHero">
+      <p class="fw-round-verdict-title">Your round verdict</p>
+      ${roundSummary ? `<p class="fw-round-summary">${esc(roundSummary)}</p>` : ""}
       <button type="button" class="fw-verdict-hero-hit" id="fwWhyScore" aria-label="Why this score? Open score explanation">
         <span class="fw-verdict-cue">
           <i data-lucide="${cue.icon}" aria-hidden="true"></i>
@@ -67,6 +70,7 @@ export function renderGolfVerdictHero({
         <p class="fw-verdict-message">${esc(displayMessage)}</p>
         <span class="fw-verdict-why-link">Why this score?</span>
       </button>
+      <p class="fw-score-guide-inline">Higher is better · 65+ playable · 50–64 risky · below 50 poor or avoid</p>
     </section>`;
 }
 
@@ -76,7 +80,8 @@ export function wireGolfVerdictHero(container, onWhy) {
 
 export function renderVerdictHeroSkeleton() {
   return `
-    <section class="fw-verdict-hero fw-verdict-hero--skeleton" aria-busy="true">
+    <section class="fw-verdict-hero fw-verdict-hero--skeleton" aria-busy="true" aria-label="Loading round forecast">
+      <p class="fw-muted" role="status">Loading weather for your round…</p>
       ${renderLoadingMark(32)}
       <div class="fw-skeleton fw-skeleton-line"></div>
       <div class="fw-skeleton fw-skeleton-score"></div>

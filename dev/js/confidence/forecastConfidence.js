@@ -3,7 +3,7 @@
  * Rain-timing comparison uses the saved round snapshot shape (rainStartUnix, checkedAt).
  */
 
-import { getWindowData } from "../../../shared/forecast-engine.js";
+import { getWindowData } from "../../../shared/forecast-engine.js?v=20261005-round-flow";
 
 export const CONFIDENCE_RULES = {
   leadMediumHours: 24,
@@ -157,3 +157,4 @@ export function assessForecastConfidence({
     rainTimingCompared: rain.available,
   };
 }
+

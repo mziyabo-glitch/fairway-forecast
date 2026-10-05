@@ -1,7 +1,7 @@
 /**
  * Compatibility API for legacy locally stored tiers.
- * Every implemented feature is included for all visitors; no paywall or
- * saved-round limit. The old tier is intentionally ignored.
+ * Golf planning is free; Caddies is reserved for the premium launch.
+ * No billing verification exists yet. Never trust a locally stored paid tier.
  */
 import { createJsonStore } from "../storage/jsonStore.js";
 
@@ -15,6 +15,7 @@ export const FEATURE_ACCESS = Object.freeze({
   eveningPractice: true,
   society: true,
   advancedNotifications: true,
+  caddies: false,
 });
 
 const legacyTierStore = createJsonStore("fw_dev_entitlement_tier");

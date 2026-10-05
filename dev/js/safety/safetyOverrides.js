@@ -3,7 +3,7 @@
  * The objective weather score is left untouched.
  */
 
-import { getWindowData } from "../../../shared/forecast-engine.js";
+import { getWindowData } from "../../../shared/forecast-engine.js?v=20261005-round-flow";
 import { tempToCelsius, windSpeedMph } from "../../../shared/utils.js";
 
 export const SAFETY_LABEL = "Safety risk";
@@ -145,3 +145,4 @@ export function safetyVerdictDisplay(verdict, safety) {
     summary: safety.summary || "",
   };
 }
+

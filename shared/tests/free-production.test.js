@@ -23,7 +23,7 @@ describe("free advanced features on production", () => {
     for (const route of ["alerts", "society", "settings", "account"]) {
       assert.equal(tabFromPath("/" + route), route);
       assert.equal(pathForTab(route, "/"), "/" + route);
-      assert.match(read(route + "/index.html"), /app\.js\?v=20261004-aim-dial-2/);
+      assert.match(read(route + "/index.html"), /app\.js\?v=20261005-round-flow/);
     }
     assert.match(read("_redirects"), /\/alerts \/index\.html 200/);
     assert.match(read("_redirects"), /\/society \/index\.html 200/);
@@ -43,3 +43,4 @@ describe("free advanced features on production", () => {
     assert.match(read("dev/js/app.js"), /in_app_only/);
   });
 });
+

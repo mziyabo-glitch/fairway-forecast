@@ -44,7 +44,8 @@ export function renderCoursesView({
 } = {}) {
   return `
     <div class="fw-view fw-view-courses">
-      <h1 class="fw-page-title fw-page-title--prompt">Where are you playing?</h1>
+      <h1 class="fw-page-title fw-page-title--prompt">Find your golf course</h1>
+      <p class="fw-planning-intro">Choose a course, then set your date and tee time to check weather throughout your round.</p>
 
       <div class="fw-search-input-wrap fw-search-input-wrap--hero">
         <i data-lucide="search" class="fw-search-icon" aria-hidden="true"></i>
@@ -100,8 +101,9 @@ export function renderCoursesView({
       }
 
       <details class="fw-region-filters">
-        <summary>Refine region</summary>
+        <summary>Search region: ${esc(countries?.find(c => c.code === country)?.name || country || "Choose a country")}</summary>
         <div class="fw-search-row">
+          <div class="fw-region-field"><label for="fwCountrySelect">Country</label>
           <select id="fwCountrySelect" class="fw-select" aria-label="Country">
             ${countries
               .map(
@@ -110,9 +112,10 @@ export function renderCoursesView({
               )
               .join("")}
           </select>
+          </div>
           ${
             country === "us"
-              ? `<select id="fwStateSelect" class="fw-select" aria-label="State">
+              ? `<div class="fw-region-field"><label for="fwStateSelect">State</label><select id="fwStateSelect" class="fw-select" aria-label="State">
               <option value="">All states</option>
               ${usStates
                 .map(
@@ -120,7 +123,7 @@ export function renderCoursesView({
                     `<option value="${esc(s.code)}" ${s.code === state ? "selected" : ""}>${esc(s.name || s.code)}</option>`
                 )
                 .join("")}
-            </select>`
+            </select></div>`
               : ""
           }
         </div>

@@ -2,6 +2,15 @@ import { loadWindEstimate } from "../../shared/wind-source.js?v=20261003-shot";
 import { windRelativeToShot, cardinal, wrapBearing, signedAngle } from "../../shared/wind-caddie.js";
 import { PersistenceService } from "../../shared/persistence.js";
 import { initClubBag, syncClubBag } from "./components/ClubBag.js?v=20261003-fast";
+import { canAccess } from "./entitlements/entitlements.js?v=20261005-round-flow";
+import { renderCaddiesGate } from "./components/PremiumLock.js?v=20261005-round-flow";
+
+const main = document.querySelector(".fw-fast-app");
+if (!canAccess("caddies")) {
+  main.innerHTML = renderCaddiesGate({ forecastPath: location.pathname.startsWith("/dev/") ? "/dev/forecast" : "/forecast" });
+  main.hidden = false;
+} else {
+main.hidden = false;
 const $ = id => document.getElementById(id);
 const isDev = location.pathname.startsWith("/dev/");
 $("back").href = isDev ? "/dev/forecast" : "/forecast";
@@ -125,3 +134,4 @@ if(savedCourse){$("course").disabled=false;}else{$("course").disabled=true;}
 render();
 initClubBag();
 if(savedCourse) load(savedCourse.lat,savedCourse.lon,savedCourse.name || "Saved course");
+}

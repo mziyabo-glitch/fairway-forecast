@@ -4,7 +4,7 @@
  * shared/forecast-engine.js — this module does not reimplement them.
  */
 
-import { computeGolfVerdict, getWindowData } from "../../../shared/forecast-engine.js";
+import { computeGolfVerdict, getWindowData } from "../../../shared/forecast-engine.js?v=20261005-round-flow";
 import { courseDateKey } from "../../../shared/timezone.js";
 import { fmtTimeCourse, nowSec } from "../../../shared/utils.js";
 
@@ -507,3 +507,4 @@ export function focusEveningHours(hourly, fromUnix, lastPlayableLight) {
   });
   return rows.slice(-8);
 }
+

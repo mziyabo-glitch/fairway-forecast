@@ -1,4 +1,4 @@
-import { computeGolfVerdict, getWindowData } from "../../../shared/forecast-engine.js";
+import { computeGolfVerdict, getWindowData } from "../../../shared/forecast-engine.js?v=20261005-round-flow";
 import { courseDayStartSec } from "../../../shared/timezone.js";
 import { fmtTimeCourse } from "../../../shared/utils.js";
 
@@ -92,7 +92,7 @@ export function generateSocietySlots({
       label: verdict.label,
       rainProbability: verdict.metrics?.maxPrecipProb ?? null,
       wind: verdict.metrics?.avgWind ?? null,
-      scored: true,
+      scored: Number.isFinite(verdict.score),
     });
   }
 

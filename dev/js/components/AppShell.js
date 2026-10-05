@@ -12,7 +12,7 @@ const NAV_ITEMS = [
   { id: "home", label: "Home", icon: "home" },
   { id: "courses", label: "Courses", icon: "search" },
   { id: "forecast", label: "Forecast", icon: "cloud-sun" },
-  { id: "caddie", label: "Caddie", icon: "target" },
+  { id: "caddie", label: "Caddies", icon: "lock-keyhole" },
   { id: "rounds", label: "Rounds", icon: "flag" },
 ];
 
@@ -36,7 +36,7 @@ export function renderAppShell(activeTab = "home") {
         ${NAV_ITEMS.map(
           (item) => `
           <button type="button" class="fw-nav-item ${item.id === activeTab ? "is-active" : ""}"
-            data-tab="${item.id}" aria-current="${item.id === activeTab ? "page" : "false"}">
+            data-tab="${item.id}" ${item.id === "caddie" ? 'aria-label="Caddies, premium coming soon"' : ""} aria-current="${item.id === activeTab ? "page" : "false"}">
             <i data-lucide="${item.icon}" class="fw-nav-icon" aria-hidden="true"></i>
             <span class="fw-nav-label">${esc(item.label)}</span>
           </button>`
